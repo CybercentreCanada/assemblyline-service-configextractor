@@ -1,0 +1,40 @@
+
+name: ConfigExtractor
+version: 1
+description: >
+  ConfigExtractor service
+
+  This service runs parsers to extract malware configuration data
+accepts: .*
+rejects: empty|metadata/.*
+
+stage: CORE
+
+category: Static Analysis
+
+file_required: true
+
+timeout: 10
+
+disable_cache: false
+
+
+enabled: true
+
+is_external: false
+
+licence_count: 0
+
+# Service configuration block (dictionary of config variables) 
+
+
+
+# Docker configuration block which defines:
+#  - the name of the docker container that will be created
+#  - cpu and ram allocation by the container
+docker_config:
+  image: cccs/assemblyline-service-configextractor:latest
+  cpu_cores: 1.0
+  ram_mb: 1024
+
+

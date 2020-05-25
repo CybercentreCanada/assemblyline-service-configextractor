@@ -1,0 +1,41 @@
+Emotet:
+  description: yara rule that runs emotet parser when hit
+  selector:
+    yara_rule: 
+      - /home/work/workspace/mwcp_parsers/emotet.yara
+      - /home/work/workspace/mwcp_parsers/rule2.yara
+    tag: 
+      - /home/work/workspace/mwcp_parsers/tagcheck.rules
+  parser:
+      - MWCP:  
+        - Emotet
+        - enfal
+        - jimmy
+      - CAPE: 
+        - emotet
+        - enfal
+        - jonny
+
+    
+Enfal:
+  description: yara rule that runs enfal parser when hit
+  selector:
+    yara_rule:
+    - /home/work/workspace/mwcp_parsers/test.yara
+    tag: 
+  parser: 
+      - MWCP:
+         - emotet
+
+avvd:
+  description: yara rule that runs emotet parser when hit
+  selector:
+    yara_rule: 
+      - /home/work/workspace/mwcp_parsers/enfal.yara
+      - /home/work/workspace/mwcp_parsers/rule2.yara
+    tag: 
+      - /home/somerule.tagcheck
+  parser:
+      - MWCP:  
+        - abc
+        - enfal
