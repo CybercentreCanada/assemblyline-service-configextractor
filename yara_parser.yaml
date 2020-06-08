@@ -2,15 +2,16 @@ Emotet:
   description: yara rule that runs emotet parser when hit
   selector:
     yara_rule: 
-      - /home/work/workspace/mwcp_parsers/emotet.yara
-      - /home/work/workspace/mwcp_parsers/rule2.yara
+      - /home/lucky/workspace/mwcp_parsers/emotet.yara
+      - /home/lucky/workspace/mwcp_parsers/rule2.yara
     tag: 
-      - /home/work/workspace/mwcp_parsers/tagcheck.rules
-  parser:
+      - /home/lucky/workspace/mwcp_parsers/tagcheck.rules
+  parser: # Parser names must be Capitalized(same as parser names in directory)
       - MWCP:  
         - Emotet
         - enfal
         - jimmy
+        - becky
       - CAPE: 
         - emotet
         - enfal
@@ -21,20 +22,22 @@ Enfal:
   description: yara rule that runs enfal parser when hit
   selector:
     yara_rule:
-    - /home/work/workspace/mwcp_parsers/test.yara
-    tag: 
+    - /home/lucky/workspace/mwcp_parsers/test.yara
+    tag:
+      - /home/lucky/workspace/mwcp_parsers/tagcheck.rules
   parser: 
       - MWCP:
          - emotet
+         - godzilla
 
 avvd:
   description: yara rule that runs emotet parser when hit
   selector:
     yara_rule: 
-      - /home/work/workspace/mwcp_parsers/enfal.yara
-      - /home/work/workspace/mwcp_parsers/rule2.yara
+      - /home/lucky/workspace/mwcp_parsers/enfal.yara
+      - /home/lucky/workspace/mwcp_parsers/rule2.yara
     tag: 
-      - /home/somerule.tagcheck
+      - /home/lucky/workspace/mwcp_parsers/tagcheck.rules
   parser:
       - MWCP:  
         - abc

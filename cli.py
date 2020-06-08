@@ -3,9 +3,9 @@ import yara
 import mwcp
 import sys
 import click
-from collections import namedtuple
-
-parser_dir = "/home/work/workspace/mwcp_parsers/"
+import os
+user = os.getlogin()
+parser_dir = "/home/"+user+"/workspace/mwcp_parsers/"
 yara_yml = "./yara_parser.yaml"
 
 
@@ -41,26 +41,29 @@ def validate_parsers(parser_list):
 
 
 def init():
-    # Initialize components needed to compile yara rules
-    # Open yaml file to determine which parser to run
+    # Compile yara rules from yaml, rules designed for malware
     stream = open(yara_yml, 'r')
     parser_entries = yaml.full_load(stream)
     parser_objs = {}
     for parser in parser_entries:
         rule_source_paths = parser_entries[parser]['selector']['yara_rule']
+        for rule in rule_source_paths:
+            if not os.path.isfile(rule):
+                raise Exception("Rule ", rule, "does not exist")
+
         parser_types = parser_entries[parser]['parser']
         parsers = validate_parsers(parser_types)
         compiled_rules = []
         for rule_source_path in rule_source_paths:
-            # rule_source = openyara(rule_source_path, parser)
             rule = yara.compile(filepath=rule_source_path)
             compiled_rules.append(rule)
         parser_objs[parser] = Parser(parser, parsers, compiled_rules)
+
     return parser_objs
 
 
-def openyara(rule_path, parser_name):
-	#returns list of strings containing yara rule strings
+def openyara(rule_path):
+    # returns list of strings containing yara rule strings
     with open(rule_path, 'r') as f:
         contents = f.read()
         group = []
@@ -68,13 +71,12 @@ def openyara(rule_path, parser_name):
         for i in split:
             if i:
                 group.append('rule' + i)
-
         return group
 
 
 def init_tags(tags):
-    # Initialize components needed to compile yara rules
-    # Open yaml file to determine which parser to run
+    # Compile yara rules from path indicated in yaml, rules run on tags
+
     stream = open(yara_yml, 'r')
     parser_entries = yaml.full_load(stream)
     parser_objs = {}
@@ -82,58 +84,79 @@ def init_tags(tags):
         rule_source_paths = parser_entries[parser]['selector']['tag']
         parser_types = parser_entries[parser]['parser']
         parsers = validate_parsers(parser_types)
-        print(rule_source_paths,"\n\n", parsers)
         compiled_rules = []
         for rule_source_path in rule_source_paths:
-            rule_sources = openyara(rule_source_path, parser)
-            for rule in rule_sources:
-            	print((rule))
-
-            	r=(yara.compile(source=rule, externals=tags))
-            	print("\n\n")
-            rule = yara.compile(filepath=rule_source_path)
-            print("\nrule is", rule)
-            print('fdjsaa\n\nfdska')
-            compiled_rules.append(rule)
+            r=(yara.compile(rule_source_path, externals=tags))
+            compiled_rules.append(r)
         parser_objs[parser] = Parser(parser, parsers, compiled_rules)
     return parser_objs
 
 
 def cb(data):
     match = data['matches']
-    if not match:
+    if match:
         # run mwcp what is parser name?
-        print(data)
+        #print(data)
+        pass
 
 
-def run(parser_dict, f_path):
+def run(parser_list, f_path):
     mwcp.register_entry_points()
     mwcp.register_parser_directory(parser_dir)
     reporter = mwcp.Reporter()
-    # print(mwcp.get_parser_descriptions(config_only=False)) breaks idk why
-    for parser, parser_obj in parser_dict.items():
-        # check if match in any of compiled rules, if any match run all parsers
-        print('parser is \n', parser)
-        for rule in parser_obj.compiled_rules:
-            match = rule.match(f_path)  # callback runs regardless of whether match to yara rule is found
-            print("match is\n", match)
-            if bool(match):  # if no match found match() returns empty dict, if callback runs then match returns empty dict as well
-                print("\n\nparser list is",parser_obj.parser_list)
-                for i in parser_obj.parser_list:
-                    print(i, 'being run')
-                    reporter.run_parser(i, file_path=f_path)
-                    print(parser, "output:")
-                    reporter.print_report()
-        # all parsers to be run must be in yml file in parser_dir
+    #all parsers in this list already matched
+    # all parsers to be run must be in yml file in parser_dir
+    outputs={}
+    for parser in parser_list:
+        reporter.run_parser(parser, file_path=f_path)
+        output = reporter.get_output_text()
+        outputs[parser]=output
+    return outputs
 
+def deduplicate(file_pars, tag_pars, file_path):
+    # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
+    # there needs to be a match first
+    super_parser_list = []
+    # foreach entry we get all compiled file yara rules and see if theres a match,
+    # if there is a match then we add all parsers for that parser object to the super list
+    if file_pars is not None:
+        for pars, obj in file_pars.items():
+            for rule in obj.compiled_rules:
+                # each compiled rule object from yara_rule in yml
+                matched_rule = rule.match(file_path, callback=cb)
+                if matched_rule:
+                    obj.match = True
+                    super_parser_list.extend(obj.parser_list)
+                else:
+                    # print("file match not found for ", pars, obj.name)
+                    pass
+    if tag_pars is not None:
+        for pars, obj in tag_pars.items():
+            for rule in obj.compiled_rules:
+                matched_rule = rule.match(file_path, callback=cb)
+                if matched_rule :
+                    obj.match = True
+                    super_parser_list.extend(obj.parser_list)
+                else:
+                    print("tag match not found for ", pars)
+    super_parser_list = [i.lower().capitalize() for i in super_parser_list]
+    super_parser_list = list(set(super_parser_list))
+    return super_parser_list
+
+def compile(f_path, tags=None):
+    # returns dict of parser names with Parser objects containing  compiled rules
+    if tags is not None:
+         parser_objs_tags = init_tags(tags)
+         parser_objs = init()
+         return parser_objs, parser_objs_tags
+    parser_objs = init()
+    return parser_objs, None
 
 def start(f_path, tags=None):
-    print(sys.version)
     if tags is not None:
-        #parser_objs_tags = init_tags(tags)
-        print('ajajj')
+        parser_objs_tags = init_tags(tags)
     parser_objects = init()
-    run(parser_objects, f_path)
+    run(parser_objects,  f_path)
 
 
 @click.command()
@@ -143,7 +166,14 @@ def main(file_path) -> None:
     Runs Malware parsers based on
     output of yara rules defined at and tags from AV hits
     """
-    start(file_path)
+    # if running cli mode tags are not expected
+    file_pars,tag_pars = compile(file_path)
+    print(file_pars,tag_pars)
+    parsers = deduplicate(file_pars,tag_pars, file_path)
+    print(parsers)
+    run(parsers, file_path)
+    # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
+    # but can't run parsers until final list of parsers to run, from tag and file parsers is finished
 
 
 if __name__ == "__main__":
