@@ -1,7 +1,6 @@
 import yaml
 import yara
 import mwcp
-import sys
 import click
 import os
 user = os.getlogin()
@@ -17,14 +16,6 @@ class Parser:
         self.match = False
 
 
-def selector():
-    '''selects whether to run parser
-    based on yara rule, av tag or by default run all parsers
-    if tag exists, run corresponding parser, if it doesn't then
-    check if yara rules exist, if they do then run init, in
-    other cases run all parsers defined in yara_yml'''
-
-
 def validate_parsers(parser_list):
     parsers_dedup = []
     for i in parser_list:
@@ -32,7 +23,9 @@ def validate_parsers(parser_list):
             if key == 'MWCP':
                 parsers_dedup.extend(i['MWCP'])
             elif key == 'CAPE':
-                parsers_dedup.extend(i['CAPE'])
+                pass
+                # TODO add compatibility for cape parsers
+                # parsers_dedup.extend(i['CAPE'])
             else:
                 raise NameError("Parser type is invalid, only CAPE and MWCP supported")
 
@@ -60,18 +53,6 @@ def init():
         parser_objs[parser] = Parser(parser, parsers, compiled_rules)
 
     return parser_objs
-
-
-def openyara(rule_path):
-    # returns list of strings containing yara rule strings
-    with open(rule_path, 'r') as f:
-        contents = f.read()
-        group = []
-        split = contents.split('rule')
-        for i in split:
-            if i:
-                group.append('rule' + i)
-        return group
 
 
 def init_tags(tags):
@@ -113,7 +94,7 @@ def run(parser_list, f_path):
         outputs[parser]=output
     return outputs
 
-def deduplicate(file_pars, tag_pars, file_path):
+def deduplicate(file_pars, tag_pars, file_path, tags_dict):
     # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
     # there needs to be a match first
     super_parser_list = []
@@ -133,17 +114,17 @@ def deduplicate(file_pars, tag_pars, file_path):
     if tag_pars is not None:
         for pars, obj in tag_pars.items():
             for rule in obj.compiled_rules:
-                matched_rule = rule.match(file_path, callback=cb)
-                if matched_rule :
-                    obj.match = True
-                    super_parser_list.extend(obj.parser_list)
-                else:
-                    print("tag match not found for ", pars)
+                    matched_rule = rule.match(file_path, callback=cb, externals=tags_dict)
+                    if matched_rule :
+                        obj.match = True
+                        super_parser_list.extend(obj.parser_list)
+                    else:
+                        print("tag match not found for ", pars)
     super_parser_list = [i.lower().capitalize() for i in super_parser_list]
     super_parser_list = list(set(super_parser_list))
     return super_parser_list
 
-def compile(f_path, tags=None):
+def compile(tags=None):
     # returns dict of parser names with Parser objects containing  compiled rules
     if tags is not None:
          parser_objs_tags = init_tags(tags)

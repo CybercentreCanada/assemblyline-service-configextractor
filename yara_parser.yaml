@@ -10,14 +10,12 @@ Emotet:
       - MWCP:  
         - Emotet
         - enfal
-        - jimmy
-        - becky
+        - myfavoriteparser
+        - someparser
       - CAPE: 
-        - emotet
-        - enfal
-        - jonny
+        - capeParser1
+        - second
 
-    
 Enfal:
   description: yara rule that runs enfal parser when hit
   selector:
@@ -30,15 +28,15 @@ Enfal:
          - emotet
          - godzilla
 
-avvd:
-  description: yara rule that runs emotet parser when hit
+MalwareFamily:
+  description: yara rule that runs some parsers when there is a match for MalwareFamily
   selector:
     yara_rule: 
       - /home/lucky/workspace/mwcp_parsers/enfal.yara
-      - /home/lucky/workspace/mwcp_parsers/rule2.yara
+
     tag: 
       - /home/lucky/workspace/mwcp_parsers/tagcheck.rules
   parser:
       - MWCP:  
-        - abc
-        - enfal
+        - GenericParser
+        - GenericParser2
