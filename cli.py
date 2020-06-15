@@ -3,8 +3,8 @@ import yara
 import mwcp
 import click
 import os
-user = os.getlogin()
-parser_dir = "/home/"+user+"/workspace/mwcp_parsers/"
+
+parser_dir = "./"
 yara_yml = "./yara_parser.yaml"
 
 
@@ -91,7 +91,11 @@ def run(parser_list, f_path):
     for parser in parser_list:
         reporter.run_parser(parser, file_path=f_path)
         output = reporter.get_output_text()
-        outputs[parser]=output
+        if __name__=='main':
+            reporter.print_report()
+
+        print(reporter.metadata)
+        outputs[parser]=reporter.fields
     return outputs
 
 def deduplicate(file_pars, tag_pars, file_path, tags_dict):

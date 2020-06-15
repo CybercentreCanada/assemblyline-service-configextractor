@@ -1,0 +1,12 @@
+Emotet:
+  description: Emotet example parser that works on any file
+  author: CAPE
+  parsers:
+    - .Emotet
+    
+
+Azorult:
+  description: Azorult parser 
+  author: CAPE
+  parsers:
+    - .Azorult
