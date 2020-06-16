@@ -28,28 +28,12 @@ licence_count: 0
 # Service configuration block (dictionary of config variables) 
 
 heuristics:
-  - description: This suspicious heuristic fakes making as a PDF
+  - description: This suspicious heuristic indicates configuration block was extracted
     filetype: "*"
     heur_id: 1
-    name: Masks has PDF
+    name: Extracted Malware Configuration
     score: 100
-  - description: This malicious heuristic fakes dropping and side-loading a DLL and has an Att&ck ID associated with it
-    filetype: "*"
-    heur_id: 2
-    name: Drops an exe
-    score: 1000
-    attack_id: T1073
-  - description: This informational heuristic fakes extracting a configuration block
-    filetype: "*"
-    heur_id: 3
-    name: Extraction config information
-    score: 9000
-  - description: This suspicious heuristic fakes decoding a configuration block and has an Att&ck ID associated with it
-    filetype: "*"
-    heur_id: 4
-    name: Config decoding
-    score: 100
-    attack_id: T1027
+
 
 # Docker configuration block which defines:
 #  - the name of the docker container that will be created

@@ -4,9 +4,9 @@ import mwcp
 import click
 import os
 
-parser_dir = "./"
+parser_dir = "./mwcp_parsers/"
 yara_yml = "./yara_parser.yaml"
-
+parserconfig = "parser_config.yml"
 
 class Parser:
     def __init__(self, name, parser_list, compiled_rules):
@@ -80,6 +80,35 @@ def cb(data):
         #print(data)
         pass
 
+def validate_parser_config() :
+    parsers = []
+    yaml_parsers = {}
+
+    for file in os.listdir(parser_dir):
+        if file.endswith(".py"):
+            parsers.append(file)
+    parsers.remove("__init__.py")
+
+    # find name of parser class
+    for parser in parsers:
+        file = open(parser_dir+parser)
+        parser = parser[:-3]
+        for line in file:
+            if (line.partition("class ")[2].partition("(Parser):")[0]):
+                parser_class=line.partition("class ")[2].partition("(Parser):")[0]
+                entry = {"description": f"{parser} Parser", "author": "CAPE", "parsers": [f".{parser_class}"]}
+                yaml_parsers[parser] = entry
+        file.close()
+
+    path = parser_dir + parserconfig
+
+    with open(path, "r+",  encoding='utf-8') as f:
+        parsers = yaml.full_load(f)
+        for entry, value in yaml_parsers.items():
+            if entry not in parsers:
+                p = {entry:value}
+                document = yaml.dump(p, f)
+
 
 def run(parser_list, f_path):
     mwcp.register_entry_points()
@@ -91,14 +120,16 @@ def run(parser_list, f_path):
     for parser in parser_list:
         reporter.run_parser(parser, file_path=f_path)
         output = reporter.get_output_text()
-        if __name__=='main':
-            reporter.print_report()
+        if __name__=='__main__':
+           # reporter.print_report()
+            print(f"{parser}: \n",output)
 
-        print(reporter.metadata)
+
+        #print("metadata found :",reporter.metadata)
         outputs[parser]=reporter.fields
     return outputs
 
-def deduplicate(file_pars, tag_pars, file_path, tags_dict):
+def deduplicate(file_pars, tag_pars, file_path, tags_dict=None):
     # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
     # there needs to be a match first
     super_parser_list = []
@@ -152,10 +183,9 @@ def main(file_path) -> None:
     output of yara rules defined at and tags from AV hits
     """
     # if running cli mode tags are not expected
-    file_pars,tag_pars = compile(file_path)
-    print(file_pars,tag_pars)
+    validate_parser_config()
+    file_pars,tag_pars = compile()
     parsers = deduplicate(file_pars,tag_pars, file_path)
-    print(parsers)
     run(parsers, file_path)
     # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
     # but can't run parsers until final list of parsers to run, from tag and file parsers is finished

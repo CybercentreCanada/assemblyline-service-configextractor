@@ -3,10 +3,89 @@ Emotet:
   author: CAPE
   parsers:
     - .Emotet
-    
-
 Azorult:
   description: Azorult parser 
   author: CAPE
   parsers:
     - .Azorult
+
+RedLeaf:
+  author: CAPE
+  description: RedLeaf Parser
+  parsers:
+  - .redleaf
+BitPaymer:
+  author: CAPE
+  description: BitPaymer Parser
+  parsers:
+  - .BitPaymer
+DridexLoader:
+  author: CAPE
+  description: DridexLoader Parser
+  parsers:
+  - .DridexLoader
+Remcos:
+  author: CAPE
+  description: Remcos Parser
+  parsers:
+  - .Remcos
+ChChes:
+  author: CAPE
+  description: ChChes Parser
+  parsers:
+  - .ChChes
+HttpBrowser:
+  author: CAPE
+  description: HttpBrowser Parser
+  parsers:
+  - .evilgrab
+Redsip:
+  author: CAPE
+  description: Redsip Parser
+  parsers:
+  - .Redsip
+IcedID:
+  author: CAPE
+  description: IcedID Parser
+  parsers:
+  - .IcedID
+EvilGrab:
+  author: CAPE
+  description: EvilGrab Parser
+  parsers:
+  - .evilgrab
+Loki:
+  author: CAPE
+  description: Loki Parser
+  parsers:
+  - .Loki
+Retefe:
+  author: CAPE
+  description: Retefe Parser
+  parsers:
+  - .Retefe
+QakBot:
+  author: CAPE
+  description: QakBot Parser
+  parsers:
+  - .QakBot
+DoppelPaymer:
+  author: CAPE
+  description: DoppelPaymer Parser
+  parsers:
+  - .DoppelPaymer
+SmokeLoader:
+  author: CAPE
+  description: SmokeLoader Parser
+  parsers:
+  - .SmokeLoader
+Enfal:
+  author: CAPE
+  description: Enfal Parser
+  parsers:
+  - .enfal
+RCSession:
+  author: CAPE
+  description: RCSession Parser
+  parsers:
+  - .RCSession
