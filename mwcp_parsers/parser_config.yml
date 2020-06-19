@@ -1,91 +1,85 @@
-Emotet:
-  description: Emotet example parser that works on any file
-  author: CAPE
-  parsers:
-    - .Emotet
-Azorult:
-  description: Azorult parser 
-  author: CAPE
-  parsers:
-    - .Azorult
-
 RedLeaf:
-  author: CAPE
+  author: Not Found
   description: RedLeaf Parser
   parsers:
   - .redleaf
 BitPaymer:
-  author: CAPE
+  author: Not Found
   description: BitPaymer Parser
   parsers:
   - .BitPaymer
-DridexLoader:
-  author: CAPE
-  description: DridexLoader Parser
-  parsers:
-  - .DridexLoader
 Remcos:
-  author: CAPE
+  author: Not Found
   description: Remcos Parser
   parsers:
   - .Remcos
 ChChes:
-  author: CAPE
+  author: Not Found
   description: ChChes Parser
   parsers:
   - .ChChes
 HttpBrowser:
-  author: CAPE
+  author: Not Found
   description: HttpBrowser Parser
   parsers:
   - .evilgrab
 Redsip:
-  author: CAPE
+  author: Not Found
   description: Redsip Parser
   parsers:
   - .Redsip
 IcedID:
-  author: CAPE
+  author: Not Found
   description: IcedID Parser
   parsers:
   - .IcedID
 EvilGrab:
-  author: CAPE
+  author: Not Found
   description: EvilGrab Parser
   parsers:
   - .evilgrab
 Loki:
-  author: CAPE
+  author: Not Found
   description: Loki Parser
   parsers:
   - .Loki
 Retefe:
-  author: CAPE
+  author: Not Found
   description: Retefe Parser
   parsers:
   - .Retefe
+Azorult:
+  author: Not Found
+  description: Azorult Parser
+  parsers:
+  - .Azorult
 QakBot:
-  author: CAPE
+  author: Not Found
   description: QakBot Parser
   parsers:
   - .QakBot
 DoppelPaymer:
-  author: CAPE
+  author: Not Found
   description: DoppelPaymer Parser
   parsers:
   - .DoppelPaymer
 SmokeLoader:
-  author: CAPE
+  author: Not Found
   description: SmokeLoader Parser
   parsers:
   - .SmokeLoader
 Enfal:
-  author: CAPE
+  author: Not Found
   description: Enfal Parser
   parsers:
   - .enfal
 RCSession:
-  author: CAPE
+  author: Not Found
   description: RCSession Parser
   parsers:
   - .RCSession
+Emotet:
+  author: Not Found
+  description: Emotet Parser
+  parsers:
+  - .Emotet

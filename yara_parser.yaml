@@ -1,17 +1,16 @@
 Emotet:
   description: yara rule that runs emotet parser when hit
   selector:
-    yara_rule: 
-      - ./mwcp_parsers/emotet.yara
-      - ./mwcp_parsers/rule2.yara
-    tag: 
-      - ./mwcp_parsers/tagcheck.rules
+    yara_rule: # Must not have empty or nonexistant fields
+      - ./yara_rules/emotet.yara
+      - ./yara_rules/rule2.yara # Runs on any pe file
+    tag: # Must not have empty or nonexistant fields
+      - ./tag_rules/tagcheck.rules
   parser: # Parser names must be Capitalized(same as parser names in directory)
       - MWCP:  
         - Emotet
         - enfal
-        - myfavoriteparser
-        - someparser
+
       - CAPE: 
         - capeParser1
         - second
@@ -20,23 +19,28 @@ Enfal:
   description: yara rule that runs enfal parser when hit
   selector:
     yara_rule:
-    - ./mwcp_parsers/test.yara
+      - ./yara_rules/emotet.yara
     tag:
-      - ./mwcp_parsers/tagcheck.rules
+      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - emotet
          - godzilla
 
-MalwareFamily:
-  description: yara rule that runs some parsers when there is a match for MalwareFamily
+QakBot:
+  description: yara rule that runs some parsers when there is a match for QakBot
   selector:
-    yara_rule: 
-      - ./mwcp_parsers/enfal.yara
-
-    tag: 
-      - ./mwcp_parsers/tagcheck.rules
+    yara_rule:
+      - ./yara_rules/emotet.yara
+    tag:
+       - ./tag_rules/tagcheck.rules
   parser:
       - MWCP:  
-        - GenericParser
-        - GenericParser2
+        - QakBot
+Azorult:
+  description: yara rule that runs some parsers when there is a match for QakBot
+  selector:
+    wildcard: # if wildcard exists all parsers in this block are run
+  parser:
+      - MWCP:
+        - Loki
