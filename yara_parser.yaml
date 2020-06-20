@@ -24,8 +24,7 @@ Enfal:
       - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
-         - emotet
-         - godzilla
+         - Enfal
 
 QakBot:
   description: yara rule that runs some parsers when there is a match for QakBot
@@ -37,7 +36,7 @@ QakBot:
   parser:
       - MWCP:  
         - QakBot
-Azorult:
+Other:
   description: yara rule that runs some parsers when there is a match for QakBot
   selector:
     wildcard: # if wildcard exists all parsers in this block are run
