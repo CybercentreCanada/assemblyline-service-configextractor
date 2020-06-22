@@ -1,45 +1,151 @@
+Azorult:
+  description: runs Azorult parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/azorult.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - Azorult
+BitPaymer:
+  description: runs BitPaymer parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/bitpaymer.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - BitPaymer
+ChChes:
+  description: runs ChChes parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/chches.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - ChChes
+DoppelPaymer:
+  description: runs DoppelPaymer parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/doppelpaymer.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - DoppelPaymer
+
 Emotet:
   description: yara rule that runs emotet parser when hit
   selector:
     yara_rule: # Must not have empty or nonexistant fields
       - ./yara_rules/emotet.yara
-      - ./yara_rules/rule2.yara # Runs on any pe file
     tag: # Must not have empty or nonexistant fields
       - ./tag_rules/tagcheck.rules
-  parser: # Parser names must be Capitalized(same as parser names in directory)
+  parser: 
       - MWCP:  
         - Emotet
-        - enfal
-
-      - CAPE: 
-        - capeParser1
-        - second
 
 Enfal:
   description: yara rule that runs enfal parser when hit
   selector:
     yara_rule:
-      - ./yara_rules/emotet.yara
+      - ./yara_rules/enfal.yara
     tag:
       - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - Enfal
-
-QakBot:
-  description: yara rule that runs some parsers when there is a match for QakBot
+EvilGrab:
+  description: runs EvilGrab parser when hit
   selector:
     yara_rule:
-      - ./yara_rules/emotet.yara
+      - ./yara_rules/evilgrab.yara
     tag:
-       - ./tag_rules/tagcheck.rules
-  parser:
-      - MWCP:  
-        - QakBot
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - EvilGrab
+HttpBrowser:
+  description: runs HttpBrowser parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/httpbrowser.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - HttpBrowser
+IcedID:
+  description: runs IcedID parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/icedid.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - IcedID
+RCSession:
+  description: runs RCSession parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/rcsession.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - RCSession
+RedLeaf:
+  description: runs RedLeaf parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/redleaf.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - RedLeaf
+Redsip:
+  description: runs Redsip parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/redsip.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - Redsip
+Retefe:
+  description: runs Retefe parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/retefe.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - Retefe
+SmokeLoader:
+  description: runs SmokeLoader parser when hit
+  selector:
+    yara_rule:
+      - ./yara_rules/smokeloader.yara
+    tag:
+      - ./tag_rules/tagcheck.rules
+  parser: 
+      - MWCP:
+         - SmokeLoader
 Other:
-  description: yara rule that runs some parsers when there is a match for QakBot
+  description: runs parsers that don't have yara rules
   selector:
     wildcard: # if wildcard exists all parsers in this block are run
   parser:
       - MWCP:
         - Loki
+	- QakBot
+	- Remcos
