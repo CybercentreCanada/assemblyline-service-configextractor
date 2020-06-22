@@ -147,5 +147,5 @@ Other:
   parser:
       - MWCP:
         - Loki
-	- QakBot
-	- Remcos
+        - QakBot
+        - Remcos

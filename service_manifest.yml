@@ -14,7 +14,7 @@ category: Static Analysis
 
 file_required: true
 
-timeout: 10$SERVICE_TAG
+timeout: 10
 
 disable_cache: false
 
