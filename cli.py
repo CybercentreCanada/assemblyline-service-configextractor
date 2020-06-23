@@ -137,7 +137,11 @@ def run(parser_list: List[str], f_path: str):
     if __name__ == '__main__':
         reporter.output_file(bytes(str(json.dumps(outputs)), encoding='utf-8'),"output.json")
     return outputs
-
+def checkNames(parsers: List[str]):
+    dir_parsers=[p[:-3] for p in os.listdir(parser_dir)]
+    for parser in parsers:
+        if parser not in dir_parsers:
+            raise Exception(f"{parser} not found in {parser_dir}")
 
 def deduplicate(file_pars, tag_pars, file_path, tags_dict=None):
     # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
@@ -170,6 +174,8 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None):
 
     super_parser_list = [i[0].upper() + i[1:] for i in super_parser_list]
     super_parser_list = list(set(super_parser_list))
+    checkNames(super_parser_list)
+
     return super_parser_list
 
 
