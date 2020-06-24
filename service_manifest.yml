@@ -32,7 +32,7 @@ heuristics:
     filetype: "*"
     heur_id: 1
     name: Extracted Malware Configuration
-    score: 100
+    score: 1000
 
 
 # Docker configuration block which defines:

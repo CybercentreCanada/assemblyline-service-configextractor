@@ -43,9 +43,9 @@ Emotet:
   description: yara rule that runs emotet parser when hit
   selector:
     yara_rule: # Must not have empty or nonexistant fields
-      - ./yara_rules/emotet.yara
+
     tag: # Must not have empty or nonexistant fields
-      - ./tag_rules/tagcheck.rules
+      - ./tag_rules/emotet.rule
   parser: 
       - MWCP:  
         - Emotet
