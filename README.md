@@ -1,8 +1,13 @@
 # assemblyline-service-configextractor
-This service wraps the MWCP framework. Meant to extract Malware Configuration data from various malware
-families. Runs yara rules on files as well as service tags to determine which parsers to run.
+This is meant to extract Malware Configuration data from various malware
+families and provide a wrapper for popular malware config decoders:
+* MWCP framework: https://github.com/Defense-Cyber-Crime-Center/DC3-MWCP [MIT license]
+* RATDecoder: https://github.com/kevthehermit/RATDecoders [MIT license]
+* CAPE Sandbox: https://github.com/kevoreilly/CAPEv2/ [GPL license] (many thanks to @kevoreilly for releasing so many open source parsers).
 
+This wrapper and the AssemblyLine service is released as MIT, but include work released under the GPL license and include the license and copyright.
 
+yara_parser.yaml is used to trigger parser based on: a Yara rule, AssemblyLine Tag Found or for any file.
 
 ## Service structure
 
