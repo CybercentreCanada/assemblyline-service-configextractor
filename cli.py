@@ -4,6 +4,7 @@ import mwcp
 import click
 import os
 import json
+from pathlib import Path
 from typing import List
 
 parser_dir = "./mwcp_parsers/"
@@ -96,28 +97,23 @@ def cb(data):
 def validate_parser_config():
     parsers = []
     yaml_parsers = {}
-
-    for file in os.listdir(parser_dir):
-        if file.endswith(".py"):
-            parsers.append(file)
-    parsers.remove("__init__.py")
-
+    # get list of .py files that don't start with _
+    parsers = [p for p in Path(parser_dir).glob("[!_]*.py")]
     # find name of parser class
     for parser in parsers:
-        file = open(parser_dir + parser)
-        parser = parser[:-3]
+        file = open(parser_dir + parser.name)
         for line in file:
             if line.partition("class ")[2].partition("(Parser):")[0]:
                 parser_class = line.partition("class ")[2].partition("(Parser):")[0]
-                entry = {"description": f"{parser} Parser", "author": "Not Found", "parsers": [f".{parser_class}"]}
-                yaml_parsers[parser] = entry
+                entry = {"description": f"{parser.stem} Parser", "author": "Not Found", "parsers": [f".{parser_class}"]}
+                yaml_parsers[parser.stem] = entry
         file.close()
     path = parser_dir + parserconfig
     with open(path, "w+", encoding='utf-8') as f:
         for entry, value in yaml_parsers.items():
             p = {entry: value}
             document = yaml.dump(p, f)
-    return [parser[:-3] for parser in parsers]
+    return [parser.name for parser in parsers]
 
 
 def run(parser_list: List[str], f_path: str):
@@ -135,13 +131,19 @@ def run(parser_list: List[str], f_path: str):
         if __name__ == '__main__':
             print(f"{parser}: \n", output)
     if __name__ == '__main__':
-        reporter.output_file(bytes(str(json.dumps(outputs)), encoding='utf-8'),"output.json")
+        reporter.output_file(bytes(str(json.dumps(outputs)), encoding='utf-8'), "output.json")
     return outputs
+
+
 def checkNames(parsers: List[str]):
-    dir_parsers=[p[:-3] for p in os.listdir(parser_dir)]
+    dir_parsers = [p[:-3] for p in os.listdir(parser_dir)]
+    print(parsers)
     for parser in parsers:
-        if parser not in dir_parsers:
+        if parser.startswith("TA"):
+            print("fuck")
+        elif parser not in dir_parsers:
             raise Exception(f"{parser} not found in {parser_dir}")
+
 
 def deduplicate(file_pars, tag_pars, file_path, tags_dict=None):
     # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
@@ -202,6 +204,7 @@ def main(file_path) -> None:
     parsers = deduplicate(file_pars, tag_pars, file_path)
     # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
     run(parsers, file_path)
+
     # but can't run parsers until final list of parsers to run, from tag and file parsers is finished
 
 

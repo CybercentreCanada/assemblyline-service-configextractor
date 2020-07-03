@@ -1,4 +1,4 @@
-# assemblyline-service-configextractor
+# ConfigExtractor Service
 This service wraps the MWCP framework. Meant to extract Malware Configuration data from various malware
 families. Runs yara rules on files as well as service tags to determine which parsers to run.
 
@@ -41,6 +41,8 @@ This is overview of each of these :
 2. Add tag rule defined in yara_parser.yaml to tag_rules directory (Optional)
 3. Add parser to mwcp_parsers directory
 
+### CLI Usage
+ Run `python3.7 cli.py "file"` where "file" is replaced with path of file
 ##### Note
 Parser with wildcard in yara_parser.yml are default parsers that are run every time if no other matches are found.
 
