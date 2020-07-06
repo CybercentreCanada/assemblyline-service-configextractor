@@ -31,7 +31,6 @@ class ConfigExtractor(ServiceBase):
         # TODO add MWCP / CAPE field configuration
         # json_section= ResultSection("JSON Section", body_format=BODY_FORMAT.JSON, body=json.dumps(field_dict))
         # result.add_section(json_section)
-
         parser_section = ResultSection(f"{parsertype} : {parser}")
         fields_liststrings = {"address": "network.dynamic.uri", "c2_url": "network.dynamic.uri",
                               "c2_address": "network.dynamic.uri", "registrypath": "dynamic.registry_key",
@@ -47,7 +46,7 @@ class ConfigExtractor(ServiceBase):
                     generic_section.set_heuristic(1)
                 for line in field_dict[field]:
                     generic_section.add_line(f"{line}")
-
+                parser_section.add_tag('attribution.implant', parser.upper())
                 if tag:
                     for x in field_dict[field]:
                         generic_section.add_tag(tag, x)

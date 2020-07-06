@@ -137,10 +137,9 @@ def run(parser_list: List[str], f_path: str):
 
 def checkNames(parsers: List[str]):
     dir_parsers = [p[:-3] for p in os.listdir(parser_dir)]
-    print(parsers)
     for parser in parsers:
         if parser.startswith("TA"):
-            print("fuck")
+            print("TA parser")
         elif parser not in dir_parsers:
             raise Exception(f"{parser} not found in {parser_dir}")
 
