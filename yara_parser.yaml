@@ -1,7 +1,7 @@
 Azorult:
   description: runs Azorult parser when hit
   selector:
-    yara_rule:
+    yara_rule: # Must not have empty or nonexistent fields
       - ./yara_rules/azorult.yara
     tag:
       - ./tag_rules/tagcheck.rules
@@ -42,9 +42,9 @@ DoppelPaymer:
 Emotet:
   description: yara rule that runs emotet parser when hit
   selector:
-    yara_rule: # Must not have empty or nonexistant fields
-
-    tag: # Must not have empty or nonexistant fields
+    yara_rule:
+      - ./yara_rules/emotet.yara
+    tag:
       - ./tag_rules/emotet.rule
   parser: 
       - MWCP:  
@@ -140,12 +140,3 @@ SmokeLoader:
   parser: 
       - MWCP:
          - SmokeLoader
-Other:
-  description: runs parsers that don't have yara rules
-  selector:
-    wildcard: # if wildcard exists all parsers in this block are run
-  parser:
-      - MWCP:
-        - Loki
-        - QakBot
-        - Remcos
