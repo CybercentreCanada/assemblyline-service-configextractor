@@ -43,15 +43,13 @@ COPY --chown=assemblyline:assemblyline --from=build /var/lib/assemblyline/.local
 RUN mkdir -p /mount/updates
 RUN mkdir -p /opt/al_service
 
-# Install MWCP and packages
-RUN pip install mwcp
-RUN pip uninstall --yes pyparsing
-
-
 # Copy service code
 WORKDIR /opt/al_service
 COPY . .
 
+# Install MWCP and packages
+RUN pip uninstall --yes pyparsing
+RUN pip install -r requirements.txt
 
 # Cleanup
 RUN rm ./Dockerfile
