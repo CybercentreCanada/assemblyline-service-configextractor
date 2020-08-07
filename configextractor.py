@@ -89,7 +89,6 @@ class ConfigExtractor(ServiceBase):
         result = Result()
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, self.mwcp_reporter)
-  X
 
         if type(output) is dict:
             for parser, fields in output.items():

@@ -2,4 +2,6 @@ __pycache__
 .idea
 %LOCALAPPDATA%/
 getRATDecworking.py
-
+test_cape.py
+cape_test.py
+cape_tst.py
