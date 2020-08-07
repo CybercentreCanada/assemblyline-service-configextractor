@@ -23,8 +23,6 @@ USER assemblyline
 RUN touch /tmp/before-pip
 RUN pip install --no-cache-dir --user yara-python gitpython plyara && rm -rf ~/.cache/pip
 
-
-
 # Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
 # files that already exist in the base image
 RUN find /var/lib/assemblyline/.local -type f ! -newer /tmp/before-pip -delete
