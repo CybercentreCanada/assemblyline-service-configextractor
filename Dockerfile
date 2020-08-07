@@ -46,7 +46,7 @@ WORKDIR /opt/al_service
 COPY . .
 
 # Install MWCP and packages
-RUN apt-get install python-dev gcc
+RUN apt-get update && apt-get install -y python-dev gcc
 RUN pip uninstall --yes pyparsing
 RUN pip install -r requirements.txt
 
