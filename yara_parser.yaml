@@ -4,8 +4,6 @@ Azorult:
   selector:
     yara_rule: # Must not have empty or nonexistent fields
       - ./yara_rules/azorult.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - Azorult
@@ -15,8 +13,6 @@ BitPaymer:
   selector:
     yara_rule:
       - ./yara_rules/bitpaymer.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - BitPaymer
@@ -26,8 +22,6 @@ ChChes:
   selector:
     yara_rule:
       - ./yara_rules/chches.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - ChChes
@@ -37,8 +31,6 @@ DoppelPaymer:
   selector:
     yara_rule:
       - ./yara_rules/doppelpaymer.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - DoppelPaymer
@@ -61,8 +53,6 @@ Enfal:
   selector:
     yara_rule:
       - ./yara_rules/enfal.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - Enfal
@@ -72,8 +62,6 @@ EvilGrab:
   selector:
     yara_rule:
       - ./yara_rules/evilgrab.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - EvilGrab
@@ -83,8 +71,6 @@ HttpBrowser:
   selector:
     yara_rule:
       - ./yara_rules/httpbrowser.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - HttpBrowser
@@ -94,8 +80,6 @@ IcedID:
   selector:
     yara_rule:
       - ./yara_rules/icedid.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - IcedID
@@ -105,8 +89,6 @@ RCSession:
   selector:
     yara_rule:
       - ./yara_rules/rcsession.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - RCSession
@@ -116,8 +98,6 @@ RedLeaf:
   selector:
     yara_rule:
       - ./yara_rules/redleaf.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - RedLeaf
@@ -127,8 +107,6 @@ Redsip:
   selector:
     yara_rule:
       - ./yara_rules/redsip.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - Redsip
@@ -138,8 +116,6 @@ Retefe:
   selector:
     yara_rule:
       - ./yara_rules/retefe.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - Retefe
@@ -149,8 +125,15 @@ SmokeLoader:
   selector:
     yara_rule:
       - ./yara_rules/smokeloader.yara
-    tag:
-      - ./tag_rules/tagcheck.rules
   parser: 
       - MWCP:
          - SmokeLoader
+QakBot:
+  description: runs QakBot parser when hit
+  classification: 'TLP:W'
+  selector:
+    yara_rule: # Must not have empty or nonexistent fields
+      - ./yara_rules/qakbot.yara
+  parser:
+      - MWCP:
+         - QakBot
