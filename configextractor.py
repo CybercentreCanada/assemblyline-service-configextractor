@@ -32,17 +32,10 @@ class ConfigExtractor(ServiceBase):
         self.file_parsers = file_parsers
         self.tag_parsers = tag_parsers
 
-    def classificationChecker(self, res_section, parser_name):
-        tlp_amber_parsers = ['TrickBot']
-        for name in tlp_amber_parsers:
-            if name == parser_name:
-                res_section.classification = cl_engine.normalize_classification('TLP:AMBER')
-        return res_section
     def sectionBuilder(self, parser, field_dict, result, parsertype="MWCP"):
         # TODO add MWCP / CAPE field configuration
 
         parser_section = ResultSection(f"{parsertype} : {parser}")
-        parser_section = self.classificationChecker(parser_section, parser)
 
         fields_liststrings = {"address": "network.dynamic.uri", "c2_url": "network.dynamic.uri",
                               "c2_address": "network.dynamic.uri", "registrypath": "dynamic.registry_key",
@@ -154,8 +147,6 @@ class ConfigExtractor(ServiceBase):
         result = Result()
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, self.mwcp_reporter)
-
-
 
         if type(output) is dict:
             for parser, fields in output.items():
