@@ -2,9 +2,12 @@ import cli
 import json
 import tempfile
 import os
+from assemblyline.common import forge
 from assemblyline.odm.models.tagging import Tagging
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT
+
+cl_engine = forge.get_classification()
 
 
 class ConfigExtractor(ServiceBase):
@@ -16,6 +19,7 @@ class ConfigExtractor(ServiceBase):
         self.file_parsers = None
         self.tag_parsers = None
         self.all_parsers = None
+        self.parser_classification = [] # default should be the classification set for the service.
         self.mwcp_reporter = cli.register()
 
     def start(self):
@@ -28,11 +32,18 @@ class ConfigExtractor(ServiceBase):
         self.file_parsers = file_parsers
         self.tag_parsers = tag_parsers
 
+    def classificationChecker(self, res_section, parser_name):
+        tlp_amber_parsers = ['TrickBot']
+        for name in tlp_amber_parsers:
+            if name == parser_name:
+                res_section.classification = cl_engine.normalize_classification('TLP:AMBER')
+        return res_section
     def sectionBuilder(self, parser, field_dict, result, parsertype="MWCP"):
         # TODO add MWCP / CAPE field configuration
-        # json_section= ResultSection("JSON Section", body_format=BODY_FORMAT.JSON, body=json.dumps(field_dict))
-        # result.add_section(json_section)
+
         parser_section = ResultSection(f"{parsertype} : {parser}")
+        parser_section = self.classificationChecker(parser_section, parser)
+
         fields_liststrings = {"address": "network.dynamic.uri", "c2_url": "network.dynamic.uri",
                               "c2_address": "network.dynamic.uri", "registrypath": "dynamic.registry_key",
                               "servicename": "", "filepath": "file.path", "missionid": "",
@@ -83,20 +94,73 @@ class ConfigExtractor(ServiceBase):
                 self.log.debug("\n\n", field)
         result.add_section(parser_section)
 
+    def tableBuilder(self, parser_name, fields, result, parsertype="MWCP" ):
+
+        fields_liststrings = {"address": "network.dynamic.uri", "c2_url": "network.dynamic.uri",
+                              "c2_address": "network.dynamic.uri", "registrypath": "dynamic.registry_key",
+                              "servicename": "", "filepath": "file.path", "missionid": "",
+                              "version": "file.pe.versions.description",
+                              "injectionprocess": "", "mutex": "dynamic.mutex", "directory": "",
+                              "servicedisplayname": "",
+                              "servicedescription": "", "key": "", "username": "file.string.extracted",
+                              "password": "file.string.extracted", "email_address": "", "event": "", "filename": "",
+                              "guid": "", "interval": "", "pipe": "", "proxy_address": "", "registrydata": "",
+                              "servicedll": "", "serviceimage": "", "ssl_cert_sha1": "", "url": "", "urlpath": "",
+                              "useragent": ""}
+
+        fields_dictstrings = {"other": "file.config"}
+        fields_liststringtuples = {"port": "network.dynamic.port", "socketaddress": "", "c2_socketaddress": "",
+                                   "credential": "", "ftp": "", "listenport": "", "outputfile": "", "proxy": "",
+                                   "proxy_socketaddress": "", "registrypathdata": "", "rsa_private_key": "",
+                                   "rsa_public_key": "", "service": ""}
+        table_cols={}
+        for field, tag in fields_dictstrings.items():
+            if field in fields:
+                table_cols[field]=""
+        for field, tag in fields_liststrings.items():
+            if field in fields:
+                table_cols[field]=""
+        for field, tag in fields_liststringtuples.items():
+            if field in fields:
+                table_cols[field]=""
+        dict_table = []
+        table_body = []
+        print(table_cols)
+        table_section = ResultSection(f"{parser_name} section")
+        for k in table_cols:
+
+            if k in fields_dictstrings:
+                #table_body.append(fields[k])
+                dict_table.append({"other":fields[k]})
+            gen_section = ResultSection("new section",body_format=BODY_FORMAT.TABLE,body=json.dumps(dict_table))
+            if k in fields_liststrings:
+                # create key value pairs to append to table_body
+                for addr in fields[k]: # fields[k] is a list of addresses or urls or ...
+                    new = addr
+                    table_body.append({f"addresses":new})
+            list_section =ResultSection("list section",body_format=BODY_FORMAT.TABLE,body=json.dumps(table_body))
+            if k in fields_liststringtuples:
+                table_body.append(fields[k]) # TODO verify this
+
+        table_section.add_subsection((list_section))
+        table_section.add_subsection(gen_section)
+        if len(fields) > 0:  # if any decoder output exists raise heuristic
+            table_section.set_heuristic(1)
+            table_section.add_tag("source", parsertype)
+        result.add_section(table_section)
     def execute(self, request):
         # ==================================================================
         # Execute a request:
         result = Result()
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, self.mwcp_reporter)
-  X
-
         if type(output) is dict:
             for parser, fields in output.items():
                 self.sectionBuilder(parser, fields, result, "RATDecoder")
             self.log.info(output)
         elif type(output) is str:
             self.log.info(output)
+
         tags = {f"al_{k.replace('.', '_')}": i for k, i in request.task.tags.items()}
         newtags = {}
         # yara externals must be dicts w key value pairs being strings

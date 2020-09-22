@@ -3,6 +3,8 @@ import yara
 import mwcp
 import click
 import os
+import cape_parsers
+import importlib
 import json
 import wrapper_malconf as malconf
 from six import iteritems
@@ -172,7 +174,7 @@ def run(parser_list: List[str], f_path: str, reporter):
         if __name__ == '__main__':
             print(f"{parser}: \n", output)
     if __name__ == '__main__':
-        # reporter.output_file(bytes(str(json.dumps(outputs)), encoding='utf-8'), "output.json")
+        reporter.output_file(bytes(str(json.dumps(outputs)), encoding='utf-8'), "output.json")
         pass
     return outputs
 
@@ -504,6 +506,28 @@ def map_jar_fields(data, reporter):
 def map_key_fields(data, reporter):
     if "EncryptionKey" in data:
         reporter.add_metadata("key", data["EncryptionKey"])
+
+
+def run_cape(file_path, reporter):
+    # get names of all parsers to run
+    cape_decoders = [decoder.stem for decoder in Path(cape_parsers.__file__).parent.glob("[!_]*.py")]
+    print(cape_decoders)
+    with open(file_path, "rb") as f:
+        file_data = f.read()
+        for parser in cape_decoders:
+            # turn parser names into module to call config function which extracts config data
+            # these parsers haven't been properly converted to python3 and won't run
+            if parser == "BackOffPOS" or parser == "BackOffLoader" or parser == "JavaDropper" or parser == "Punisher" \
+                    or parser == "SmallNet" or parser == "Nymaim" or parser == "PredatorPain" or parser == "TSCookie"\
+                    or parser == "unrecom"or parser=="Fareit" or parser=="REvil"or parser=="TrickBot":
+                # output = module.extract_config(file_data)
+                continue
+            module = importlib.import_module(parser)
+            print(module)
+            output = module.config(file_data)
+            print(output)
+
+    return output
 
 
 def run_ratdecoders(file_path, reporter):
