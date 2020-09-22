@@ -18,12 +18,11 @@ RUN ./configure --enable-magic --enable-dotnet --with-crypto --prefix /tmp/yara_
 RUN make
 RUN make install
 
-# Build the yara python plugins
+# Build the yara python plugins, install other dependencies
 USER assemblyline
 RUN touch /tmp/before-pip
-RUN pip install --no-cache-dir --user yara-python gitpython plyara && rm -rf ~/.cache/pip
-
-
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir --user yara-python gitpython plyara -r requirements.txt && rm -rf ~/.cache/pip
 
 # Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
 # files that already exist in the base image
@@ -43,15 +42,13 @@ COPY --chown=assemblyline:assemblyline --from=build /var/lib/assemblyline/.local
 RUN mkdir -p /mount/updates
 RUN mkdir -p /opt/al_service
 
-# Install MWCP and packages
-RUN pip install mwcp
-RUN pip uninstall --yes pyparsing
-
-
 # Copy service code
 WORKDIR /opt/al_service
 COPY . .
 
+# Make sure we actually have the right version of pyparsing by uninstalling it as root
+# then later reinstalling an exact version as the user account
+RUN pip uninstall --yes pyparsing
 
 # Cleanup
 RUN rm ./Dockerfile
@@ -63,10 +60,8 @@ RUN chown -R assemblyline /opt/al_service
 ARG version=4.0.0.dev1
 RUN sed -i -e "s/\$SERVICE_TAG/$version/g" service_manifest.yml
 
-
 # Switch to assemblyline user
 USER assemblyline
-
 RUN pip install --user pyparsing==2.3.0
 
 
