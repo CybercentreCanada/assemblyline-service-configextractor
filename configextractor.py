@@ -36,8 +36,7 @@ class ConfigExtractor(ServiceBase):
             if name == parser_name:
                 res_section.classification = cl_engine.normalize_classification(parser_obj.classification)
         return res_section
-    def sectionBuilder(self, parser, field_dict, result, parsertype="MWCP"):
-        # TODO add MWCP / CAPE field configuration
+    def sectionBuilder(self, parser, field_dict, result, parsertype="MWCP"):s
         parser_section = ResultSection(f"{parsertype} : {parser}")
         parser_section = self.classificationChecker(parser_section, parser, self.file_parsers)
         fields_liststrings = {"address": "network.dynamic.uri", "c2_url": "network.dynamic.uri",
@@ -150,7 +149,6 @@ class ConfigExtractor(ServiceBase):
         result = Result()
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, self.mwcp_reporter)
-
         if type(output) is dict:
             for parser, fields in output.items():
                 self.sectionBuilder(parser, fields, result, "RATDecoder")
