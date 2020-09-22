@@ -31,12 +31,15 @@ class ConfigExtractor(ServiceBase):
         self.all_parsers = cli.validate_parser_config()
         self.file_parsers = file_parsers
         self.tag_parsers = tag_parsers
-
+    def classificationChecker(self, res_section, parser_name,file_parsers):
+        for name, parser_obj in file_parsers.items():
+            if name == parser_name:
+                res_section.classification = cl_engine.normalize_classification(parser_obj.classification)
+        return res_section
     def sectionBuilder(self, parser, field_dict, result, parsertype="MWCP"):
         # TODO add MWCP / CAPE field configuration
-
         parser_section = ResultSection(f"{parsertype} : {parser}")
-
+        parser_section = self.classificationChecker(parser_section, parser, self.file_parsers)
         fields_liststrings = {"address": "network.dynamic.uri", "c2_url": "network.dynamic.uri",
                               "c2_address": "network.dynamic.uri", "registrypath": "dynamic.registry_key",
                               "servicename": "", "filepath": "file.path", "missionid": "",
@@ -168,7 +171,7 @@ class ConfigExtractor(ServiceBase):
         # get matches for both, dedup then run
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
         example_fields = cli.run(parsers, request.file_path, self.mwcp_reporter)
-
+        
         for parser, field_dict in example_fields.items():
             self.sectionBuilder(parser, field_dict, result)
         fd, temp_path = tempfile.mkstemp(dir=self.working_directory)

@@ -1,5 +1,6 @@
 Azorult:
   description: runs Azorult parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule: # Must not have empty or nonexistent fields
       - ./yara_rules/azorult.yara
@@ -10,6 +11,7 @@ Azorult:
          - Azorult
 BitPaymer:
   description: runs BitPaymer parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/bitpaymer.yara
@@ -20,6 +22,7 @@ BitPaymer:
          - BitPaymer
 ChChes:
   description: runs ChChes parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/chches.yara
@@ -30,6 +33,7 @@ ChChes:
          - ChChes
 DoppelPaymer:
   description: runs DoppelPaymer parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/doppelpaymer.yara
@@ -41,6 +45,7 @@ DoppelPaymer:
 
 Emotet:
   description: yara rule that runs emotet parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/emotet.yara
@@ -52,6 +57,7 @@ Emotet:
 
 Enfal:
   description: yara rule that runs enfal parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/enfal.yara
@@ -62,6 +68,7 @@ Enfal:
          - Enfal
 EvilGrab:
   description: runs EvilGrab parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/evilgrab.yara
@@ -72,6 +79,7 @@ EvilGrab:
          - EvilGrab
 HttpBrowser:
   description: runs HttpBrowser parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/httpbrowser.yara
@@ -82,6 +90,7 @@ HttpBrowser:
          - HttpBrowser
 IcedID:
   description: runs IcedID parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/icedid.yara
@@ -92,6 +101,7 @@ IcedID:
          - IcedID
 RCSession:
   description: runs RCSession parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/rcsession.yara
@@ -102,6 +112,7 @@ RCSession:
          - RCSession
 RedLeaf:
   description: runs RedLeaf parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/redleaf.yara
@@ -112,6 +123,7 @@ RedLeaf:
          - RedLeaf
 Redsip:
   description: runs Redsip parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/redsip.yara
@@ -122,6 +134,7 @@ Redsip:
          - Redsip
 Retefe:
   description: runs Retefe parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/retefe.yara
@@ -132,6 +145,7 @@ Retefe:
          - Retefe
 SmokeLoader:
   description: runs SmokeLoader parser when hit
+  classification: 'TLP:W'
   selector:
     yara_rule:
       - ./yara_rules/smokeloader.yara

@@ -60,11 +60,12 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 
 class Parser:
-    def __init__(self, name, parser_list, compiled_rules):
+    def __init__(self, name, parser_list, compiled_rules, classification):
         self.name = name
         self.parser_list = parser_list
         self.compiled_rules = compiled_rules
         self.match = False
+        self.classification = classification
 
 
 def validate_parsers(parser_list):
@@ -106,12 +107,13 @@ def init():
             rule_source_paths = parser_entries[parser]['selector']['yara_rule']
             if checkpaths(rule_source_paths):
                 parser_types = parser_entries[parser]['parser']
+                classification = parser_entries[parser]['classification']
                 parsers = validate_parsers(parser_types)
                 compiled_rules = []
                 for rule_source_path in rule_source_paths:
                     rule = yara.compile(filepath=rule_source_path)
                     compiled_rules.append(rule)
-                parser_objs[parser] = Parser(parser, parsers, compiled_rules)
+                parser_objs[parser] = Parser(parser, parsers, compiled_rules, classification)
     return parser_objs
 
 
@@ -125,13 +127,14 @@ def init_tags(tags):
         if 'tag' in parser_entries[parser]['selector']:
             rule_source_paths = parser_entries[parser]['selector']['tag']
             parser_types = parser_entries[parser]['parser']
+            classification = parser_entries[parser]['classification']
             parsers = validate_parsers(parser_types)
             if checkpaths(rule_source_paths):
                 compiled_rules = []
                 for rule_source_path in rule_source_paths:
                     r = (yara.compile(rule_source_path, externals=tags))
                     compiled_rules.append(r)
-                parser_objs[parser] = Parser(parser, parsers, compiled_rules)
+                parser_objs[parser] = Parser(parser, parsers, compiled_rules, classification)
     return parser_objs
 
 
@@ -209,7 +212,7 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None):
                 if matched_rule:
                     obj.match = True
                     super_parser_list.extend(obj.parser_list)
-    # add wilcard parsers
+    # add wildcard parsers
     stream = open(yara_yml, 'r')
     parser_entries = yaml.full_load(stream)
     for parser in parser_entries:
