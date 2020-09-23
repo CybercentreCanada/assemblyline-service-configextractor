@@ -59,13 +59,13 @@ This is overview of each of these :
  parser which will run all parsers defined under it every time a file is submitted.
 
 ## Running in CLI mode
-ConfigExtractor can also be used in cli mode outside of assemblyline. Ensure that all dependencies are met in requirements.txt and yara and yara-python is installed. run command 'python3 cli.py file\\_path' where file\\_path is name of file to analyze.
+ConfigExtractor can also be used in cli mode outside of assemblyline. Ensure that all dependencies are met in requirements.txt and yara and yara-python is installed. run command 'python3 cli.py file\_path' where file\_path is name of file to analyze.
 
 ## Adding a new Parser
-1. Append entry to yara\\_parser.yaml. Following format above. On startup an entry in parser\\_config.yml should be created
-2. Add yara rule defined in yara\\_parser.yaml to yara\\_rules directory.
-3. Add tag rule defined in yara\\_parser.yaml to tag\\_rules directory (Optional)
-4. Add parser to mwcp\\_parsers directory
+1. Append entry to yara\_parser.yaml. Following format above. On startup an entry in parser\_config.yml should be created
+2. Add yara rule defined in yara\_parser.yaml to yara\_rules directory.
+3. Add tag rule defined in yara\_parser.yaml to tag\_rules directory (Optional)
+4. Add parser to mwcp\_parsers directory
 
 
 ##### Note
