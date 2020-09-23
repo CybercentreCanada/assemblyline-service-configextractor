@@ -3,7 +3,6 @@ import yara
 import mwcp
 import click
 import os
-import cape_parsers
 import importlib
 import json
 import wrapper_malconf as malconf
