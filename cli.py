@@ -74,11 +74,9 @@ def validate_parsers(parser_list):
             if key == 'MWCP':
                 parsers_dedup.extend(i['MWCP'])
             elif key == 'CAPE':
-                pass
-                # TODO add compatibility for cape parsers
-                # parsers_dedup.extend(i['CAPE'])
+                raise NameError("Parser type not supported")
             else:
-                raise NameError("Parser type is invalid, only CAPE and MWCP supported")
+                raise NameError("Parser type is invalid, only MWCP supported")
 
     parsers_dedup_list = list(set(parsers_dedup))
     return parsers_dedup_list
@@ -192,7 +190,6 @@ def checkNames(parsers: List[str]):
 
 def deduplicate(file_pars, tag_pars, file_path, tags_dict=None):
     # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
-    # there needs to be a match first
     super_parser_list = []
     # foreach entry we get all compiled file yara rules and see if theres a match,
     # if there is a match then we add all parsers for that parser object to the super list
@@ -211,7 +208,7 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None):
                 if matched_rule:
                     obj.match = True
                     super_parser_list.extend(obj.parser_list)
-    # add wildcard parsers
+    # add wildcard parsers that are run under all conditions
     stream = open(yara_yml, 'r')
     parser_entries = yaml.full_load(stream)
     for parser in parser_entries:
