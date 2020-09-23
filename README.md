@@ -58,11 +58,15 @@ This is overview of each of these :
  If neither 'yara_rule' or 'tag' exist then the only way for parser to run is be added as a 'wildcard'
  parser which will run all parsers defined under it every time a file is submitted.
 
+## Running in CLI mode
+ConfigExtractor can also be used in cli mode outside of assemblyline. Ensure that all dependencies are met in requirements.txt and yara and yara-python is installed. run command 'python3 cli.py file\\_path' where file\\_path is name of file to analyze.
 
 ## Adding a new Parser
-1. Add yara rule defined in yara_parser.yaml to yara_rules directory.
-2. Add tag rule defined in yara_parser.yaml to tag_rules directory (Optional)
-3. Add parser to mwcp_parsers directory
+1. Append entry to yara\\_parser.yaml. Following format above. On startup an entry in parser\\_config.yml should be created
+2. Add yara rule defined in yara\\_parser.yaml to yara\\_rules directory.
+3. Add tag rule defined in yara\\_parser.yaml to tag\\_rules directory (Optional)
+4. Add parser to mwcp\\_parsers directory
+
 
 ##### Note
-Parser with wildcard in yara_parser.yml are default parsers that are run every time if no other matches are found.
+Parser with wildcard in yara_parser.yml are default parsers that are run every time if no other matches are found. As well ensure classification is a valid field ("TLP:A","TLP:W").
