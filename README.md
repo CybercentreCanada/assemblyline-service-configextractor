@@ -66,7 +66,7 @@ Yara rules can either be run on files or assemblyline tags.
 A parser will run if the corresponding yara rule finds a match on an assemblyline tag.
 
 For example a rule can be created to run an Emotet parser if an "attribution.implant:Emotet" tag is found.
-The yara rule could look like this.
+The yara rule could look like this. This yara rule would have to exactly match "EMOTET", other regex patterns can be defined as well.
 ```text  
 rule emotet_tag {
 
@@ -81,7 +81,7 @@ rule emotet_tag {
 		technique = "packer:UPX"
 
 	condition:
-		al_attribution_implant matches /Emotet/
+		al_attribution_implant matches /EMOTET/
 }
 ```
  
