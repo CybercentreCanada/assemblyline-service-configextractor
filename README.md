@@ -58,6 +58,41 @@ This is overview of each of these :
  If neither 'yara_rule' or 'tag' exist then the only way for parser to run is be added as a 'wildcard'
  parser which will run all parsers defined under it every time a file is submitted.
 
+## Example entry in yara_parser.yaml
+```text
+
+Emotet:
+  description: Emotet parser and yara rule for payload 
+  selector: # yara rules that match will run parser(s) defined under parser
+    yara_rule:
+      - ./yara_rules/emotet.yara # rule must be present in yara_rules directory
+  parser: 
+      - MWCP:  
+        - Emotet # Emotet.py must be in mwcp_parsers directory, case matters
+
+# Another example
+
+Emotet:
+  description: Emotet parser and yara rules for both payload and assemblyline tags
+  classification: 'TLP:W' # output result classification; may be ommitted
+  selector: # at least one of the rules in yara_rule or tag must be positive for parser to run
+    yara_rule: # both rules beneath will be run on file
+      - ./yara_rules/emotet.yara # one or more rules may be added
+      - ./yara_rules/emotet2.yara 
+      
+    tag: # can be ommitted completely if yara_rule is present
+      - ./tag_rules/emotet.rule # one or more rules may be added
+      -./tag_rules/emotet2.rule
+  parser: 
+      - MWCP:  # Multiple malware parsers will be run upon yara rule match 
+        - Emotet
+        - QakBot
+        - IcedID
+
+
+
+
+```
 ## Running in CLI mode
 ConfigExtractor can also be used in cli mode outside of assemblyline. Ensure that all dependencies are met in requirements.txt and yara and yara-python is installed. run command 'python3 cli.py file\_path' where file\_path is name of file to analyze.
 ## Adding Tag rule
