@@ -60,7 +60,31 @@ This is overview of each of these :
 
 ## Running in CLI mode
 ConfigExtractor can also be used in cli mode outside of assemblyline. Ensure that all dependencies are met in requirements.txt and yara and yara-python is installed. run command 'python3 cli.py file\_path' where file\_path is name of file to analyze.
+## Adding Tag rule
+Since ConfigExtractor is a secondary service; all tags created by core services are available to determine whether a particular parser should be run.
+Yara rules can either be run on files or assemblyline tags.
+A parser will run if the corresponding yara rule finds a match on an assemblyline tag.
 
+For example a rule can be created to run an Emotet parser if an "attribution.implant:Emotet" tag is found.
+The yara rule could look like this.
+```text  
+rule emotet_tag {
+
+	meta:
+		version = "1.0"
+		description = "Identifies emotet by attribution.implant"
+		source = "CCCS"
+		author = "assemblyline"
+		status = "RELEASED"
+		sharing = "TLP:WHITE"
+		category = "TECHNIQUE"
+		technique = "packer:UPX"
+
+	condition:
+		al_attribution_implant matches /Emotet/
+}
+```
+ 
 ## Adding a new Parser
 1. Append entry to yara\_parser.yaml. Following format above. On startup an entry in parser\_config.yml should be created
 2. Add yara rule defined in yara\_parser.yaml to yara\_rules directory.
