@@ -155,10 +155,16 @@ def validate_parser_config():
                 yaml_parsers[parser.stem] = entry
         file.close()
     path = parser_dir + parserconfig
+    parsersinconfig = []
+    #check that all parsers in dir are present in mwcp config
     with open(path, "w+", encoding='utf-8') as f:
         for entry, value in yaml_parsers.items():
+            parsersinconfig.append(entry)
             p = {entry: value}
             document = yaml.dump(p, f)
+
+    if len(parsers)!= len(parsersinconfig):
+        raise Exception("Number of parsers in Directory and parser_config.yml don't match")
     return [parser.name for parser in parsers]
 
 

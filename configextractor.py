@@ -28,6 +28,7 @@ class ConfigExtractor(ServiceBase):
         self.log.info(f"start() from {self.service_attributes.name} service called")
         yara_externals = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
         file_parsers, tag_parsers = cli.compile(yara_externals)
+        self.log.info(f"loaded {file_parsers}")
         self.all_parsers = cli.validate_parser_config()
         self.file_parsers = file_parsers
         self.tag_parsers = tag_parsers

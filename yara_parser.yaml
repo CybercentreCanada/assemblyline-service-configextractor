@@ -41,6 +41,7 @@ Emotet:
   selector:
     yara_rule:
       - ./yara_rules/emotet.yara
+      - ./yara_rules/emotetinmemory.yara
     tag:
       - ./tag_rules/emotet.rule
   parser: 
