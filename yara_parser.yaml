@@ -38,17 +38,15 @@ DoppelPaymer:
   parser: 
       - MWCP:
          - DoppelPaymer
-
 Emotet:
   description: Emotet malware family parser and yara rules for both payload and assemblyline tags
   classification: 'TLP:W'
-  malware: 'Emotet'
+  malware: 'Emotetss'
   selector:
     yara_rule:
       - ./yara_rules/emotet.yara
     tag:
       - ./tag_rules/emotet.rule
-
   parser: 
       - MWCP:  
         - Emotet

@@ -59,13 +59,23 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 
 class Parser:
-    def __init__(self, name, parser_list, compiled_rules, classification):
+    def __init__(self, name, parser_list, compiled_rules, classification, malware):
         self.name = name
         self.parser_list = parser_list
         self.compiled_rules = compiled_rules
         self.match = False
         self.classification = classification
-
+        self.malware = malware
+class Entry:
+    # Entry defined in yara_parser.yaml
+    def __init__(self, description : str, classification: str,
+                 malware: str, yara_rules: List[str], tag_rules: List[str],parsers: List[str]):
+        self.description = description
+        self.classification = classification,
+        self.malware = malware
+        self.yara_rules = yara_rules
+        self.tag_rules = tag_rules
+        self.parsers = parsers
 
 def validate_parsers(parser_list):
     parsers_dedup = []
@@ -105,12 +115,13 @@ def init():
             if checkpaths(rule_source_paths):
                 parser_types = parser_entries[parser]['parser']
                 classification = parser_entries[parser]['classification']
+                malware_name = parser_entries[parser]['malware']
                 parsers = validate_parsers(parser_types)
                 compiled_rules = []
                 for rule_source_path in rule_source_paths:
                     rule = yara.compile(filepath=rule_source_path)
                     compiled_rules.append(rule)
-                parser_objs[parser] = Parser(parser, parsers, compiled_rules, classification)
+                parser_objs[parser] = Parser(parser, parsers, compiled_rules, classification, malware_name)
     return parser_objs
 
 
@@ -125,13 +136,14 @@ def init_tags(tags):
             rule_source_paths = parser_entries[parser]['selector']['tag']
             parser_types = parser_entries[parser]['parser']
             classification = parser_entries[parser]['classification']
+            malware_name = parser_entries[parser]['malware']
             parsers = validate_parsers(parser_types)
             if checkpaths(rule_source_paths):
                 compiled_rules = []
                 for rule_source_path in rule_source_paths:
                     r = (yara.compile(rule_source_path, externals=tags))
                     compiled_rules.append(r)
-                parser_objs[parser] = Parser(parser, parsers, compiled_rules, classification)
+                parser_objs[parser] = Parser(parser, parsers, compiled_rules, classification, malware_name)
     return parser_objs
 
 
