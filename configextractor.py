@@ -33,19 +33,21 @@ class ConfigExtractor(ServiceBase):
         self.file_parsers = file_parsers
         self.tag_parsers = tag_parsers
     def classificationChecker(self, res_section, parser_name, file_parsers):
+
         for name, parser_obj in file_parsers.items():
             if name == parser_name:
                 res_section.classification = cl_engine.normalize_classification(parser_obj.classification)
         return res_section
 
     def sectionBuilder(self, parser, field_dict, result, parsertype="MWCP"):
-        #get malware names from parser objects
+
         malware_name='N/A'
+        # get malware names from parser objects
         for name, obj in self.file_parsers.items():
             if parser in obj.parser_list:
                 malware_name = obj.malware
 
-        parser_section = ResultSection(f"{parsertype} : {malware_name}")
+        parser_section = ResultSection(f"{parsertype} : {parser}")
         parser_section = self.classificationChecker(parser_section, parser, self.file_parsers)
         fields_liststrings = {"address": "network.dynamic.uri", "c2_url": "network.dynamic.uri",
                               "c2_address": "network.dynamic.uri", "registrypath": "dynamic.registry_key",
@@ -61,6 +63,7 @@ class ConfigExtractor(ServiceBase):
         if len(field_dict) > 0:  # if any decoder output exists raise heuristic
             parser_section.set_heuristic(1)
             parser_section.add_tag("source", parsertype)
+            parser_section.add_tag('attribution.implant', malware_name.upper())
         fields_dictstrings = {"other": "file.config"}
         fields_liststringtuples = {"port": "network.dynamic.port", "socketaddress": "", "c2_socketaddress": "",
                                    "credential": "", "ftp": "", "listenport": "", "outputfile": "", "proxy": "",
@@ -71,7 +74,6 @@ class ConfigExtractor(ServiceBase):
                 generic_section = ResultSection(f" {field.capitalize()}  ")
                 for line in field_dict[field]:
                     generic_section.add_line(f"{line}")
-                parser_section.add_tag('attribution.implant', parser.upper())
                 if tag:
                     for x in field_dict[field]:
                         generic_section.add_tag(tag, x)
@@ -145,7 +147,7 @@ class ConfigExtractor(ServiceBase):
             if k in fields_liststringtuples:
                 table_body.append(fields[k])
 
-        table_section.add_subsection((list_section))
+        table_section.add_subsection(list_section)
         table_section.add_subsection(gen_section)
         if len(fields) > 0:  # if any decoder output exists raise heuristic
             table_section.set_heuristic(1)
@@ -178,7 +180,6 @@ class ConfigExtractor(ServiceBase):
         # get matches for both, dedup then run
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
         output_fields = cli.run(parsers, request.file_path, self.mwcp_reporter)
-        
         for parser, field_dict in output_fields.items():
             self.sectionBuilder(parser, field_dict, result)
         fd, temp_path = tempfile.mkstemp(dir=self.working_directory)
