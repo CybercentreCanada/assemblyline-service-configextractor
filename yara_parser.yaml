@@ -41,14 +41,14 @@ DoppelPaymer:
 Emotet:
   description: Emotet malware family parser and yara rules for both payload and assemblyline tags
   classification: 'TLP:W'
-  malware: 'Emotetss'
+  malware: 'Emotet'
   selector:
     yara_rule:
       - ./yara_rules/emotet.yara
     tag:
       - ./tag_rules/emotet.rule
   parser: 
-      - MWCP:  
+      - MWCP:
         - Emotet
 
 Enfal:
