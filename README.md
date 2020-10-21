@@ -75,6 +75,8 @@ Emotet:
 Emotet:
   description: Emotet parser and yara rules for both payload and assemblyline tags
   classification: 'TLP:W' # output result classification; may be ommitted
+  malware: 'Emotet' # the malware name that shows up in assemblyline implant tags
+  run_on: 'AND' # can be and/or, specifies whether either tag or file rule cause parsers to run or ifall rules have to match in order for parser to run
   selector: # at least one of the rules in yara_rule or tag must be positive for parser to run
     yara_rule: # both rules beneath will be run on file
       - ./yara_rules/emotet.yara # one or more rules may be added
