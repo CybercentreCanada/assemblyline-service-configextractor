@@ -40,7 +40,6 @@ class ConfigExtractor(ServiceBase):
         return res_section
 
     def sectionBuilder(self, parser, field_dict, result, parsertype="MWCP"):
-
         malware_name='N/A'
         # get malware names from parser objects
         for name, obj in self.file_parsers.items():
@@ -180,6 +179,7 @@ class ConfigExtractor(ServiceBase):
         # get matches for both, dedup then run
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
         output_fields = cli.run(parsers, request.file_path, self.mwcp_reporter)
+
         for parser, field_dict in output_fields.items():
             self.sectionBuilder(parser, field_dict, result)
         fd, temp_path = tempfile.mkstemp(dir=self.working_directory)

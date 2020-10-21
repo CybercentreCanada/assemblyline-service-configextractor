@@ -8,7 +8,7 @@ import json
 import wrapper_malconf as malconf
 from six import iteritems
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
 parser_dir = "./mwcp_parsers/"
 yara_yml = "./yara_parser.yaml"
@@ -59,23 +59,27 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 
 class Parser:
-    def __init__(self, name, parser_list, compiled_rules, classification, malware):
+    def __init__(self, name: str, parser_list: List[str], compiled_rules: List[yara.Rules], classification: str,
+                 malware: str):
         self.name = name
         self.parser_list = parser_list
         self.compiled_rules = compiled_rules
         self.match = False
         self.classification = classification
         self.malware = malware
+
+
 class Entry:
     # Entry defined in yara_parser.yaml
-    def __init__(self, description : str, classification: str,
-                 malware: str, yara_rules: List[str], tag_rules: List[str],parsers: List[str]):
+    def __init__(self, description: str, classification: str,
+                 malware: str, yara_rules: List[str], tag_rules: List[str], parsers: List[str]):
         self.description = description
         self.classification = classification,
         self.malware = malware
         self.yara_rules = yara_rules
         self.tag_rules = tag_rules
         self.parsers = parsers
+
 
 def validate_parsers(parser_list):
     parsers_dedup = []
@@ -168,14 +172,14 @@ def validate_parser_config():
         file.close()
     path = parser_dir + parserconfig
     parsersinconfig = []
-    #check that all parsers in dir are present in mwcp config
+    # check that all parsers in dir are present in mwcp config
     with open(path, "w+", encoding='utf-8') as f:
         for entry, value in yaml_parsers.items():
             parsersinconfig.append(entry)
             p = {entry: value}
             document = yaml.dump(p, f)
 
-    if len(parsers)!= len(parsersinconfig):
+    if len(parsers) != len(parsersinconfig):
         raise Exception("Number of parsers in Directory and parser_config.yml don't match")
     return [parser.name for parser in parsers]
 
@@ -206,26 +210,28 @@ def checkNames(parsers: List[str]):
             raise Exception(f"{parser} not found in {parser_dir}")
 
 
-def deduplicate(file_pars, tag_pars, file_path, tags_dict=None):
+def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
+    # for each entry we get all compiled file yara rules and see if theres a match,
+    # if there is a match then we add all parsers for that parser object to the super list
+    def isMatch(file_path: str, parser_objects: Dict, tags_dict=None) -> Dict[str, List[yara.Rules]]:
+        match_found = False
+        matches = {}
+        matched_rules = []
+        nonlocal super_parser_list
+        if parser_objects is not None:
+            for pars, obj in parser_objects.items():
+                for rule in obj.compiled_rules:
+                    # each compiled rule object from yara_rule in yml
+                    matched_rule = rule.match(file_path, callback=cb, externals=tags_dict)
+                    if matched_rule:
+                        matched_rules.append(matched_rule)
+                        print(matched_rule)
+                        super_parser_list.extend(obj.parser_list)
+                matches[obj.malware] = matched_rules
+        return matches
     # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
     super_parser_list = []
-    # foreach entry we get all compiled file yara rules and see if theres a match,
-    # if there is a match then we add all parsers for that parser object to the super list
-    if file_pars is not None:
-        for pars, obj in file_pars.items():
-            for rule in obj.compiled_rules:
-                # each compiled rule object from yara_rule in yml
-                matched_rule = rule.match(file_path, callback=cb)
-                if matched_rule:
-                    obj.match = True
-                    super_parser_list.extend(obj.parser_list)
-    if tag_pars is not None:
-        for pars, obj in tag_pars.items():
-            for rule in obj.compiled_rules:
-                matched_rule = rule.match(file_path, callback=cb, externals=tags_dict)
-                if matched_rule:
-                    obj.match = True
-                    super_parser_list.extend(obj.parser_list)
+    and_malware = {} # top malware name: level name
     # add wildcard parsers that are run under all conditions
     stream = open(yara_yml, 'r')
     parser_entries = yaml.full_load(stream)
@@ -233,12 +239,45 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None):
         if 'wildcard' in parser_entries[parser]['selector']:
             wildcard_parsers = validate_parsers(parser_entries[parser]['parser'])
             super_parser_list.extend(wildcard_parsers)
+        if 'AND' in parser_entries[parser]['run_on']: # everything else is OR by default
+            if 'tag' in parser_entries[parser]['selector'] and 'yara_rule' in parser_entries[parser]['selector']:
+                # then match must exist for some parser for both tag and file
+                malware_name = parser_entries[parser]['malware']
+                and_malware[malware_name] = parser
+            else:
+                raise Exception("AND cannot be specified without both tag and file yara rules")
+
+    file_match = isMatch(file_path, file_pars)
+    tag_match = isMatch(file_path, tag_pars, tags_dict)
+    #run check to exclude and parsers
+
+    def allRulesMatch(compiled_rules):
+        ctr = 0
+        for rule in compiled_rules:
+            match = rule.match(file_path, callback=cb, externals=tags_dict)
+            if match:
+                ctr = ctr+1
+        if len(compiled_rules) == ctr:
+            return True
+        else:
+            return False
+    for malware, top in and_malware.items():
+        file_rules = file_pars[top].compiled_rules
+        tag_rules = tag_pars[top].compiled_rules
+        file_bool = allRulesMatch(file_rules)
+        tag_bool = allRulesMatch(tag_rules)
+        if file_bool and tag_bool:
+            print("both file and tag rules have match")
+        else:
+            print('tag or file rule did not match, excluding...')
+            malware_to_parsers = file_pars[top].parser_list
+            super_parser_list = [x for x in super_parser_list if x not in malware_to_parsers]
 
     super_parser_list = [i[0].upper() + i[1:] for i in super_parser_list]
     super_parser_list = list(set(super_parser_list))
     checkNames(super_parser_list)
-
     return super_parser_list
+
 
 
 def compile(tags=None):
@@ -523,6 +562,7 @@ def map_jar_fields(data, reporter):
 def map_key_fields(data, reporter):
     if "EncryptionKey" in data:
         reporter.add_metadata("key", data["EncryptionKey"])
+
 
 def run_ratdecoders(file_path, reporter):
     file_info = malconf.preprocess(file_path)

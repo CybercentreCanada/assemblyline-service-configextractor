@@ -2,6 +2,7 @@ Azorult:
   description: Extracts uri in Azorult (information stealer) payload
   classification: 'TLP:W'
   malware: 'Azorult'
+  run_on: 'OR'
   selector:
     yara_rule: # Must not have empty or nonexistent fields
       - ./yara_rules/azorult.yara
@@ -12,6 +13,7 @@ BitPaymer:
   description: BitPaymer ransomware parser, extracts rsa key and strings
   classification: 'TLP:W'
   malware: 'BitPaymer'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/bitpaymer.yara
@@ -22,6 +24,7 @@ ChChes:
   description: Extracts config data from various ChChes trojan families
   classification: 'TLP:W'
   malware: 'ChChes'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/chches.yara
@@ -32,6 +35,7 @@ DoppelPaymer:
   description: DoppelPaymer ransomware config data parser, gets rsa keys and strings
   classification: 'TLP:W'
   malware: 'DoppelPaymer'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/doppelpaymer.yara
@@ -42,6 +46,7 @@ Emotet:
   description: Emotet malware family parser and yara rules for both payload and assemblyline tags
   classification: 'TLP:W'
   malware: 'Emotet'
+  run_on: 'AND'
   selector:
     yara_rule:
       - ./yara_rules/emotet.yara
@@ -55,6 +60,7 @@ Enfal:
   description: Extracts config data from Enfal backdoor, yara rule detects Enfal configuration blob
   classification: 'TLP:W'
   malware: 'Enfal'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/enfal.yara
@@ -65,6 +71,7 @@ EvilGrab:
   description: Yara rule detects 3 different variants of EvilGrab ,  parser extracts config data
   classification: 'TLP:W'
   malware: 'EvilGrab'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/evilgrab.yara
@@ -75,6 +82,7 @@ HttpBrowser:
   description: Yara rule runs on HttpBrowser C2 connect function and HttpBrowser parser extracts configuration
   classification: 'TLP:W'
   malware: 'HttpBrowser'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/httpbrowser.yara
@@ -85,6 +93,7 @@ IcedID:
   description: Yara rule match runs IcedID banking trojan parser
   classification: 'TLP:W'
   malware: 'IcedID'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/icedid.yara
@@ -95,6 +104,7 @@ RCSession:
   description: Yara rule match on RCSession RAT payload runs parser
   classification: 'TLP:W'
   malware: 'RCSession'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/rcsession.yara
@@ -105,6 +115,7 @@ RedLeaf:
   description: Yara rule match on Redleaves malware runs parser to extract c2 data
   classification: 'TLP:W'
   malware: 'RedLeaf'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/redleaf.yara
@@ -115,6 +126,7 @@ Redsip:
   description: Yara rule match on Redsip payload runs parser to extract config data
   classification: 'TLP:W'
   malware: 'Redsip'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/redsip.yara
@@ -125,6 +137,7 @@ Retefe:
   description: Banking trojan. yara rule match on payload runs parser
   classification: 'TLP:W'
   malware: 'Retefe'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/retefe.yara
@@ -135,6 +148,7 @@ SmokeLoader:
   description: Malware loader. Yara rule match extracts c2 information
   classification: 'TLP:W'
   malware: 'SmokeLoader'
+  run_on: 'OR'
   selector:
     yara_rule:
       - ./yara_rules/smokeloader.yara
@@ -145,6 +159,7 @@ QakBot:
   description: Prevalent Information stealing banking trojan
   classification: 'TLP:W'
   malware: 'QakBot'
+  run_on: 'OR'
   selector:
     yara_rule: 
       - ./yara_rules/qakbot.yara
