@@ -45,6 +45,7 @@ class ConfigExtractor(ServiceBase):
         for name, obj in self.file_parsers.items():
             if parser in obj.parser_list:
                 malware_name = obj.malware
+                malware_types = obj.malware_types
 
         parser_section = ResultSection(f"{parsertype} : {parser}")
         parser_section = self.classificationChecker(parser_section, parser, self.file_parsers)
@@ -63,6 +64,8 @@ class ConfigExtractor(ServiceBase):
             parser_section.set_heuristic(1)
             parser_section.add_tag("source", parsertype)
             parser_section.add_tag('attribution.implant', malware_name.upper())
+            for malware_type in malware_types:
+                parser_section.add_tag('attribution.family', malware_type.upper())
         fields_dictstrings = {"other": "file.config"}
         fields_liststringtuples = {"port": "network.dynamic.port", "socketaddress": "", "c2_socketaddress": "",
                                    "credential": "", "ftp": "", "listenport": "", "outputfile": "", "proxy": "",

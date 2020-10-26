@@ -60,13 +60,14 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 class Parser:
     def __init__(self, name: str, parser_list: List[str], compiled_rules: List[yara.Rules], classification: str,
-                 malware: str):
+                 malware: str, malware_types: List[str]):
         self.name = name
         self.parser_list = parser_list
         self.compiled_rules = compiled_rules
         self.match = False
         self.classification = classification
         self.malware = malware
+        self.malware_types = malware_types
 
 
 class Entry:
@@ -120,12 +121,14 @@ def init():
                 parser_types = parser_entries[parser]['parser']
                 classification = parser_entries[parser]['classification']
                 malware_name = parser_entries[parser]['malware']
+                malware_types = parser_entries[parser]['malware_type']
                 parsers = validate_parsers(parser_types)
                 compiled_rules = []
                 for rule_source_path in rule_source_paths:
                     rule = yara.compile(filepath=rule_source_path)
                     compiled_rules.append(rule)
-                parser_objs[parser] = Parser(parser, parsers, compiled_rules, classification, malware_name)
+                parser_objs[parser] = Parser(parser, parsers, compiled_rules,
+                                             classification, malware_name, malware_types)
     return parser_objs
 
 
@@ -141,13 +144,15 @@ def init_tags(tags):
             parser_types = parser_entries[parser]['parser']
             classification = parser_entries[parser]['classification']
             malware_name = parser_entries[parser]['malware']
+            malware_types = parser_entries[parser]['malware_type']
             parsers = validate_parsers(parser_types)
             if checkpaths(rule_source_paths):
                 compiled_rules = []
                 for rule_source_path in rule_source_paths:
                     r = (yara.compile(rule_source_path, externals=tags))
                     compiled_rules.append(r)
-                parser_objs[parser] = Parser(parser, parsers, compiled_rules, classification, malware_name)
+                parser_objs[parser] = Parser(parser, parsers, compiled_rules,
+                                             classification, malware_name, malware_types)
     return parser_objs
 
 
@@ -216,16 +221,16 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
     def isMatch(file_path: str, parser_objects: Dict, tags_dict=None) -> Dict[str, List[yara.Rules]]:
         match_found = False
         matches = {}
-        matched_rules = []
+
         nonlocal super_parser_list
         if parser_objects is not None:
             for pars, obj in parser_objects.items():
+                matched_rules = []
                 for rule in obj.compiled_rules:
                     # each compiled rule object from yara_rule in yml
                     matched_rule = rule.match(file_path, callback=cb, externals=tags_dict)
                     if matched_rule:
-                        matched_rules.append(matched_rule)
-                        print(matched_rule)
+                        matched_rules.extend(matched_rule)
                         super_parser_list.extend(obj.parser_list)
                 matches[obj.malware] = matched_rules
         return matches
