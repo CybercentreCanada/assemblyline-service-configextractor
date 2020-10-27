@@ -13,7 +13,14 @@ cl_engine = forge.get_classification()
 class ConfigExtractor(ServiceBase):
     """ Runs parsers derived from MWCP, CAPE
     """
-
+    YARA_HEURISTICS_MAP = dict(
+        info=1,
+        technique=2,
+        exploit=3,
+        tool=4,
+        malware=5,
+        safe=6,
+    )
     def __init__(self, config=None):
         super(ConfigExtractor, self).__init__(config)
         self.file_parsers = None
@@ -41,13 +48,22 @@ class ConfigExtractor(ServiceBase):
 
     def sectionBuilder(self, parser, field_dict, result, parsertype="MWCP"):
         malware_name='N/A'
+        json_body = {}
         # get malware names from parser objects
         for name, obj in self.file_parsers.items():
             if parser in obj.parser_list:
                 malware_name = obj.malware
                 malware_types = obj.malware_types
-
+                mitre_att = obj.mitre_att
+                mitre_group = obj.mitre_group
+                category = obj.category
+                for item in ['classification', 'mitre_group', 'mitre_att',
+                             'malware', 'malware_types', 'run_on', 'category']:
+                    val = getattr(obj, item, None)
+                    if val:
+                        json_body[item] = val
         parser_section = ResultSection(f"{parsertype} : {parser}")
+
         parser_section = self.classificationChecker(parser_section, parser, self.file_parsers)
         fields_liststrings = {"address": "network.dynamic.uri", "c2_url": "network.dynamic.uri",
                               "c2_address": "network.dynamic.uri", "registrypath": "dynamic.registry_key",
@@ -61,9 +77,13 @@ class ConfigExtractor(ServiceBase):
                               "servicedll": "", "serviceimage": "", "ssl_cert_sha1": "", "url": "", "urlpath": "",
                               "useragent": ""}
         if len(field_dict) > 0:  # if any decoder output exists raise heuristic
-            parser_section.set_heuristic(1)
+
+            parser_section.set_body(json.dumps(json_body), body_format=BODY_FORMAT.KEY_VALUE)
+            parser_section.set_heuristic(self.YARA_HEURISTICS_MAP.get(category, 1), attack_id=mitre_att)
             parser_section.add_tag("source", parsertype)
             parser_section.add_tag('attribution.implant', malware_name.upper())
+            if mitre_group :
+                parser_section.add_tag('attribution.actor', mitre_group.upper())
             for malware_type in malware_types:
                 parser_section.add_tag('attribution.family', malware_type.upper())
         fields_dictstrings = {"other": "file.config"}
@@ -101,60 +121,6 @@ class ConfigExtractor(ServiceBase):
             if field not in fields_liststrings:
                 self.log.debug(f"\n\n Couldn't add {field} ")
         result.add_section(parser_section)
-
-    def tableBuilder(self, parser_name, fields, result, parsertype="MWCP"):
-
-        fields_liststrings = {"address": "network.dynamic.uri", "c2_url": "network.dynamic.uri",
-                              "c2_address": "network.dynamic.uri", "registrypath": "dynamic.registry_key",
-                              "servicename": "", "filepath": "file.path", "missionid": "",
-                              "version": "file.pe.versions.description",
-                              "injectionprocess": "", "mutex": "dynamic.mutex", "directory": "",
-                              "servicedisplayname": "",
-                              "servicedescription": "", "key": "", "username": "file.string.extracted",
-                              "password": "file.string.extracted", "email_address": "", "event": "", "filename": "",
-                              "guid": "", "interval": "", "pipe": "", "proxy_address": "", "registrydata": "",
-                              "servicedll": "", "serviceimage": "", "ssl_cert_sha1": "", "url": "", "urlpath": "",
-                              "useragent": ""}
-
-        fields_dictstrings = {"other": "file.config"}
-        fields_liststringtuples = {"port": "network.dynamic.port", "socketaddress": "", "c2_socketaddress": "",
-                                   "credential": "", "ftp": "", "listenport": "", "outputfile": "", "proxy": "",
-                                   "proxy_socketaddress": "", "registrypathdata": "", "rsa_private_key": "",
-                                   "rsa_public_key": "", "service": ""}
-        table_cols = {}
-        for field, tag in fields_dictstrings.items():
-            if field in fields:
-                table_cols[field] = ""
-        for field, tag in fields_liststrings.items():
-            if field in fields:
-                table_cols[field] = ""
-        for field, tag in fields_liststringtuples.items():
-            if field in fields:
-                table_cols[field] = ""
-        dict_table = []
-        table_body = []
-        table_section = ResultSection(f"{parser_name} section")
-        for k in table_cols:
-
-            if k in fields_dictstrings:
-                # table_body.append(fields[k])
-                dict_table.append({"other": fields[k]})
-            gen_section = ResultSection("new section", body_format=BODY_FORMAT.TABLE, body=json.dumps(dict_table))
-            if k in fields_liststrings:
-                # create key value pairs to append to table_body
-                for addr in fields[k]:  # fields[k] is a list of addresses or urls or ...
-                    new = addr
-                    table_body.append({f"addresses": new})
-            list_section = ResultSection("list section", body_format=BODY_FORMAT.TABLE, body=json.dumps(table_body))
-            if k in fields_liststringtuples:
-                table_body.append(fields[k])
-
-        table_section.add_subsection(list_section)
-        table_section.add_subsection(gen_section)
-        if len(fields) > 0:  # if any decoder output exists raise heuristic
-            table_section.set_heuristic(1)
-            table_section.add_tag("source", parsertype)
-        result.add_section(table_section)
 
     def execute(self, request):
         # ==================================================================

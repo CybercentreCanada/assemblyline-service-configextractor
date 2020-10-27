@@ -60,7 +60,8 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 class Parser:
     def __init__(self, name: str, parser_list: List[str], compiled_rules: List[yara.Rules], classification: str,
-                 malware: str, malware_types: List[str]):
+                 malware: str, malware_types: List[str], mitre_group: str, mitre_att: str, category: str,
+                 run_on: str):
         self.name = name
         self.parser_list = parser_list
         self.compiled_rules = compiled_rules
@@ -68,6 +69,10 @@ class Parser:
         self.classification = classification
         self.malware = malware
         self.malware_types = malware_types
+        self.mitre_group = mitre_group
+        self.mitre_att = mitre_att
+        self.category = category
+        self.run_on = run_on
 
 
 class Entry:
@@ -122,13 +127,18 @@ def init():
                 classification = parser_entries[parser]['classification']
                 malware_name = parser_entries[parser]['malware']
                 malware_types = parser_entries[parser]['malware_type']
+                mitre_group = parser_entries[parser]['mitre_group']
+                mitre_att = parser_entries[parser]['mitre_att']
+                category = parser_entries[parser]['category']
+                run_on = parser_entries[parser]['run_on']
                 parsers = validate_parsers(parser_types)
                 compiled_rules = []
                 for rule_source_path in rule_source_paths:
                     rule = yara.compile(filepath=rule_source_path)
                     compiled_rules.append(rule)
                 parser_objs[parser] = Parser(parser, parsers, compiled_rules,
-                                             classification, malware_name, malware_types)
+                                             classification, malware_name, malware_types,
+                                             mitre_group, mitre_att, category, run_on)
     return parser_objs
 
 
@@ -143,6 +153,10 @@ def init_tags(tags):
             rule_source_paths = parser_entries[parser]['selector']['tag']
             parser_types = parser_entries[parser]['parser']
             classification = parser_entries[parser]['classification']
+            mitre_group = parser_entries[parser]['mitre_group']
+            mitre_att = parser_entries[parser]['mitre_att']
+            category = parser_entries[parser]['category']
+            run_on = parser_entries[parser]['run_on']
             malware_name = parser_entries[parser]['malware']
             malware_types = parser_entries[parser]['malware_type']
             parsers = validate_parsers(parser_types)
@@ -152,7 +166,8 @@ def init_tags(tags):
                     r = (yara.compile(rule_source_path, externals=tags))
                     compiled_rules.append(r)
                 parser_objs[parser] = Parser(parser, parsers, compiled_rules,
-                                             classification, malware_name, malware_types)
+                                             classification, malware_name, malware_types,
+                                             mitre_group, mitre_att, category, run_on)
     return parser_objs
 
 

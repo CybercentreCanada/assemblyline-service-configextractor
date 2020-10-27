@@ -1,7 +1,8 @@
 Azorult:
   description: Extracts uri in Azorult (information stealer) payload
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
+  category: 'MALWARE'
+  mitre_group: ''
   mitre_att: 'S0344'
   malware: 'Azorult'
   malware_type:
@@ -16,8 +17,9 @@ Azorult:
 BitPaymer:
   description: BitPaymer ransomware parser, extracts rsa key and strings
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
-  mitre_att: 'SXXXX'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: ''
   malware: 'BitPaymer'
   malware_type:
     - 'Ransomware'
@@ -31,7 +33,8 @@ BitPaymer:
 ChChes:
   description: Extracts config data from various ChChes trojan families
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
+  category: 'MALWARE'
+  mitre_group: ''
   mitre_att: 'S0144'
   malware: 'ChChes'
   malware_type:
@@ -46,8 +49,9 @@ ChChes:
 DoppelPaymer:
   description: DoppelPaymer ransomware config data parser, gets rsa keys and strings
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
-  mitre_att: 'SXXXX'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: ''
   malware: 'DoppelPaymer'
   malware_type:
     - 'Ransomware'
@@ -61,7 +65,8 @@ DoppelPaymer:
 Emotet:
   description: Emotet malware family parser and yara rules for both payload and assemblyline tags
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
+  category: 'MALWARE'
+  mitre_group: 'CRIMEWARE'
   mitre_att: 'S0367'
   malware: 'Emotet'
   malware_type:
@@ -80,8 +85,9 @@ Emotet:
 Enfal:
   description: Extracts config data from Enfal backdoor, yara rule detects Enfal configuration blob
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
-  mitre_att: 'SXXXX'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: ''
   malware: 'Enfal'
   malware_type:
     - 'Backdoor'
@@ -95,7 +101,8 @@ Enfal:
 EvilGrab:
   description: Yara rule detects 3 different variants of EvilGrab ,  parser extracts config data
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
+  category: 'MALWARE'
+  mitre_group: ''
   mitre_att: 'S0152'
   malware: 'EvilGrab'
   malware_type:
@@ -110,7 +117,8 @@ EvilGrab:
 HttpBrowser:
   description: Yara rule runs on HttpBrowser C2 connect function and HttpBrowser parser extracts configuration
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
+  category: 'MALWARE'
+  mitre_group: ''
   mitre_att: 'S0070'
   malware: 'HttpBrowser'
   malware_type:
@@ -125,7 +133,8 @@ HttpBrowser:
 IcedID:
   description: Yara rule match runs IcedID banking trojan parser
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
+  category: 'MALWARE'
+  mitre_group: ''
   mitre_att: 'S0483'
   malware: 'IcedID'
   malware_type:
@@ -140,8 +149,9 @@ IcedID:
 RCSession:
   description: Yara rule match on RCSession RAT payload runs parser
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
-  mitre_att: 'SXXXX'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: ''
   malware: 'RCSession'
   malware_type:
     - 'Rat'
@@ -155,7 +165,8 @@ RCSession:
 RedLeaf:
   description: Yara rule match on Redleaves malware runs parser to extract c2 data
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
+  category: 'MALWARE'
+  mitre_group: ''
   mitre_att: 'S0153'
   malware: 'RedLeaf'
   malware_type:
@@ -170,8 +181,9 @@ RedLeaf:
 Redsip:
   description: Yara rule match on Redsip payload runs parser to extract config data
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
-  mitre_att: 'SXXXX'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: ''
   malware: 'Redsip'
   malware_type:
     - 'Rat'
@@ -185,8 +197,9 @@ Redsip:
 Retefe:
   description: Banking trojan. yara rule match on payload runs parser
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
-  mitre_att: 'SXXXX'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: ''
   malware: 'Retefe'
   malware_type:
     - 'Banker'
@@ -200,7 +213,8 @@ Retefe:
 SmokeLoader:
   description: Malware loader. Yara rule match extracts c2 information
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
+  category: 'MALWARE'
+  mitre_group: ''
   mitre_att: 'S0226'
   malware: 'SmokeLoader'
   malware_type:
@@ -216,7 +230,8 @@ SmokeLoader:
 QakBot:
   description: Prevalent Information stealing banking trojan
   classification: 'TLP:W'
-  mitre_group: 'APTXX'
+  category: 'MALWARE'
+  mitre_group: ''
   mitre_att: 'S0266'
   malware: 'QakBot'
   malware_type:
