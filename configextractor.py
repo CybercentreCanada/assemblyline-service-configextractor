@@ -63,7 +63,7 @@ class ConfigExtractor(ServiceBase):
                 mitre_group = obj.mitre_group
                 category = obj.category
                 for item in ['classification', 'mitre_group', 'mitre_att',
-                             'malware', 'malware_types', 'run_on', 'category']:
+                             'malware', 'malware_types', 'category']:
                     val = getattr(obj, item, None)
                     if val:
                         json_body[item] = val
