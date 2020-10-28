@@ -47,8 +47,13 @@ class ConfigExtractor(ServiceBase):
         return res_section
 
     def sectionBuilder(self, parser, field_dict, result, parsertype="MWCP"):
-        malware_name='N/A'
+
         json_body = {}
+        malware_name = ''
+        malware_types = []
+        mitre_group = ''
+        mitre_att = ''
+        category = 'malware'
         # get malware names from parser objects
         for name, obj in self.file_parsers.items():
             if parser in obj.parser_list:
@@ -77,7 +82,6 @@ class ConfigExtractor(ServiceBase):
                               "servicedll": "", "serviceimage": "", "ssl_cert_sha1": "", "url": "", "urlpath": "",
                               "useragent": ""}
         if len(field_dict) > 0:  # if any decoder output exists raise heuristic
-
             parser_section.set_body(json.dumps(json_body), body_format=BODY_FORMAT.KEY_VALUE)
             parser_section.set_heuristic(self.YARA_HEURISTICS_MAP.get(category, 1), attack_id=mitre_att)
             parser_section.add_tag("source", parsertype)
@@ -126,6 +130,8 @@ class ConfigExtractor(ServiceBase):
         # ==================================================================
         # Execute a request:
         result = Result()
+        # clear metadata from previous submision since ratdecoder run doesn't clear metadata
+        self.mwcp_reporter._Reporter__reset()
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, self.mwcp_reporter)
         if type(output) is dict:

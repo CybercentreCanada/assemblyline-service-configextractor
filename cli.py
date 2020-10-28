@@ -17,7 +17,7 @@ parserconfig = "parser_config.yml"
 DIRECTORY_LIST = ['Install Dir', 'InstallDir', 'InstallPath', 'Install Folder',
                   'Install Folder1', 'Install Folder2', 'Install Folder3',
                   'Folder Name', 'FolderName', 'pluginfoldername', 'nombreCarpeta']
-DOMAINS_LIST = ['Domain', 'Domains', 'dns']
+DOMAINS_LIST = ['Domain', 'Domains', 'dns', 'C2']
 FILENAME_LIST = ['InstallName', 'Install Name', 'Exe Name',
                  'Jar Name', 'JarName', 'StartUp Name', 'File Name',
                  'USB Name', 'Log File', 'Install File Name']

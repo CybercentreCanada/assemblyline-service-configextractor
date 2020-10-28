@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-
+sys.path.insert(0, './RATDecoders')
 from malwareconfig import fileparser
 from malwareconfig.modules import __decoders__, __preprocessors__
 
