@@ -13,13 +13,9 @@ cl_engine = forge.get_classification()
 class ConfigExtractor(ServiceBase):
     """ Runs parsers derived from MWCP, CAPE
     """
-    YARA_HEURISTICS_MAP = dict(
-        info=1,
-        technique=2,
-        exploit=3,
-        tool=4,
-        malware=5,
-        safe=6,
+    HEURISTICS_MAP = dict(
+        malware=1,
+        safe=2,
     )
     def __init__(self, config=None):
         super(ConfigExtractor, self).__init__(config)
@@ -83,7 +79,8 @@ class ConfigExtractor(ServiceBase):
                               "useragent": ""}
         if len(field_dict) > 0:  # if any decoder output exists raise heuristic
             parser_section.set_body(json.dumps(json_body), body_format=BODY_FORMAT.KEY_VALUE)
-            parser_section.set_heuristic(self.YARA_HEURISTICS_MAP.get(category, 1), attack_id=mitre_att)
+            parser_section.set_heuristic(self.HEURISTICS_MAP.get(category, 1), attack_id=mitre_att)
+            parser_section.set_heuristic(3) # extracted config block
             parser_section.add_tag("source", parsertype)
             parser_section.add_tag('attribution.implant', malware_name.upper())
             if mitre_group :

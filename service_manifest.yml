@@ -27,37 +27,14 @@ licence_count: 0
 
 # Service configuration block (dictionary of config variables) 
 heuristics:
+
   - heur_id: 1
-    name: Info
-    score: 1
-    filetype: '*'
-    description: Yara rule - Info group
-
-  - heur_id: 2
-    name: Technique
-    score: 100
-    filetype: '*'
-    description: Yara rule - Technique group
-
-  - heur_id: 3
-    name: Exploit
-    score: 500
-    filetype: '*'
-    description: Yara rule - Exploit group
-
-  - heur_id: 4
-    name: Tool
-    score: 500
-    filetype: '*'
-    description: Yara rule - Tool group
-
-  - heur_id: 5
     name: Malware
     score: 1000
     filetype: '*'
     description: Yara rule - Malware group
 
-  - heur_id: 6
+  - heur_id: 2
     name: Safe
     score: -1000
     filetype: '*'
@@ -65,7 +42,7 @@ heuristics:
 
   - description: This suspicious heuristic indicates configuration block was extracted
     filetype: "*"
-    heur_id: 7
+    heur_id: 3
     name: Extracted Malware Configuration
     score: 1000
 
