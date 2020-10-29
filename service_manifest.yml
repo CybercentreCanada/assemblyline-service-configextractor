@@ -29,21 +29,21 @@ licence_count: 0
 heuristics:
 
   - heur_id: 1
-    name: Malware
+    name: Extracted Malware Configuration
     score: 1000
     filetype: '*'
-    description: Yara rule - Malware group
+    description: Category - Malware
 
   - heur_id: 2
     name: Safe
     score: -1000
     filetype: '*'
-    description: Yara rule - Safe group
+    description: Category - Safe
 
   - description: This suspicious heuristic indicates configuration block was extracted
     filetype: "*"
     heur_id: 3
-    name: Extracted Malware Configuration
+    name:
     score: 1000
 
 
