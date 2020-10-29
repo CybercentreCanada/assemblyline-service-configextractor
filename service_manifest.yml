@@ -32,7 +32,7 @@ heuristics:
     name: Extracted Malware Configuration
     score: 1000
     filetype: '*'
-    description: Category - Malware
+    description: Category - Malware - Indicates configuration block was extracted
 
   - heur_id: 2
     name: Safe
@@ -40,11 +40,6 @@ heuristics:
     filetype: '*'
     description: Category - Safe
 
-  - description: This suspicious heuristic indicates configuration block was extracted
-    filetype: "*"
-    heur_id: 3
-    name:
-    score: 1000
 
 
 # Docker configuration block which defines:
