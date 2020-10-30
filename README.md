@@ -1,6 +1,9 @@
-# assemblyline-service-configextractor
-This is meant to extract Malware Configuration data from various malware
-families and provide a wrapper for popular malware config decoders:
+# ConfigExtractor Service
+The code found in this repository contains two main aspects: the Assemblyline service code
+(configextractor.py) and the command line interface (cli.py). The Assemblyline service code
+inherits the command line interface in order to perform Assemblyline related functionality, 
+but the command line interface can be used exclusively. The command line interface acts as 
+a wrapper for popular malware configuration data decoders such as:
 * MWCP framework: https://github.com/Defense-Cyber-Crime-Center/DC3-MWCP [MIT license]
 * RATDecoder: https://github.com/kevthehermit/RATDecoders [MIT license]
 * CAPE Sandbox: https://github.com/kevoreilly/CAPEv2/ [GPL license] (many thanks to @kevoreilly for releasing so many open source parsers).
@@ -13,28 +16,39 @@ This wrapper and the AssemblyLine service is released under the MIT license, but
 This service has the following file structure:
 ```text
 assemblyline-service-configextractor
-│
+.
+├── Dockerfile
 ├── cli.py
 ├── configextractor.py
-├── Dockerfile
-├── fields.json
+├── service_manifest.yml
+├── __init__.py
+├── LICENSE
+├── README.md
+├── requirements.txt
+├── wrapper_malconfs.py
+├── pipelines
+│   └── azure-build.yaml
 ├── mwcp_parsers
-│   ├── Azorult.py
-│   ├── ...
+│   ├── parser_config.yaml
+│   ├── __init__.py
+│   ├── example_parser.py
+│   └── ...
 ├── tag_rules
-│   └── tagcheck.rules
+│   ├── example_tagcheck_rule.rules
+│   └── ...
 ├── yara_parser.yaml
 ├── yara_rules
-│   ├── azorult.yara
-│   ├── ...
-...
+│  ├── example_yara_rule.yara
+|  └── ...
+└── RATDecoders
+  └── clone of https://github.com/kevthehermit/RATDecoders
 ```
 
-This is overview of each of these :
+This is an overview of each of the major parts of this project :
 
-* `cli.py` ─ Runs configextractor in cli mode
-* `configextractor.py` - Service that runs in Assemblyline
-* `fields.json` valid parser fields that MWCP supports
+* `cli.py` ─ Command line interface that acts as wrapper for config extractor decoders
+* `configextractor.py` - Service code that runs in Assemblyline
+* `wrapper_malconfs.py` ─ Command line interface that acts as wrapper for config extractor decoders
 * `mwcp_parsers` ─ Directory containing all MWCP parsers, additional parsers go in here.
 * `tag_rules` - Contains rules to run on tags from previous services.
 * `yara_parser.yaml` ─ Contains Parser Entries, mandatory.
@@ -57,6 +71,9 @@ This is overview of each of these :
  As well if 'tag' exists under 'selector' then it must contain one or more directories.
  If neither 'yara_rule' or 'tag' exist then the only way for parser to run is be added as a 'wildcard'
  parser which will run all parsers defined under it every time a file is submitted.
+
+## Customization
+When creating a new mcwp parser, follow the setup (here)[https://github.com/Defense-Cyber-Crime-Center/DC3-MWCP/tree/master/mwcp/config]
 
 ## Example entry in yara_parser.yaml
 ```text
@@ -102,11 +119,11 @@ Emotet:
 
 ```
 ## Running in CLI mode
-ConfigExtractor can also be used in cli mode outside of assemblyline. Ensure that all dependencies are met in requirements.txt and yara and yara-python is installed. run command 'python3 cli.py file\_path' where file\_path is name of file to analyze.
+ConfigExtractor can also be used in cli mode outside of Assemblyline. Ensure that all dependencies are met in requirements.txt and yara and yara-python is installed. run command 'python3 cli.py file\_path' where file\_path is name of file to analyze.
 ## Adding Tag rule
 Since ConfigExtractor is a secondary service; all tags created by core services are available to determine whether a particular parser should be run.
-Yara rules can either be run on files or assemblyline tags.
-A parser will run if the corresponding yara rule finds a match on an assemblyline tag.
+Yara rules can either be run on files or Assemblyline tags.
+A parser will run if the corresponding yara rule finds a match on an Assemblyline tag.
 
 For example a rule can be created to run an Emotet parser if an "attribution.implant:Emotet" tag is found.
 The yara rule could look like this. This yara rule would have to exactly match "EMOTET", other regex patterns can be defined as well.
