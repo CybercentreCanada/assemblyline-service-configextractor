@@ -1,9 +1,9 @@
 # ConfigExtractor Service
 The code found in this repository contains two main aspects: the Assemblyline service code
 (configextractor.py) and the command line interface (cli.py). The Assemblyline service code
-inherits the command line interface in order to perform Assemblyline related functionality, 
+utilizes cli.py in order to perform Assemblyline related functionality, 
 but the command line interface can be used exclusively. The command line interface acts as 
-a wrapper for popular malware configuration data decoders such as:
+a wrapper for popular malware configuration data decoders from:
 * MWCP framework: https://github.com/Defense-Cyber-Crime-Center/DC3-MWCP [MIT license]
 * RATDecoder: https://github.com/kevthehermit/RATDecoders [MIT license]
 * CAPE Sandbox: https://github.com/kevoreilly/CAPEv2/ [GPL license] (many thanks to @kevoreilly for releasing so many open source parsers).
@@ -34,7 +34,7 @@ assemblyline-service-configextractor
 │   ├── example_parser.py
 │   └── ...
 ├── tag_rules
-│   ├── example_tagcheck_rule.rules
+│   ├── example_tag_rule.rules
 │   └── ...
 ├── yara_parser.yaml
 ├── yara_rules
@@ -48,7 +48,7 @@ This is an overview of each of the major parts of this project :
 
 * `cli.py` ─ Command line interface that acts as wrapper for config extractor decoders
 * `configextractor.py` - Service code that runs in Assemblyline
-* `wrapper_malconfs.py` ─ Command line interface that acts as wrapper for config extractor decoders
+* `wrapper_malconf.py` ─ wrapper for TechAnarchy RATDecoders
 * `mwcp_parsers` ─ Directory containing all MWCP parsers, additional parsers go in here.
 * `tag_rules` - Contains rules to run on tags from previous services.
 * `yara_parser.yaml` ─ Contains Parser Entries, mandatory.
@@ -73,7 +73,7 @@ This is an overview of each of the major parts of this project :
  parser which will run all parsers defined under it every time a file is submitted.
 
 ## Customization
-When creating a new mcwp parser, follow the setup (here)[https://github.com/Defense-Cyber-Crime-Center/DC3-MWCP/tree/master/mwcp/config]
+When creating a new MWCP parser, follow the setup [here](https://github.com/Defense-Cyber-Crime-Center/DC3-MWCP/blob/master/docs/ParserDevelopment.md)
 
 ## Example entry in yara_parser.yaml
 ```text
