@@ -21,7 +21,6 @@ class ConfigExtractor(ServiceBase):
         super(ConfigExtractor, self).__init__(config)
         self.file_parsers = None
         self.tag_parsers = None
-        self.all_parsers = None
         self.parser_classification = []  # default should be the classification set for the service.
         self.mwcp_reporter = cli.register()
 
@@ -32,7 +31,7 @@ class ConfigExtractor(ServiceBase):
         yara_externals = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
         file_parsers, tag_parsers = cli.compile(yara_externals)
         self.log.info(f"loaded {file_parsers}")
-        self.all_parsers = cli.validate_parser_config()
+        cli.validate_parser_config()
         self.file_parsers = file_parsers
         self.tag_parsers = tag_parsers
     def classificationChecker(self, res_section, parser_name, file_parsers):

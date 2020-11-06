@@ -3,16 +3,17 @@ import yara
 import mwcp
 import click
 import os
-
 import json
-import wrapper_malconf as malconf
 from six import iteritems
 from pathlib import Path
 from typing import List, Dict
 
-parser_dir = "./mwcp_parsers/"
-yara_yml = "./yara_parser.yaml"
-parserconfig = "parser_config.yml"
+import wrapper_malconf as malconf
+
+# Important file and directory paths
+MWCP_PARSERS_DIR_PATH = "./mwcp_parsers/"
+YARA_PARSER_PATH = "./yara_parser.yaml"
+MWCP_PARSER_CONFIG_PATH = os.path.join(MWCP_PARSERS_DIR_PATH, "parser_config.yml")
 
 DIRECTORY_LIST = ['Install Dir', 'InstallDir', 'InstallPath', 'Install Folder',
                   'Install Folder1', 'Install Folder2', 'Install Folder3',
@@ -57,6 +58,8 @@ FLCP = [item for pairs in FILEPATH_CONCATENATE_PAIR_LIST.items() for item in pai
 FTPP = [item for pairs in FTP_FIELD_PAIRS.items() for item in pairs]
 SUPER_LIST.extend(FTPP + FLCP)
 
+MWCP_PARSER_PATHS = [p for p in Path(MWCP_PARSERS_DIR_PATH).glob("[!_]*.py")]
+
 
 class Parser:
     def __init__(self, name: str, parser_list: List[str], compiled_rules: List[yara.Rules], classification: str,
@@ -87,22 +90,18 @@ class Entry:
         self.parsers = parsers
 
 
-def validate_parsers(parser_list):
-    parsers_dedup = []
-    for i in parser_list:
-        for key in i.keys():
-            if key == 'MWCP':
-                parsers_dedup.extend(i['MWCP'])
-            elif key == 'CAPE':
-                raise NameError("Parser type not supported")
-            else:
-                raise NameError("Parser type is invalid, only MWCP supported")
-
-    parsers_dedup_list = list(set(parsers_dedup))
-    return parsers_dedup_list
+def validate_parsers(parser_list: List[str]):
+    mwcp_key = "MWCP"
+    parsers_set = set()
+    for parser in parser_list:
+        if mwcp_key in parser:
+            parsers_set.update(parser[mwcp_key])
+        else:
+            raise NameError(f"Parser type is invalid or unsupported, only {mwcp_key} supported")
+    return list(parsers_set)
 
 
-def checkpaths(paths: List[str]):
+def check_paths(paths: List[str]):
     if paths:
         for path in paths:
             if not path:
@@ -114,60 +113,37 @@ def checkpaths(paths: List[str]):
         return False  # no path defined in yaml
 
 
-def init():
+def initialize_parser_objs(tags: dict = None):
     # Compile yara rules from yaml, rules designed for malware
-    stream = open(yara_yml, 'r')
+    stream = open(YARA_PARSER_PATH, 'r')
     parser_entries = yaml.full_load(stream)
     parser_objs = {}
-    for parser in parser_entries:
-        if 'yara_rule' in parser_entries[parser]['selector']:
-            rule_source_paths = parser_entries[parser]['selector']['yara_rule']
-            if checkpaths(rule_source_paths):
-                parser_types = parser_entries[parser]['parser']
-                classification = parser_entries[parser]['classification']
-                malware_name = parser_entries[parser]['malware']
-                malware_types = parser_entries[parser]['malware_type']
-                mitre_group = parser_entries[parser]['mitre_group']
-                mitre_att = parser_entries[parser]['mitre_att']
-                category = parser_entries[parser]['category']
-                run_on = parser_entries[parser]['run_on']
-                parsers = validate_parsers(parser_types)
-                compiled_rules = []
-                for rule_source_path in rule_source_paths:
-                    rule = yara.compile(filepath=rule_source_path)
-                    compiled_rules.append(rule)
-                parser_objs[parser] = Parser(parser, parsers, compiled_rules,
-                                             classification, malware_name, malware_types,
-                                             mitre_group, mitre_att, category, run_on)
-    return parser_objs
-
-
-def init_tags(tags):
-    # Compile yara rules from path indicated in yaml, rules run on tags
-
-    stream = open(yara_yml, 'r')
-    parser_entries = yaml.full_load(stream)
-    parser_objs = {}
-    for parser in parser_entries:
-        if 'tag' in parser_entries[parser]['selector']:
-            rule_source_paths = parser_entries[parser]['selector']['tag']
-            parser_types = parser_entries[parser]['parser']
-            classification = parser_entries[parser]['classification']
-            mitre_group = parser_entries[parser]['mitre_group']
-            mitre_att = parser_entries[parser]['mitre_att']
-            category = parser_entries[parser]['category']
-            run_on = parser_entries[parser]['run_on']
-            malware_name = parser_entries[parser]['malware']
-            malware_types = parser_entries[parser]['malware_type']
-            parsers = validate_parsers(parser_types)
-            if checkpaths(rule_source_paths):
-                compiled_rules = []
-                for rule_source_path in rule_source_paths:
-                    r = (yara.compile(rule_source_path, externals=tags))
-                    compiled_rules.append(r)
-                parser_objs[parser] = Parser(parser, parsers, compiled_rules,
-                                             classification, malware_name, malware_types,
-                                             mitre_group, mitre_att, category, run_on)
+    for parser_name, parser_details in parser_entries.items():
+        rule_source_paths = []
+        # It can only be one or the other. Yara rule or Tag rule
+        if 'yara_rule' in parser_details['selector']:
+            rule_source_paths = parser_details['selector']['yara_rule']
+        elif 'tag' in parser_details['selector']:
+            rule_source_paths = parser_details['selector']['tag']
+        if not check_paths(rule_source_paths):
+            continue
+        validated_parsers = validate_parsers(parser_details['parser'])
+        compiled_rules = []
+        for rule_source_path in rule_source_paths:
+            rule = yara.compile(filepath=rule_source_path, externals=tags)
+            compiled_rules.append(rule)
+        parser_objs[parser_name] = Parser(
+            name=parser_name,
+            parser_list=validated_parsers,
+            compiled_rules=compiled_rules,
+            classification=parser_details['classification'],
+            malware=parser_details['malware'],
+            malware_types=parser_details['malware_type'],
+            mitre_group=parser_details['mitre_group'],
+            mitre_att=parser_details['mitre_att'],
+            category=parser_details['category'],
+            run_on=parser_details['run_on']
+        )
     return parser_objs
 
 
@@ -179,29 +155,29 @@ def cb(data):
 
 def validate_parser_config():
     yaml_parsers = {}
-    # get list of .py files that don't start with _
-    parsers = [p for p in Path(parser_dir).glob("[!_]*.py")]
     # find name of parser class
-    for parser in parsers:
-        file = open(parser_dir + parser.name)
+    for parser in MWCP_PARSER_PATHS:
+        file = open(parser, "r")
         for line in file:
             if line.partition("class ")[2].partition("(Parser):")[0]:
                 parser_class = line.partition("class ")[2].partition("(Parser):")[0]
-                entry = {"description": f"{parser.stem} Parser", "author": "Not Found", "parsers": [f".{parser_class}"]}
+                entry = {
+                    "description": f"{parser.stem} Parser",
+                    "author": "Not Found",
+                    "parsers": [f".{parser_class}"]
+                }
                 yaml_parsers[parser.stem] = entry
         file.close()
-    path = parser_dir + parserconfig
-    parsersinconfig = []
+    parsers_in_config = []
     # check that all parsers in dir are present in mwcp config
-    with open(path, "w+", encoding='utf-8') as f:
+    with open(MWCP_PARSER_CONFIG_PATH, "w+", encoding='utf-8') as f:
         for entry, value in yaml_parsers.items():
-            parsersinconfig.append(entry)
+            parsers_in_config.append(entry)
             p = {entry: value}
-            document = yaml.dump(p, f)
+            yaml.dump(p, f)
 
-    if len(parsers) != len(parsersinconfig):
+    if len(MWCP_PARSER_PATHS) != len(parsers_in_config):
         raise Exception("Number of parsers in Directory and parser_config.yml don't match")
-    return [parser.name for parser in parsers]
 
 
 def run(parser_list: List[str], f_path: str, reporter):
@@ -217,23 +193,22 @@ def run(parser_list: List[str], f_path: str, reporter):
             print(f"{parser}: \n", output)
     if __name__ == '__main__':
         reporter.output_file(bytes(str(json.dumps(outputs)), encoding='utf-8'), "output.json")
-        pass
     return outputs
 
 
-def checkNames(parsers: List[str]):
-    dir_parsers = [p[:-3] for p in os.listdir(parser_dir)]
-    for parser in parsers:
-        if parser.startswith("TA"):
-            print("TA parser")
-        elif parser not in dir_parsers:
-            raise Exception(f"{parser} not found in {parser_dir}")
+def check_names(parsers: set):
+    mwcp_parsers = set()
+    for file in MWCP_PARSER_PATHS:
+        mwcp_parsers.add(file.stem)
+    diff = parsers - mwcp_parsers
+    if diff:
+        raise Exception(f"{diff} not found in {MWCP_PARSER_PATHS}")
 
 
 def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
     # for each entry we get all compiled file yara rules and see if theres a match,
     # if there is a match then we add all parsers for that parser object to the super list
-    def isMatch(file_path: str, parser_objects: Dict, tags_dict=None) -> Dict[str, List[yara.Rules]]:
+    def is_match(file_path: str, parser_objects: Dict, tags_dict=None) -> Dict[str, List[yara.Rules]]:
         match_found = False
         matches = {}
 
@@ -253,7 +228,7 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
     super_parser_list = []
     and_malware = {} # top malware name: level name
     # add wildcard parsers that are run under all conditions
-    stream = open(yara_yml, 'r')
+    stream = open(YARA_PARSER_PATH, 'r')
     parser_entries = yaml.full_load(stream)
     for parser in parser_entries:
         if 'wildcard' in parser_entries[parser]['selector']:
@@ -267,11 +242,11 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
             else:
                 raise Exception("AND cannot be specified without both tag and file yara rules")
 
-    file_match = isMatch(file_path, file_pars)
-    tag_match = isMatch(file_path, tag_pars, tags_dict)
+    file_match = is_match(file_path, file_pars)
+    tag_match = is_match(file_path, tag_pars, tags_dict)
     #run check to exclude and parsers
 
-    def allRulesMatch(compiled_rules):
+    def all_rules_match(compiled_rules):
         ctr = 0
         for rule in compiled_rules:
             match = rule.match(file_path, callback=cb, externals=tags_dict)
@@ -284,8 +259,8 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
     for malware, top in and_malware.items():
         file_rules = file_pars[top].compiled_rules
         tag_rules = tag_pars[top].compiled_rules
-        file_bool = allRulesMatch(file_rules)
-        tag_bool = allRulesMatch(tag_rules)
+        file_bool = all_rules_match(file_rules)
+        tag_bool = all_rules_match(tag_rules)
         if file_bool and tag_bool:
             print("both file and tag rules have match")
         else:
@@ -294,25 +269,25 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
             super_parser_list = [x for x in super_parser_list if x not in malware_to_parsers]
 
     super_parser_list = [i[0].upper() + i[1:] for i in super_parser_list]
-    super_parser_list = list(set(super_parser_list))
-    checkNames(super_parser_list)
-    return super_parser_list
-
+    super_parser_list_set = set(super_parser_list)
+    check_names(super_parser_list_set)
+    super_parser_set_list = list(super_parser_list_set)
+    return super_parser_set_list
 
 
 def compile(tags=None):
     # returns dict of parser names with Parser objects containing  compiled rules
     if tags is not None:
-        parser_objs_tags = init_tags(tags)
-        parser_objs = init()
+        parser_objs_tags = initialize_parser_objs(tags)
+        parser_objs = initialize_parser_objs()
         return parser_objs, parser_objs_tags
-    parser_objs = init()
+    parser_objs = initialize_parser_objs()
     return parser_objs, None
 
 
 def register():
     mwcp.register_entry_points()
-    mwcp.register_parser_directory(parser_dir)
+    mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
     reporter = mwcp.Reporter()
     return reporter
 
