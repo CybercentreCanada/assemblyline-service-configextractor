@@ -36,7 +36,6 @@ FIELD_TAG_MAP = {
     'outputfile': None,
     'password': 'file.string.extracted',
     'pipe': None,
-    "port": "",
     'proxy': None,
     'proxy_address': None,
     'proxy_socketaddress': None,
@@ -177,14 +176,6 @@ def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
         if field in fields:
             generic_section = ResultSection(f"Extracted {field.capitalize()}")
             field_data = fields[field]
-            if field == 'port':
-                for pair in field_data:
-                    ports = pair[0::2]  # ports are at even indices, protocols on odd indices
-                    protocols = pair[1::2]
-                    for port in ports:
-                        generic_section.add_tag('network.port', port)
-                    for protocol in protocols:
-                        generic_section.add_tag('network.protocol', protocol)
             if tag:
                 for x in field_data:
                     generic_section.add_tag(tag, x)
