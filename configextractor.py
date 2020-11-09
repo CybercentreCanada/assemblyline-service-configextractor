@@ -13,8 +13,6 @@ cl_engine = forge.get_classification()
 HEURISTICS_MAP = {"malware": 1, "safe": 2}
 # This dict contains fields that we care about, and the corresponding tag if they exist
 FIELD_TAG_MAP = {
-    # TODO: sometimes a domain is returned for address, which should be tagged as network.dynamic.domain
-    # TODO: sometimes an IP:port is returned for address, which should be split into IP and tagged as network.dynamic.ip and port and tagged as network.port
     'address': 'network.dynamic.uri',
     'c2_address': 'network.dynamic.uri',
     'c2_socketaddress': None,
@@ -154,8 +152,6 @@ class ConfigExtractor(ServiceBase):
             other_content = field_dict[other_key]
             other_section = ResultSection(f"Other metadata found", body_format=BODY_FORMAT.KEY_VALUE,
                                           body=json.dumps(other_content))
-            for field in other_content:
-                other_section.add_tag("file.config", field)
             parser_section.add_subsection(other_section)
 
         for field in field_dict:
