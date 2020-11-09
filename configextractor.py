@@ -15,13 +15,12 @@ HEURISTICS_MAP = {"malware": 1, "safe": 2}
 FIELD_TAG_MAP = {
     'address': 'network.dynamic.uri',
     'c2_address': 'network.dynamic.uri',
-    'c2_socketaddress': None,
     'c2_url': 'network.dynamic.uri',
     'credential': None,
-    'directory': None,
+    'directory': 'file.path',
     'email_address': None,
     'event': None,
-    'filename': None,
+    'filename': 'file.path',
     'filepath': 'file.path',
     'ftp': None,
     'guid': None,
@@ -36,7 +35,6 @@ FIELD_TAG_MAP = {
     'pipe': None,
     'proxy': None,
     'proxy_address': None,
-    'proxy_socketaddress': None,
     'registrydata': None,
     'registrypath': 'dynamic.registry_key',
     'registrypathdata': None,
@@ -48,9 +46,8 @@ FIELD_TAG_MAP = {
     'servicedll': None,
     'serviceimage': None,
     'servicename': None,
-    'socketaddress': None,
     'ssl_cert_sha1': None,
-    'url': None,
+    'url': 'network.dynamic.uri',
     'urlpath': None,
     'useragent': None,
     'username': 'file.string.extracted',
@@ -108,8 +105,8 @@ class ConfigExtractor(ServiceBase):
             myfile.write(json.dumps(output))
             myfile.write(json.dumps(output_fields))
         request.add_supplementary(temp_path, "output.json", "This is MWCP output as a JSON file")
-
         request.result = result
+
 
     def section_builder(self, parser, field_dict, result, parsertype="MWCP"):
         json_body = {}
@@ -176,11 +173,11 @@ def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
                 for x in field_data:
                     generic_section.add_tag(tag, x)
                 # Tag it all and then don't print, since that duplicates info
-            else:
-                # Add data to section body if no tag exists
-                for line in field_data:
-                    if type(line) is str:
-                        generic_section.add_line(f"{line}")
-                    elif type(line) is list:
-                        generic_section.add_lines(line)
+
+            # Add data to section body if no tag exists
+            for line in field_data:
+                if type(line) is str:
+                    generic_section.add_line(f"{line}")
+                elif type(line) is list:
+                    generic_section.add_lines(line)
             parent_section.add_subsection(generic_section)

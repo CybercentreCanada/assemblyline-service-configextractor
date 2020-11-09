@@ -462,68 +462,53 @@ def map_c2_domains(data, reporter):
                     domain_list = [data[domain_key]]
                 for addport in domain_list:
                     if ":" in addport:
-                        addr, port = addport.split(":")
-                        if addr and port:
-                            reporter.add_metadata(
-                                "c2_socketaddress", [addr, port, "tcp"])
+                        reporter.add_metadata("address", f"{addport}")
                     elif 'p1' in data or 'p2' in data:
                         if 'p1' in data:
-                            reporter.add_metadata("c2_socketaddress", [
-                                data[domain_key], data['p1'], 'tcp'])
+                            reporter.add_metadata("address", f"{data[domain_key]}:{data['p1']}")
                         if 'p2' in data:
-                            reporter.add_metadata("c2_socketaddress", [
-                                data[domain_key], data['p2'], 'tcp'])
+                            reporter.add_metadata("address", f"{data[domain_key]}:{data['p2']}")
                     elif 'Port' in data or 'Port1' in data or 'Port2' in data:
                         if 'Port' in data:
                             # CyberGate has a separator character in the field
                             # remove it here
                             data['Port'] = data['Port'].rstrip('|').strip('|')
                             for port in data['Port']:
-                                reporter.add_metadata("c2_socketaddress", [
-                                    addport, data['Port'], 'tcp'])
+                                reporter.add_metadata("address", f"{addport}:{data['Port']}")
                         if 'Port1' in data:
-                            reporter.add_metadata("c2_socketaddress", [
-                                addport, data['Port1'], 'tcp'])
+                            reporter.add_metadata("address", f"{addport}:{data['Port1']}")
                         if 'Port2' in data:
-                            reporter.add_metadata("c2_socketaddress", [
-                                addport, data['Port2'], 'tcp'])
+                            reporter.add_metadata("address", f"{addport}:{data['Port2']}")
                     elif domain_key == 'Domain' and ("Client Control Port" in data or "Client Transfer Port" in data):
                         if "Client Control Port" in data:
-                            reporter.add_metadata("c2_socketaddress", [
-                                data['Domain'], data['Client Control Port'], "tcp"])
+                            reporter.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
                         if "Client Transfer Port" in data:
-                            reporter.add_metadata("c2_socketaddress", [data['Domain'], data[
-                                'Client Transfer Port'], "tcp"])
+                            reporter.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
                     else:
-                        reporter.add_metadata('c2_address', data[domain_key])
+                        reporter.add_metadata('address', data[domain_key])
 
 
 def map_domainX_fields(data, reporter):
-    SUFFIX_LIST = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
-                   '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
     SPECIAL_HANDLING_LIST = ['Domain1', 'Domain2']
-    for suffix in SUFFIX_LIST:
+    for suffix in range(1,21):
+        suffix = str(suffix)
         field = 'Domain' + suffix
         if field in data:
             if data[field] != ':0':
                 if ':' in data[field]:
                     address, port = data[field].split(':')
-                    reporter.add_metadata('c2_socketaddress', [
-                        address, port, 'tcp'])
+                    reporter.add_metadata('address', f"{address}:{port}")
                 else:
                     if field in SPECIAL_HANDLING_LIST:
                         if "Port" in data:
-                            reporter.add_metadata("c2_socketaddress", [
-                                data[field], data['Port'], "tcp"])
+                            reporter.add_metadata('address', f"{data[field]}:{data['Port']}")
                         elif "Port" + suffix in data:
-                            # assume tcp and c2--use per scriptname
                             # customization if this doesn't hold
-                            reporter.add_metadata("c2_socketaddress", [
-                                data[field], data['Port' + suffix], "tcp"])
+                            reporter.add_metadata('address', f"{data[field]}:{data['Port'+ suffix]}")
                         else:
-                            reporter.add_metadata("c2_address", data[field])
+                            reporter.add_metadata("address", data[field])
                     else:
-                        reporter.add_metadata('c2_address', data[field])
+                        reporter.add_metadata('address', data[field])
 
 
 def map_mutex(data, reporter):
