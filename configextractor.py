@@ -167,17 +167,20 @@ def classification_checker(res_section, parser_name, file_parsers):
 def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
     for field, tag in FIELD_TAG_MAP.items():
         if field in fields:
-            generic_section = ResultSection(f"Extracted {field.capitalize()}")
+            table_body = []
+            table_section = ResultSection(f"Extracted {field.capitalize()}")
             field_data = fields[field]
             if tag:
                 for x in field_data:
-                    generic_section.add_tag(tag, x)
-                # Tag it all and then don't print, since that duplicates info
-
-            # Add data to section body if no tag exists
+                    table_section.add_tag(tag, x)
+                # Tag everything that we can
+            # Add data to section body
             for line in field_data:
                 if type(line) is str:
-                    generic_section.add_line(f"{line}")
+                    table_body.append({field:line})
                 elif type(line) is list:
-                    generic_section.add_lines(line)
-            parent_section.add_subsection(generic_section)
+                    for item in line:
+                        table_body.append({field:item})
+            table_section.set_body(body_format=BODY_FORMAT.TABLE, body=json.dumps(table_body))
+
+            parent_section.add_subsection(table_section)
