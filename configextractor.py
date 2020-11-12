@@ -134,6 +134,8 @@ class ConfigExtractor(ServiceBase):
             parser_section.set_body(json.dumps(json_body), body_format=BODY_FORMAT.KEY_VALUE)
             parser_section.set_heuristic(HEURISTICS_MAP.get(category, 1), attack_id=mitre_att)
             parser_section.add_tag("source", parsertype)
+            if parsertype == "RATDecoder":
+                parser_section.add_tag('attribution.implant', parser.upper())
             if malware_name:
                 parser_section.add_tag('attribution.implant', malware_name.upper())
             if mitre_group:
