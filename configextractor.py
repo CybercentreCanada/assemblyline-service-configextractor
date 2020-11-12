@@ -115,18 +115,21 @@ class ConfigExtractor(ServiceBase):
         mitre_att = ''
         category = 'malware'
         # get malware names from parser objects
-        for name, obj in self.file_parsers.items():
-            if parser in obj.parser_list:
-                malware_name = obj.malware
-                malware_types = obj.malware_types
-                mitre_att = obj.mitre_att
-                mitre_group = obj.mitre_group
-                category = obj.category
-                for item in ['classification', 'mitre_group', 'mitre_att',
-                             'malware', 'malware_types', 'category']:
-                    val = getattr(obj, item, None)
-                    if val:
-                        json_body[item] = val
+        if parsertype == "RATDecoder":
+            malware_name = parser
+        if parsertype == "MWCP":
+            for name, obj in self.file_parsers.items():
+                if parser in obj.parser_list:
+                    malware_name = obj.malware
+                    malware_types = obj.malware_types
+                    mitre_att = obj.mitre_att
+                    mitre_group = obj.mitre_group
+                    category = obj.category
+                    for item in ['classification', 'mitre_group', 'mitre_att',
+                                 'malware', 'malware_types', 'category']:
+                        val = getattr(obj, item, None)
+                        if val:
+                            json_body[item] = val
         parser_section = ResultSection(f"{parsertype} : {parser}")
 
         parser_section = classification_checker(parser_section, parser, self.file_parsers)
@@ -134,8 +137,7 @@ class ConfigExtractor(ServiceBase):
             parser_section.set_body(json.dumps(json_body), body_format=BODY_FORMAT.KEY_VALUE)
             parser_section.set_heuristic(HEURISTICS_MAP.get(category, 1), attack_id=mitre_att)
             parser_section.add_tag("source", parsertype)
-            if parsertype == "RATDecoder":
-                parser_section.add_tag('attribution.implant', parser.upper())
+
             if malware_name:
                 parser_section.add_tag('attribution.implant', malware_name.upper())
             if mitre_group:
