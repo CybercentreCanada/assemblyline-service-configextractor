@@ -120,17 +120,21 @@ def initialize_parser_objs(tags: dict = None):
     parser_objs = {}
     for parser_name, parser_details in parser_entries.items():
         rule_source_paths = []
-        # It can only be one or the other. Yara rule or Tag rule
-        if 'yara_rule' in parser_details['selector']:
-            rule_source_paths = parser_details['selector']['yara_rule']
-        elif 'tag' in parser_details['selector']:
+        # if tags are present then get tag rule paths
+
+        if tags and 'tag' in parser_details['selector']:
             rule_source_paths = parser_details['selector']['tag']
+        elif not tags and 'yara_rule' in parser_details['selector']:
+            rule_source_paths = parser_details['selector']['yara_rule']
         if not check_paths(rule_source_paths):
             continue
         validated_parsers = validate_parsers(parser_details['parser'])
         compiled_rules = []
         for rule_source_path in rule_source_paths:
-            rule = yara.compile(filepath=rule_source_path, externals=tags)
+            if tags:
+                rule = yara.compile(filepath=rule_source_path, externals=tags)
+            else:
+                rule = yara.compile(filepath=rule_source_path)
             compiled_rules.append(rule)
         parser_objs[parser_name] = Parser(
             name=parser_name,
