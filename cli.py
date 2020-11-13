@@ -463,6 +463,10 @@ def map_c2_domains(data, reporter):
                             reporter.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
                         if "Client Transfer Port" in data:
                             reporter.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
+                    #Handle Mirai Case
+                    elif domain_key == 'C2' and isinstance(data[domain_key], list):
+                        for domain in data[domain_key]:
+                            reporter.add_metadata('address', domain)
                     else:
                         reporter.add_metadata('address', data[domain_key])
 
