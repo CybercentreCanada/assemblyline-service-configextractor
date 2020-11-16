@@ -63,6 +63,9 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 MWCP_PARSER_PATHS = [p for p in Path(MWCP_PARSERS_DIR_PATH).glob("[!_]*.py")]
 
+# Loading up YARA Parsers
+YARA_PARSERS = yaml.full_load(open(YARA_PARSER_PATH, 'r'))
+
 
 class Parser:
     def __init__(self, name: str, parser_list: List[str], compiled_rules: List[yara.Rules], classification: str,
@@ -126,21 +129,19 @@ def check_paths(paths: List[str]):
 
 
 def initialize_parser_objs(tags: dict = None):
-    # Compile yara rules from yaml, rules designed for malware
-    stream = open(YARA_PARSER_PATH, 'r')
-    parser_entries = yaml.full_load(stream)
     parser_objs = {}
-    for parser_name, parser_details in parser_entries.items():
+    for parser_name in YARA_PARSERS:
         rule_source_paths = []
         # if tags are present then get tag rule paths
-
-        if tags and 'tag' in parser_details['selector']:
-            rule_source_paths = parser_details['selector']['tag']
-        elif not tags and 'yara_rule' in parser_details['selector']:
-            rule_source_paths = parser_details['selector']['yara_rule']
+        yara_parser = YARA_PARSERS[parser_name]
+        yara_parser_selector = yara_parser["selector"]
+        if tags and 'tag' in yara_parser_selector:
+            rule_source_paths = yara_parser_selector['tag']
+        elif not tags and 'yara_rule' in yara_parser_selector:
+            rule_source_paths = yara_parser_selector['yara_rule']
         if not check_paths(rule_source_paths):
             continue
-        validated_parsers = validate_parsers(parser_details['parser'])
+        validated_parsers = validate_parsers(yara_parser['parser'])
         compiled_rules = []
         for rule_source_path in rule_source_paths:
             abs_path = os.path.join(ROOT_DIR, rule_source_path)
@@ -153,13 +154,13 @@ def initialize_parser_objs(tags: dict = None):
             name=parser_name,
             parser_list=validated_parsers,
             compiled_rules=compiled_rules,
-            classification=parser_details['classification'],
-            malware=parser_details['malware'],
-            malware_types=parser_details['malware_type'],
-            mitre_group=parser_details['mitre_group'],
-            mitre_att=parser_details['mitre_att'],
-            category=parser_details['category'],
-            run_on=parser_details['run_on']
+            classification=yara_parser['classification'],
+            malware=yara_parser['malware'],
+            malware_types=yara_parser['malware_type'],
+            mitre_group=yara_parser['mitre_group'],
+            mitre_att=yara_parser['mitre_att'],
+            category=yara_parser['category'],
+            run_on=yara_parser['run_on']
         )
     return parser_objs
 
