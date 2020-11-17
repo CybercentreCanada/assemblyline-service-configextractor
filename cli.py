@@ -1,5 +1,7 @@
 import yaml
 import yara
+import sys
+#add path for forked mwcp repo sys.path.insert(0, "/home/lucky/git/DC3-MWCP")
 import mwcp
 import click
 import os
