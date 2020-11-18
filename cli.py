@@ -64,8 +64,7 @@ MWCP_PARSER_PATHS = [p for p in Path(MWCP_PARSERS_DIR_PATH).glob("[!_]*.py")]
 
 class Parser:
     def __init__(self, name: str, parser_list: List[str], compiled_rules: List[yara.Rules], classification: str,
-                 malware: str, malware_types: List[str], mitre_group: str, mitre_att: str, category: str,
-                 run_on: str):
+                 malware: str, malware_types: List[str], mitre_group: str, mitre_att: str, category: str):
         self.name = name
         self.parser_list = parser_list
         self.compiled_rules = compiled_rules
@@ -76,7 +75,6 @@ class Parser:
         self.mitre_group = mitre_group
         self.mitre_att = mitre_att
         self.category = category
-        self.run_on = run_on
 
     def __eq__(self, other):
         # TODO: Find a way to compare equality between yara.Rules objects (compiled_rules)
@@ -91,7 +89,7 @@ class Entry:
     # Entry defined in yara_parser.yaml used internally
     def __init__(self, description: str, classification: str, category: str, mitre_group: str,
                  mitre_att: str, malware: str, run_on: str, yara_rules: List[str],
-                 malware_types: List[str], parsers: List[dict],
+                 malware_types: List[str], parsers: List[dict], selector: dict,
                  tag_rules: List[str] = None):
         self.description = description
         self.classification = classification
@@ -104,6 +102,7 @@ class Entry:
         self.tag_rules = tag_rules
         self.malware_types = malware_types
         self.parsers = parsers
+        self.selector = selector
 
 # Loading up YARA Parsers
 YARA_PARSERS_LOAD = yaml.full_load(open(YARA_PARSER_PATH, 'r'))
@@ -123,9 +122,10 @@ for entry_name, dict_values in YARA_PARSERS_LOAD.items():
                                      yara_rules = dict_values['selector']['yara_rule'],
                                      malware_types = dict_values['malware_type'],
                                      parsers = dict_values['parser'],
-                                     tag_rules = tag_rules)
+                                     tag_rules = tag_rules,
+                                     selector = dict_values['selector'])
 
-def validate_parsers(parser_list: List[str]):
+def validate_parsers(parser_list: List[dict]):
     mwcp_key = "MWCP"
     parsers_set = set()
     for parser in parser_list:
@@ -180,7 +180,6 @@ def initialize_parser_objs(tags: dict = None):
             mitre_group=yara_parser.mitre_group,
             mitre_att=yara_parser.mitre_att,
             category=yara_parser.category,
-            run_on=yara_parser.run_on
         )
     return parser_objs
 
@@ -263,14 +262,13 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
     # add wildcard parsers that are run under all conditions
     for parser_name in YARA_PARSERS:
         yara_parser = YARA_PARSERS[parser_name]
-        yara_parser_selector = yara_parser['selector']
-        if 'wildcard' in yara_parser_selector:
-            wildcard_parsers = validate_parsers(yara_parser['parser'])
+        if 'wildcard' in yara_parser.selector:
+            wildcard_parsers = validate_parsers(yara_parser.parsers)
             super_parser_list.extend(wildcard_parsers)
-        if 'AND' in yara_parser['run_on']:  # everything else is OR by default
-            if 'tag' in yara_parser_selector and 'yara_rule' in yara_parser_selector:
+        if 'AND' in yara_parser.run_on:  # everything else is OR by default
+            if 'tag' in yara_parser.selector and 'yara_rule' in yara_parser.selector:
                 # then match must exist for some parser for both tag and file
-                malware_name = yara_parser['malware']
+                malware_name = yara_parser.malware
                 and_malware[malware_name] = parser_name
             else:
                 raise Exception("AND cannot be specified without both tag and file yara rules")
