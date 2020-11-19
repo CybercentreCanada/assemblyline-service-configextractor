@@ -20,6 +20,7 @@ DIRECTORY_LIST = ['Install Dir', 'InstallDir', 'InstallPath', 'Install Folder',
                   'Install Folder1', 'Install Folder2', 'Install Folder3',
                   'Folder Name', 'FolderName', 'pluginfoldername', 'nombreCarpeta']
 DOMAINS_LIST = ['Domain', 'Domains', 'dns', 'C2']
+PORT_LIST = ['p1', 'p2', 'Port', 'Port1', 'Port2', "Client Control Port", "Client Control Transfer"]
 FILENAME_LIST = ['InstallName', 'Install Name', 'Exe Name',
                  'Jar Name', 'JarName', 'StartUp Name', 'File Name',
                  'USB Name', 'Log File', 'Install File Name']
@@ -319,6 +320,7 @@ def compile(tags=None):
 
 
 def register():
+    global reporter
     mwcp.register_entry_points()
     mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
     reporter = mwcp.Reporter()
@@ -336,15 +338,18 @@ def check_for_backslashes(ta_key, mwcp_key, data, reporter):
 def ta_mapping(output, scriptname=""):
     # takes malwareconfig json output matches to mwcp fields found in reporter.metadata
     c2_domains = {val: output[val] for val in DOMAINS_LIST if val in output}
-    map_c2_domains(c2_domains)
+    if c2_domains:
+        c2_ports = {val: output[val] for val in PORT_LIST if val in output}
+        map_c2_domains(c2_domains, c2_ports)
     mutexes = {val: output[val] for val in MUTEX_LIST if val in output}
-    map_mutex(mutexes)
+    if mutexes:
+        map_mutex(mutexes)
     registries = {val: output[val] for val in REGISTRYPATH_LIST if val in output}
-    map_registry(registries)
+    if registries:
+        map_registry(registries)
 
     map_domainX_fields(output)
     map_ftp_fields(output)
-    map_key_fields(output)
     map_filepath_fields(scriptname, output)
     map_username_password_fields(output)
 
@@ -355,7 +360,8 @@ def ta_mapping(output, scriptname=""):
         'injectionprocess': INJECTIONPROCESS_LIST,
         'interval': INTERVAL_LIST,
         'filename': FILENAME_LIST,
-        'directory': DIRECTORY_LIST
+        'directory': DIRECTORY_LIST,
+        'key': 'EncryptionKey'
     }
 
     for key, value in mwcp_key_map.items():
@@ -451,54 +457,46 @@ def map_ftp_fields(data):
                 reporter.add_metadata("c2_url", "ftp://" + data[address])
 
 
-def map_c2_domains(data):
+def map_c2_domains(domain_data, port_data):
     global reporter
-    for key in data:
-        val = data[key]
+    # keys are only from DOMAIN_LIST
+    for dom_key in domain_data:
+        dom_val = domain_data[dom_key]
         """ Hack here to handle a LuxNet case where a registry path is stored
             under the Domain key. """
-        if val.count('\\') < 2:
-            if '|' in val:
+        if isinstance(dom_val, str) and dom_val.count('\\') < 2:
+            if '|' in dom_val:
                 """ The '|' is a separator character so strip it if
                     it is the last character so the split does not produce
                     an empty string i.e. '' """
-                domain_list = val.rstrip('|').split('|')
-            elif '*' in val:
+                uri_list = dom_val.rstrip('|').split('|')
+            elif '*' in dom_val:
                 """ The '*' is a separator character so strip it if
                     it is the last character """
-                domain_list = val.rstrip('*').split('*')
+                uri_list = dom_val.rstrip('*').split('*')
             else:
-                domain_list = [val]
-            for addport in domain_list:
-                if ":" in addport:
-                    reporter.add_metadata("address", f"{addport}")
-                elif 'p1' in data or 'p2' in data:
-                    if 'p1' in data:
-                        reporter.add_metadata("address", f"{val}:{data['p1']}")
-                    if 'p2' in data:
-                        reporter.add_metadata("address", f"{val}:{data['p2']}")
-                elif 'Port' in data or 'Port1' in data or 'Port2' in data:
-                    if 'Port' in data:
+                uri_list = [dom_val]
+            for uri in uri_list:
+                if ":" in uri:
+                    # It is assumed that if a : exists in uri, then the string follows ip:port
+                    reporter.add_metadata("address", uri)
+                # keys are only from PORT_LIST
+                for port_key in port_data:
+                    SPECIAL_HANDLING = 'Port'
+                    port_val = port_data[port_key]
+                    if port_key == SPECIAL_HANDLING:
                         # CyberGate has a separator character in the field
                         # remove it here
-                        data['Port'] = data['Port'].rstrip('|').strip('|')
-                        for port in data['Port']:
-                            reporter.add_metadata("address", f"{addport}:{data['Port']}")
-                    if 'Port1' in data:
-                        reporter.add_metadata("address", f"{addport}:{data['Port1']}")
-                    if 'Port2' in data:
-                        reporter.add_metadata("address", f"{addport}:{data['Port2']}")
-                elif key == 'Domain' and ("Client Control Port" in data or "Client Transfer Port" in data):
-                    if "Client Control Port" in data:
-                        reporter.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
-                    if "Client Transfer Port" in data:
-                        reporter.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
-                #Handle Mirai Case
-                elif key == 'C2' and isinstance(val, list):
-                    for domain in val:
-                        reporter.add_metadata('address', domain)
-                else:
-                    reporter.add_metadata('address', val)
+                        port_val = port_val.rstrip('|').strip('|')
+                        reporter.add_metadata("address", f"{uri}:{port_val}")
+                    else:
+                        reporter.add_metadata("address", f"{uri}:{port_val}")
+        elif isinstance(dom_val, list):
+            #Handle Mirai Case
+            for domain in dom_val:
+                reporter.add_metadata('address', domain)
+        else:
+            reporter.add_metadata('address', dom_val)
 
 
 def map_domainX_fields(data):
@@ -530,11 +528,9 @@ def map_mutex(data):
     SPECIAL_HANDLING = 'Mutex'
     for key in data:
         val = data[key]
-        if key != SPECIAL_HANDLING:
-            reporter.add_metadata('mutex', val)
-        else:
-            if val != 'false' and val != 'true':
-                reporter.add_metadata('mutex', val)
+        if key == SPECIAL_HANDLING and val in ['false', 'true']:
+            continue
+        reporter.add_metadata('mutex', val)
 
 
 def map_registry(data):
@@ -567,12 +563,6 @@ def map_jar_fields(data):
         if 'extensionname' in data:
             jarinfo += '.' + data['extensionname']
     reporter.add_metadata(mwcpkey, jarinfo)
-
-
-def map_key_fields(data):
-    global reporter
-    if "EncryptionKey" in data:
-        reporter.add_metadata("key", data["EncryptionKey"])
 
 
 def run_ratdecoders(file_path, passed_reporter):
