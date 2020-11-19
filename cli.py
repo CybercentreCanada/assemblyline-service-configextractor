@@ -61,6 +61,8 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 MWCP_PARSER_PATHS = [p for p in Path(MWCP_PARSERS_DIR_PATH).glob("[!_]*.py")]
 
+global reporter
+
 
 class Parser:
     def __init__(self, name: str, parser_list: List[str], compiled_rules: List[yara.Rules], classification: str,
@@ -104,26 +106,29 @@ class Entry:
         self.parsers = parsers
         self.selector = selector
 
+
 # Loading up YARA Parsers
 YARA_PARSERS_LOAD = yaml.full_load(open(YARA_PARSER_PATH, 'r'))
 YARA_PARSERS = {}
 for entry_name, dict_values in YARA_PARSERS_LOAD.items():
-    if 'tag_rule' in dict_values['selector']:
-        tag_rules = dict_values['selector']['tag_rule']
+    selector = dict_values['selector']
+    if 'tag_rule' in selector:
+        tag_rules = selector['tag_rule']
     else:
         tag_rules = None
     YARA_PARSERS[entry_name] = Entry(description=dict_values['description'],
-                                     classification = dict_values['classification'],
-                                     category = dict_values['category'],
-                                     mitre_group = dict_values['mitre_group'],
-                                     mitre_att = dict_values['mitre_att'],
-                                     malware = dict_values['malware'],
-                                     run_on = dict_values['run_on'],
-                                     yara_rules = dict_values['selector']['yara_rule'],
-                                     malware_types = dict_values['malware_type'],
-                                     parsers = dict_values['parser'],
-                                     tag_rules = tag_rules,
-                                     selector = dict_values['selector'])
+                                     classification=dict_values['classification'],
+                                     category=dict_values['category'],
+                                     mitre_group=dict_values['mitre_group'],
+                                     mitre_att=dict_values['mitre_att'],
+                                     malware=dict_values['malware'],
+                                     run_on=dict_values['run_on'],
+                                     yara_rules=selector['yara_rule'],
+                                     malware_types=dict_values['malware_type'],
+                                     parsers=dict_values['parser'],
+                                     tag_rules=tag_rules,
+                                     selector=selector)
+
 
 def validate_parsers(parser_list: List[dict]):
     mwcp_key = "MWCP"
@@ -152,7 +157,6 @@ def check_paths(paths: List[str]):
 def initialize_parser_objs(tags: dict = None):
     parser_objs = {}
     for parser_name in YARA_PARSERS:
-        rule_source_paths = []
         # if tags are present then get tag rule paths
         yara_parser = YARA_PARSERS[parser_name]
         if tags:
@@ -240,9 +244,6 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
     # for each entry we get all compiled file yara rules and see if theres a match,
     # if there is a match then we add all parsers for that parser object to the super list
     def is_match(file_path: str, parser_objects: Dict, tags_dict=None) -> Dict[str, List[yara.Rules]]:
-        match_found = False
-        matches = {}
-
         nonlocal super_parser_list
         if parser_objects is not None:
             for pars, obj in parser_objects.items():
@@ -253,8 +254,6 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
                     if matched_rule:
                         matched_rules.extend(matched_rule)
                         super_parser_list.extend(obj.parser_list)
-                matches[obj.malware] = matched_rules
-        return matches
 
     # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
     super_parser_list = []
@@ -334,44 +333,53 @@ def check_for_backslashes(ta_key, mwcp_key, data, reporter):
         reporter.add_metadata(mwcp_key, data[ta_key])
 
 
-def ta_mapping(output, reporter, scriptname=""):
+def ta_mapping(output, scriptname=""):
     # takes malwareconfig json output matches to mwcp fields found in reporter.metadata
-    map_c2_domains(output, reporter)
-    map_mutex(output, reporter)
-    map_version(output, reporter)
-    map_registry(output, reporter)
-    map_domainX_fields(output, reporter)
-    map_key_fields(output, reporter)
-    map_missionid_fields(output, reporter)
-    map_ftp_fields(output, reporter)
-    map_network_fields(output, reporter)
-    map_injectionprocess_fields(output, reporter)
-    map_filepath_fields(scriptname, output, reporter)
-    map_username_password_fields(output, reporter)
-    map_interval_fields(output, reporter)
-    map_filename_fields(output, reporter)
-    map_network_fields(output, reporter)
-    map_directory_fields(output, reporter)
+    c2_domains = {val: output[val] for val in DOMAINS_LIST if val in output}
+    map_c2_domains(c2_domains)
+    mutexes = {val: output[val] for val in MUTEX_LIST if val in output}
+    map_mutex(mutexes)
+    registries = {val: output[val] for val in REGISTRYPATH_LIST if val in output}
+    map_registry(registries)
+
+    map_domainX_fields(output)
+    map_ftp_fields(output)
+    map_key_fields(output)
+    map_filepath_fields(scriptname, output)
+    map_username_password_fields(output)
+
+    mwcp_key_map = {
+        'version': VERSION_LIST,
+        'missionid': MISSIONID_LIST,
+        'url': NONC2_URL_LIST,
+        'injectionprocess': INJECTIONPROCESS_LIST,
+        'interval': INTERVAL_LIST,
+        'filename': FILENAME_LIST,
+        'directory': DIRECTORY_LIST
+    }
+
+    for key, value in mwcp_key_map.items():
+        refined = refine_data(output, value)
+        if refined:
+            map_fields(refined, key)
+
     if scriptname == 'unrecom':
-        map_jar_fields(output, reporter)
+        map_jar_fields(output)
 
 
-def map_fields(data, reporter, field_list, mwcp_key):
-    for field in field_list:
-        if data.get(field):
-            reporter.add_metadata(mwcp_key, data[field])
+def refine_data(output, keys_of_interest):
+    return {val: output[val] for val in keys_of_interest if val in output}
 
 
-def map_injectionprocess_fields(data, reporter):
-    map_fields(data, reporter, INJECTIONPROCESS_LIST,
-               'injectionprocess')
+def map_fields(data, mwcp_key):
+    global reporter
+    for key in data:
+        val = data[key]
+        reporter.add_metadata(mwcp_key, val)
 
 
-def map_networkgroup_nonc2_fields(data, reporter):
-    map_fields(data, reporter, NONC2_URL_LIST, 'url')
-
-
-def map_username_password_fields(data, reporter):
+def map_username_password_fields(data):
+    global reporter
     for username, password in zip(USERNAME_LIST, PASSWORD_LIST):
         if username in data and password in data:
             reporter.add_metadata(
@@ -381,14 +389,12 @@ def map_username_password_fields(data, reporter):
         elif username in data:
             reporter.add_metadata('username', data[username])
 
-    map_fields(data, reporter, PASSWORD_ONLY_LIST, 'password')
+    passwords = {val: data[val] for val in PASSWORD_ONLY_LIST if val in data}
+    map_fields(passwords, 'password')
 
 
-def map_network_fields(data, reporter):
-    map_networkgroup_nonc2_fields(data, reporter)
-
-
-def map_filepath_fields(scriptname, data, reporter):
+def map_filepath_fields(scriptname, data):
+    global reporter
     IGNORE_SCRIPT_LIST = ['Pandora', 'Punisher']
     for pname, fname in iteritems(FILEPATH_CONCATENATE_PAIR_LIST):
         if scriptname not in IGNORE_SCRIPT_LIST:
@@ -407,7 +413,8 @@ def map_filepath_fields(scriptname, data, reporter):
                 reporter.add_metadata('filename', data[fname])
 
 
-def map_ftp_fields(data, reporter):
+def map_ftp_fields(data):
+    global reporter
     SPECIAL_HANDLING_PAIRS = {'FTP Address': 'FTP Port'}
     for host, port in iteritems(SPECIAL_HANDLING_PAIRS):
         ftpdirectory = ''
@@ -444,64 +451,58 @@ def map_ftp_fields(data, reporter):
                 reporter.add_metadata("c2_url", "ftp://" + data[address])
 
 
-def map_directory_fields(data, reporter):
-    map_fields(data, reporter, DIRECTORY_LIST, 'directory')
-
-
-def map_filename_fields(data, reporter):
-    map_fields(data, reporter, FILENAME_LIST, 'filename')
-
-
-def map_c2_domains(data, reporter):
-    for domain_key in DOMAINS_LIST:
-        if domain_key in data:
-            """ Hack here to handle a LuxNet case where a registry path is stored
-                under the Domain key. """
-            if data[domain_key].count('\\') < 2:
-                if '|' in data[domain_key]:
-                    """ The '|' is a separator character so strip it if
-                        it is the last character so the split does not produce
-                        an empty string i.e. '' """
-                    domain_list = data[domain_key].rstrip('|').split('|')
-                elif '*' in data[domain_key]:
-                    """ The '*' is a separator character so strip it if
-                        it is the last character """
-                    domain_list = data[domain_key].rstrip('*').split('*')
+def map_c2_domains(data):
+    global reporter
+    for key in data:
+        val = data[key]
+        """ Hack here to handle a LuxNet case where a registry path is stored
+            under the Domain key. """
+        if val.count('\\') < 2:
+            if '|' in val:
+                """ The '|' is a separator character so strip it if
+                    it is the last character so the split does not produce
+                    an empty string i.e. '' """
+                domain_list = val.rstrip('|').split('|')
+            elif '*' in val:
+                """ The '*' is a separator character so strip it if
+                    it is the last character """
+                domain_list = val.rstrip('*').split('*')
+            else:
+                domain_list = [val]
+            for addport in domain_list:
+                if ":" in addport:
+                    reporter.add_metadata("address", f"{addport}")
+                elif 'p1' in data or 'p2' in data:
+                    if 'p1' in data:
+                        reporter.add_metadata("address", f"{val}:{data['p1']}")
+                    if 'p2' in data:
+                        reporter.add_metadata("address", f"{val}:{data['p2']}")
+                elif 'Port' in data or 'Port1' in data or 'Port2' in data:
+                    if 'Port' in data:
+                        # CyberGate has a separator character in the field
+                        # remove it here
+                        data['Port'] = data['Port'].rstrip('|').strip('|')
+                        for port in data['Port']:
+                            reporter.add_metadata("address", f"{addport}:{data['Port']}")
+                    if 'Port1' in data:
+                        reporter.add_metadata("address", f"{addport}:{data['Port1']}")
+                    if 'Port2' in data:
+                        reporter.add_metadata("address", f"{addport}:{data['Port2']}")
+                elif key == 'Domain' and ("Client Control Port" in data or "Client Transfer Port" in data):
+                    if "Client Control Port" in data:
+                        reporter.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
+                    if "Client Transfer Port" in data:
+                        reporter.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
+                #Handle Mirai Case
+                elif key == 'C2' and isinstance(val, list):
+                    for domain in val:
+                        reporter.add_metadata('address', domain)
                 else:
-                    domain_list = [data[domain_key]]
-                for addport in domain_list:
-                    if ":" in addport:
-                        reporter.add_metadata("address", f"{addport}")
-                    elif 'p1' in data or 'p2' in data:
-                        if 'p1' in data:
-                            reporter.add_metadata("address", f"{data[domain_key]}:{data['p1']}")
-                        if 'p2' in data:
-                            reporter.add_metadata("address", f"{data[domain_key]}:{data['p2']}")
-                    elif 'Port' in data or 'Port1' in data or 'Port2' in data:
-                        if 'Port' in data:
-                            # CyberGate has a separator character in the field
-                            # remove it here
-                            data['Port'] = data['Port'].rstrip('|').strip('|')
-                            for port in data['Port']:
-                                reporter.add_metadata("address", f"{addport}:{data['Port']}")
-                        if 'Port1' in data:
-                            reporter.add_metadata("address", f"{addport}:{data['Port1']}")
-                        if 'Port2' in data:
-                            reporter.add_metadata("address", f"{addport}:{data['Port2']}")
-                    elif domain_key == 'Domain' and ("Client Control Port" in data or "Client Transfer Port" in data):
-                        if "Client Control Port" in data:
-                            reporter.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
-                        if "Client Transfer Port" in data:
-                            reporter.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
-                    # Handle Mirai Case
-                    elif domain_key == 'C2' and isinstance(data[domain_key], list):
-                        for domain in data[domain_key]:
-                            reporter.add_metadata('address', domain)
-                    else:
-                        reporter.add_metadata('address', data[domain_key])
+                    reporter.add_metadata('address', val)
 
 
-def map_domainX_fields(data, reporter):
+def map_domainX_fields(data):
+    global reporter
     SPECIAL_HANDLING_LIST = ['Domain1', 'Domain2']
     for suffix in range(1, 21):
         suffix = str(suffix)
@@ -524,40 +525,31 @@ def map_domainX_fields(data, reporter):
                         reporter.add_metadata('address', data[field])
 
 
-def map_mutex(data, reporter):
+def map_mutex(data):
+    global reporter
     SPECIAL_HANDLING = 'Mutex'
-    for mutex_key in MUTEX_LIST:
-        if mutex_key in data:
-            if mutex_key != SPECIAL_HANDLING:
-                reporter.add_metadata('mutex', data[mutex_key])
-            else:
-                if data[mutex_key] != 'false' and data[mutex_key] != 'true':
-                    reporter.add_metadata('mutex', data[mutex_key])
+    for key in data:
+        val = data[key]
+        if key != SPECIAL_HANDLING:
+            reporter.add_metadata('mutex', val)
+        else:
+            if val != 'false' and val != 'true':
+                reporter.add_metadata('mutex', val)
 
 
-def map_missionid_fields(data, reporter):
-    map_fields(data, reporter, MISSIONID_LIST, 'missionid')
-
-
-def map_version(data, reporter):
-    map_fields(data, reporter, VERSION_LIST, 'version')
-
-
-def map_registry(data, reporter):
+def map_registry(data):
+    global reporter
     SPECIAL_HANDLING = 'Domain'
-    for ta_key in REGISTRYPATH_LIST:
-        if ta_key in data:
-            if ta_key == SPECIAL_HANDLING:
-                check_for_backslashes(ta_key, 'registrypath', data, reporter)
-            else:
-                reporter.add_metadata('registrypath', data[ta_key])
+    for key in data:
+        val = data[key]
+        if key == SPECIAL_HANDLING:
+            check_for_backslashes(key, 'registrypath', data, reporter)
+        else:
+            reporter.add_metadata('registrypath', val)
 
 
-def map_interval_fields(data, reporter):
-    map_fields(data, reporter, INTERVAL_LIST, 'interval')
-
-
-def map_jar_fields(data, reporter):
+def map_jar_fields(data):
+    global reporter
     """This routine is for the unrecom family"""
     jarinfo = ''
     mwcpkey = ''
@@ -577,19 +569,22 @@ def map_jar_fields(data, reporter):
     reporter.add_metadata(mwcpkey, jarinfo)
 
 
-def map_key_fields(data, reporter):
+def map_key_fields(data):
+    global reporter
     if "EncryptionKey" in data:
         reporter.add_metadata("key", data["EncryptionKey"])
 
 
-def run_ratdecoders(file_path, reporter):
+def run_ratdecoders(file_path, passed_reporter):
+    global reporter
+    reporter = passed_reporter
     file_info = malconf.preprocess(file_path)
     script_name = file_info.malware_name
-    output = malconf.process_file(file_info, file_path)
+    output = malconf.process_file(file_info)
     if type(output) is str:
         print(output)
         return output
-    ta_mapping(output, reporter, script_name)
+    ta_mapping(output, script_name)
     others = {}
 
     for key in output:
@@ -610,13 +605,14 @@ def main(file_path) -> None:
     file_path : relative or absolute path for file to be analyzed
     """
     # if running cli mode tags are not expected
+    global reporter
     reporter = register()
-    run_ratdecoders(file_path, reporter)
+    run_ratdecoders(file_path)
     validate_parser_config()
     file_pars, tag_pars = compile()
     parsers = deduplicate(file_pars, tag_pars, file_path)
     # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
-    run(parsers, file_path, reporter)
+    run(parsers, file_path)
     reporter.print_report()
 
     # but can't run parsers until final list of parsers to run, from tag and file parsers is finished
