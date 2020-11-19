@@ -155,10 +155,10 @@ def initialize_parser_objs(tags: dict = None):
         rule_source_paths = []
         # if tags are present then get tag rule paths
         yara_parser = YARA_PARSERS[parser_name]
-        if yara_parser.yara_rules:
-            rule_source_paths = yara_parser.yara_rules
-        elif yara_parser.tag_rules:
+        if tags:
             rule_source_paths = yara_parser.tag_rules
+        else:
+            rule_source_paths = yara_parser.yara_rules
         if not check_paths(rule_source_paths):
             continue
         validated_parsers = validate_parsers(yara_parser.parsers)
