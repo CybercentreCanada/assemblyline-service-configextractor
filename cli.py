@@ -1,7 +1,7 @@
 import yaml
 import yara
 import sys
-#add path for forked mwcp repo sys.path.insert(0, "/home/lucky/git/DC3-MWCP")
+# add path for forked mwcp repo sys.path.insert(0, "/home/lucky/git/DC3-MWCP")
 import mwcp
 import click
 import os
@@ -13,8 +13,9 @@ from typing import List, Dict
 import wrapper_malconf as malconf
 
 # Important file and directory paths
-MWCP_PARSERS_DIR_PATH = "./mwcp_parsers/"
-YARA_PARSER_PATH = "./yara_parser.yaml"
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+MWCP_PARSERS_DIR_PATH = os.path.join(ROOT_DIR, "mwcp_parsers")
+YARA_PARSER_PATH = os.path.join(ROOT_DIR, "yara_parser.yaml")
 MWCP_PARSER_CONFIG_PATH = os.path.join(MWCP_PARSERS_DIR_PATH, "parser_config.yml")
 
 DIRECTORY_LIST = ['Install Dir', 'InstallDir', 'InstallPath', 'Install Folder',
@@ -79,6 +80,18 @@ class Parser:
         self.category = category
         self.run_on = run_on
 
+    def __eq__(self, other):
+        if not isinstance(other, Parser):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        # TODO: Find a way to compare equality between yara.Rules objects (compiled_rules)
+        return self.name == other.name and self.parser_list == other.parser_list and \
+               self.match == other.match and self.classification == other.classification and \
+               self.malware == other.malware and self.malware_types == other.malware_types and \
+               self.mitre_group == other.mitre_group and self.mitre_att == other.mitre_att and \
+               self.category == other.category and self.run_on == other.run_on
+
 
 class Entry:
     # Entry defined in yara_parser.yaml
@@ -108,8 +121,9 @@ def check_paths(paths: List[str]):
         for path in paths:
             if not path:
                 raise Exception("Path cannot be empty")
-            if not os.path.isfile(path):
-                raise Exception("Rule ", path, "does not exist")
+            abs_file_path = os.path.join(ROOT_DIR, path)
+            if not os.path.isfile(abs_file_path):
+                raise Exception("Rule ", abs_file_path, "does not exist")
         return True
     else:
         return False  # no path defined in yaml
@@ -133,10 +147,11 @@ def initialize_parser_objs(tags: dict = None):
         validated_parsers = validate_parsers(parser_details['parser'])
         compiled_rules = []
         for rule_source_path in rule_source_paths:
+            abs_path = os.path.join(ROOT_DIR, rule_source_path)
             if tags:
-                rule = yara.compile(filepath=rule_source_path, externals=tags)
+                rule = yara.compile(filepath=abs_path, externals=tags)
             else:
-                rule = yara.compile(filepath=rule_source_path)
+                rule = yara.compile(filepath=abs_path)
             compiled_rules.append(rule)
         parser_objs[parser_name] = Parser(
             name=parser_name,
@@ -230,9 +245,10 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
                         super_parser_list.extend(obj.parser_list)
                 matches[obj.malware] = matched_rules
         return matches
+
     # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
     super_parser_list = []
-    and_malware = {} # top malware name: level name
+    and_malware = {}  # top malware name: level name
     # add wildcard parsers that are run under all conditions
     stream = open(YARA_PARSER_PATH, 'r')
     parser_entries = yaml.full_load(stream)
@@ -240,7 +256,7 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
         if 'wildcard' in parser_entries[parser]['selector']:
             wildcard_parsers = validate_parsers(parser_entries[parser]['parser'])
             super_parser_list.extend(wildcard_parsers)
-        if 'AND' in parser_entries[parser]['run_on']: # everything else is OR by default
+        if 'AND' in parser_entries[parser]['run_on']:  # everything else is OR by default
             if 'tag' in parser_entries[parser]['selector'] and 'yara_rule' in parser_entries[parser]['selector']:
                 # then match must exist for some parser for both tag and file
                 malware_name = parser_entries[parser]['malware']
@@ -250,18 +266,20 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
 
     file_match = is_match(file_path, file_pars)
     tag_match = is_match(file_path, tag_pars, tags_dict)
-    #run check to exclude and parsers
+
+    # run check to exclude and parsers
 
     def all_rules_match(compiled_rules):
         ctr = 0
         for rule in compiled_rules:
             match = rule.match(file_path, callback=cb, externals=tags_dict)
             if match:
-                ctr = ctr+1
+                ctr = ctr + 1
         if len(compiled_rules) == ctr:
             return True
         else:
             return False
+
     for malware, top in and_malware.items():
         file_rules = file_pars[top].compiled_rules
         tag_rules = tag_pars[top].compiled_rules
@@ -465,7 +483,7 @@ def map_c2_domains(data, reporter):
                             reporter.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
                         if "Client Transfer Port" in data:
                             reporter.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
-                    #Handle Mirai Case
+                    # Handle Mirai Case
                     elif domain_key == 'C2' and isinstance(data[domain_key], list):
                         for domain in data[domain_key]:
                             reporter.add_metadata('address', domain)
@@ -475,7 +493,7 @@ def map_c2_domains(data, reporter):
 
 def map_domainX_fields(data, reporter):
     SPECIAL_HANDLING_LIST = ['Domain1', 'Domain2']
-    for suffix in range(1,21):
+    for suffix in range(1, 21):
         suffix = str(suffix)
         field = 'Domain' + suffix
         if field in data:
@@ -489,7 +507,7 @@ def map_domainX_fields(data, reporter):
                             reporter.add_metadata('address', f"{data[field]}:{data['Port']}")
                         elif "Port" + suffix in data:
                             # customization if this doesn't hold
-                            reporter.add_metadata('address', f"{data[field]}:{data['Port'+ suffix]}")
+                            reporter.add_metadata('address', f"{data[field]}:{data['Port' + suffix]}")
                         else:
                             reporter.add_metadata("address", data[field])
                     else:

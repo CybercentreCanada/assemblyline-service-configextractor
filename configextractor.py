@@ -58,7 +58,7 @@ FIELD_TAG_MAP = {
 class ConfigExtractor(ServiceBase):
     def __init__(self, config=None):
         super(ConfigExtractor, self).__init__(config)
-        self.file_parsers = None
+        self.file_parsers = {}
         self.tag_parsers = None
         self.parser_classification = []  # default should be the classification set for the service.
         self.mwcp_reporter = cli.register()
@@ -105,7 +105,6 @@ class ConfigExtractor(ServiceBase):
             myfile.write(json.dumps(output_fields))
         request.add_supplementary(temp_path, "output.json", "This is MWCP output as a JSON file")
         request.result = result
-
 
     def section_builder(self, parser, field_dict, result, parsertype="MWCP"):
         json_body = {}
