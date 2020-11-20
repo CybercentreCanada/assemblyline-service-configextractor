@@ -119,6 +119,8 @@ class ConfigExtractor(ServiceBase):
         if parsertype == "MWCP":
             for name, obj in self.file_parsers.items():
                 if parser in obj.parser_list:
+                    # TODO: we're constantly overwriting these values if there are hits
+                    # Is parser only in a single obj's parser_list?
                     malware_name = obj.malware
                     malware_types = obj.malware_types
                     mitre_att = obj.mitre_att
@@ -167,22 +169,24 @@ def classification_checker(res_section, parser_name, file_parsers):
 
 
 def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
+    # TODO: maybe iterate through fields and check if field in FIELD_TAG_MAP? not sure which is smaller
     for field, tag in FIELD_TAG_MAP.items():
         if field in fields:
             table_body = []
             table_section = ResultSection(f"Extracted {field.capitalize()}")
             field_data = fields[field]
             if tag:
+                # TODO: is field_data always a list?
                 for x in field_data:
                     table_section.add_tag(tag, x)
                 # Tag everything that we can
             # Add data to section body
             for line in field_data:
                 if type(line) is str:
-                    table_body.append({field:line})
+                    table_body.append({field: line})
                 elif type(line) is list:
                     for item in line:
-                        table_body.append({field:item})
+                        table_body.append({field: item})
             table_section.set_body(body_format=BODY_FORMAT.TABLE, body=json.dumps(table_body))
 
             parent_section.add_subsection(table_section)
