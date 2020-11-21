@@ -328,7 +328,6 @@ class TestConfigExtractor:
 
         assert test_result_response == correct_result_response
 
-    # TODO: Incorporate field_dict into POSSIBLE_INPUTS
     @staticmethod
     @pytest.mark.parametrize("parser,field_dict,parsertype",
         get_section_builder_inputs()
@@ -340,9 +339,7 @@ class TestConfigExtractor:
         correct_sections = create_correct_result_section_tree(field_dict, parsers, parsertype, parser)
         class_instance.file_parsers = correct_tag_parsers
         class_instance.section_builder(parser=parser, field_dict=field_dict, result=result, parsertype=parsertype)
-        # TODO: Compare result object attributes
         assert check_section_equality(result.sections[0], correct_sections)
-        pass
 
     @staticmethod
     @pytest.mark.parametrize("res_section,parser_name",
@@ -371,5 +368,371 @@ class TestConfigExtractor:
         subsection_builder(parent_section=parent_section, fields=fields)
         assert check_section_equality(parent_section, correct_parent_section)
 
-    # TODO: Complete unit tests for cli.py static methods
-# class TestCLI:
+
+def get_parser_entries():
+    import yaml
+    from cli import YARA_PARSER_PATH
+    stream = open(YARA_PARSER_PATH, 'r')
+    parser_entries = yaml.full_load(stream)
+    return parser_entries
+
+
+def get_validate_parser_inputs():
+    possible_inputs_for_validate_parser = []
+    parser_entries = get_parser_entries()
+    incorrect_key = "incorrect"
+
+    for parser_entry in parser_entries.values():
+        possible_inputs_for_validate_parser.append(parser_entry["parser"])
+    possible_inputs_for_validate_parser.append([{incorrect_key: [incorrect_key]}])
+    return possible_inputs_for_validate_parser
+
+
+def get_reporter():
+    import mwcp
+    from cli import MWCP_PARSERS_DIR_PATH
+    mwcp.register_entry_points()
+    mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
+    reporter = mwcp.Reporter()
+    return reporter
+
+
+def add_metadata(data, field_list, mwcp_key, correct_reporter=None):
+    if not correct_reporter:
+        correct_reporter = get_reporter()
+    for field in field_list:
+        if data.get(field) and mwcp_key in correct_reporter.fields:
+            correct_reporter.add_metadata(mwcp_key, data[field])
+    return correct_reporter
+
+
+# TODO: Complete unit tests for cli.py static methods
+class TestCLI:
+    @staticmethod
+    @pytest.mark.parametrize("parser_list",
+        get_validate_parser_inputs()
+    )
+    def test_validate_parsers(parser_list):
+        from cli import validate_parsers
+        mwcp_key = "MWCP"
+        incorrect_key = "incorrect"
+        correct_parser_set = set()
+        incorrect_parser_set = set()
+        for parser in parser_list:
+            if mwcp_key in parser:
+                correct_parser_set.update(parser[mwcp_key])
+            else:
+                incorrect_parser_set.update(parser[incorrect_key])
+        correct_parser_list = list(correct_parser_set)
+        incorrect_parser_list = list(incorrect_parser_set)
+
+        if correct_parser_list:
+            test_parser_list = validate_parsers(parser_list)
+            assert test_parser_list == correct_parser_list
+        if incorrect_parser_list:
+            with pytest.raises(NameError):
+                validate_parsers(parser_list)
+
+    @staticmethod
+    @pytest.mark.parametrize("paths",
+        [
+            [],
+            ["", "fake_path"],
+            ['./tag_rules/emotet.rule']
+        ]
+    )
+    def test_check_paths(paths):
+        from cli import check_paths
+        if not paths:
+            assert not check_paths(paths)
+        for path in paths:
+            abs_file_path = os.path.join(ROOT_DIR, path)
+            if not path:
+                with pytest.raises(Exception):
+                    check_paths(paths)
+            if not os.path.isfile(abs_file_path):
+                with pytest.raises(Exception):
+                    check_paths(paths)
+
+    @staticmethod
+    def test_initialize_parser_objs():
+        pass
+
+    @staticmethod
+    def test_cb():
+        pass
+
+    @staticmethod
+    def test_validate_parser_config():
+        pass
+
+    @staticmethod
+    def test_run():
+        pass
+
+    @staticmethod
+    @pytest.mark.parametrize("parsers",
+        [
+            set(),
+            set({"item"})
+        ]
+    )
+    def test_check_names(parsers):
+        from cli import MWCP_PARSER_PATHS, check_names
+        mwcp_parsers = set()
+        for file in MWCP_PARSER_PATHS:
+            mwcp_parsers.add(file.stem)
+        diff = parsers - mwcp_parsers
+        if diff:
+            with pytest.raises(Exception):
+                check_names(parsers)
+
+    @staticmethod
+    def test_deduplicate():
+        pass
+
+    @staticmethod
+    def test_is_match():
+        pass
+
+    @staticmethod
+    def test_all_rules_match():
+        pass
+
+    @staticmethod
+    def test_compile():
+        pass
+
+    @staticmethod
+    def test_register():
+        from cli import register
+        correct_reporter = get_reporter()
+        test_reporter = register()
+        assert test_reporter.__dict__ == correct_reporter.__dict__
+
+    @staticmethod
+    def test_check_for_backslashes():
+        pass
+
+    @staticmethod
+    def test_ta_mapping():
+        pass
+
+    @staticmethod
+    @pytest.mark.parametrize("data,field_list,mwcp_key",
+        [
+            ({"address": "b"}, [], None),
+            ({}, ["address"], None),
+            ({"address": "b"}, ["address"], "address")
+        ]
+    )
+    def test_map_fields(data, field_list, mwcp_key):
+        from cli import map_fields
+        correct_reporter = add_metadata(data, field_list, mwcp_key)
+
+        test_reporter = get_reporter()
+        map_fields(data, test_reporter, field_list, mwcp_key)
+        assert test_reporter.__dict__ == correct_reporter.__dict__
+
+    @staticmethod
+    @pytest.mark.parametrize("data",
+        [
+            {},
+            {
+                "Process Injection": "a",
+                "Injection": "b",
+                "Inject Exe": "c"
+            },
+        ]
+    )
+    def test_map_injectionprocess_fields(data):
+        from cli import map_injectionprocess_fields, INJECTIONPROCESS_LIST
+        correct_reporter = add_metadata(data, INJECTIONPROCESS_LIST, "injectionprocess")
+
+        test_reporter = get_reporter()
+        map_injectionprocess_fields(data, test_reporter)
+        assert test_reporter.__dict__ == correct_reporter.__dict__
+
+    @staticmethod
+    @pytest.mark.parametrize("data",
+        [
+            {},
+            {
+                "Screen Rec Link": "a",
+                "WebPanel": "b",
+                "Plugins": "c"
+            },
+        ]
+    )
+    def test_map_networkgroup_nonc2_fields(data):
+        from cli import map_networkgroup_nonc2_fields, NONC2_URL_LIST
+        correct_reporter = add_metadata(data, NONC2_URL_LIST, "url")
+
+        test_reporter = get_reporter()
+        map_networkgroup_nonc2_fields(data, test_reporter)
+        assert test_reporter.__dict__ == correct_reporter.__dict__
+
+    @staticmethod
+    @pytest.mark.parametrize("data",
+        [
+            {},
+            {"FTP UserName": "a", "FTP Password": "b"},
+            {"FTPUserName": "a", "FTPPassword": "b"},
+            {"FTPUSER": "a", "FTPPASS": "b"},
+            {"FTPPASS": "a"},
+            {"FTPUSER": "a"},
+            {"Password": "a"},
+            {"password": "a"}
+        ]
+    )
+    def test_map_username_password_fields(data):
+        from cli import map_username_password_fields, USERNAME_LIST, PASSWORD_LIST, PASSWORD_ONLY_LIST
+        correct_reporter = get_reporter()
+        for username, password in zip(USERNAME_LIST, PASSWORD_LIST):
+            if username in data and password in data:
+                correct_reporter.add_metadata('credential', [data[username], data[password]])
+            elif password in data:
+                correct_reporter.add_metadata('password', data[password])
+            elif username in data:
+                correct_reporter.add_metadata('username', data[username])
+        correct_reporter = add_metadata(data, PASSWORD_ONLY_LIST, "password", correct_reporter)
+
+        test_reporter = get_reporter()
+        map_username_password_fields(data, test_reporter)
+        assert test_reporter.__dict__ == correct_reporter.__dict__
+
+    @staticmethod
+    @pytest.mark.parametrize("data",
+         [
+             {},
+             {
+                 "Screen Rec Link": "a",
+                 "WebPanel": "b",
+                 "Plugins": "c"
+             },
+         ]
+     )
+    def test_map_network_fields(data):
+        from cli import map_network_fields, NONC2_URL_LIST
+        correct_reporter = add_metadata(data, NONC2_URL_LIST, "url")
+
+        test_reporter = get_reporter()
+        map_network_fields(data, test_reporter)
+        assert test_reporter.__dict__ == correct_reporter.__dict__
+
+    @staticmethod
+    @pytest.mark.parametrize("scriptname,data",
+         [
+             ("NotIgnored", {"Install Path": "a", "Install Name": "b"}),
+             ("NotIgnored", {"Install Path": "a"}),
+             ("NotIgnored", {"Install Name": "a"}),
+             ("NotIgnored", {}),
+             ("Pandora", {"Install Path": "a"}),
+             ("Pandora", {"Install Name": "a"}),
+             ("Punisher", {"Install Path": "a", "Install Name": "b"}),
+             ("Punisher", {})
+         ]
+     )
+    def test_map_filepath_fields(scriptname,data):
+        from cli import map_filepath_fields, FILEPATH_CONCATENATE_PAIR_LIST
+        IGNORE_SCRIPT_LIST = ['Pandora', 'Punisher']
+
+        correct_reporter = get_reporter()
+        for pname, fname in FILEPATH_CONCATENATE_PAIR_LIST.items():
+            if scriptname not in IGNORE_SCRIPT_LIST:
+                if pname in data:
+                    if fname in data:
+                        correct_reporter.add_metadata(
+                            "filepath", data[pname].rstrip("\\") + "\\" + data[fname])
+                    else:
+                        correct_reporter.add_metadata('directory', data[pname])
+                elif fname in data:
+                    correct_reporter.add_metadata('filename', data[fname])
+            else:
+                if pname in data:
+                    correct_reporter.add_metadata('directory', data[pname])
+                if fname in data:
+                    correct_reporter.add_metadata('filename', data[fname])
+
+        test_reporter = get_reporter()
+        map_filepath_fields(scriptname, data, test_reporter)
+        assert test_reporter.__dict__ == correct_reporter.__dict__
+
+    @staticmethod
+    def test_map_ftp_fields():
+        pass
+
+    @staticmethod
+    @pytest.mark.parametrize("data",
+         [
+             {},
+             {
+                 "Install Dir": "a",
+                 "InstallDir": "b",
+                 "InstallPath": "c",
+                 "Install Folder": "d",
+                 "Install Folder1": "e",
+                 "Install Folder2": "f",
+                 "Install Folder3": "g",
+                 "Folder Name": "h",
+                 "FolderName": "i",
+                 "pluginfoldername": "j",
+                 "nombreCarpeta": "k",
+             },
+         ]
+     )
+    def test_map_directory_fields(data):
+        from cli import map_directory_fields, DIRECTORY_LIST
+        correct_reporter = add_metadata(data, DIRECTORY_LIST, "directory")
+
+        test_reporter = get_reporter()
+        map_directory_fields(data, test_reporter)
+        assert test_reporter.__dict__ == correct_reporter.__dict__
+
+    @staticmethod
+    def test_map_filename_fields():
+        pass
+
+    @staticmethod
+    def test_map_c2_domains():
+        pass
+
+    @staticmethod
+    def test_map_domainX_fields():
+        pass
+
+    @staticmethod
+    def test_map_mutex():
+        pass
+
+    @staticmethod
+    def test_map_missionid_fields():
+        pass
+
+    @staticmethod
+    def test_map_version():
+        pass
+
+    @staticmethod
+    def test_map_registry():
+        pass
+
+    @staticmethod
+    def test_map_interval_fields():
+        pass
+
+    @staticmethod
+    def test_map_jar_fields():
+        pass
+
+    @staticmethod
+    def test_map_key_fields():
+        pass
+
+    @staticmethod
+    def test_run_ratdecoders():
+        pass
+
+    @staticmethod
+    def test_main():
+        pass
