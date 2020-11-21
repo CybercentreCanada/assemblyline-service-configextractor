@@ -669,7 +669,9 @@ class TestCLI:
     def test_compile(tags):
         from cli import compile
         correct_parser_objs = create_correct_parser_objs()
-        correct_parser_objs_tags = create_correct_parser_objs(tags)
+        correct_parser_objs_tags = None
+        if tags:
+            correct_parser_objs_tags = create_correct_parser_objs(tags)
 
         test_parser_objs, test_parser_objs_tags = compile(tags)
         assert test_parser_objs == correct_parser_objs
