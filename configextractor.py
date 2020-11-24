@@ -96,6 +96,8 @@ class ConfigExtractor(ServiceBase):
         # get matches for both, dedup then run
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
         output_fields = cli.run(parsers, request.file_path, self.mwcp_reporter)
+
+
         for parser, field_dict in output_fields.items():
             self.section_builder(parser, field_dict, result)
         fd, temp_path = tempfile.mkstemp(dir=self.working_directory)
@@ -118,8 +120,6 @@ class ConfigExtractor(ServiceBase):
         if parsertype == "MWCP":
             for name, obj in self.file_parsers.items():
                 if parser in obj.parser_list:
-                    # TODO: we're constantly overwriting these values if there are hits
-                    # Is parser only in a single obj's parser_list?
                     malware_name = obj.malware
                     malware_types = obj.malware_types
                     mitre_att = obj.mitre_att
@@ -130,6 +130,7 @@ class ConfigExtractor(ServiceBase):
                         val = getattr(obj, item, None)
                         if val:
                             json_body[item] = val
+                    break
         parser_section = ResultSection(f"{parsertype} : {parser}")
 
         parser_section = classification_checker(parser_section, parser, self.file_parsers)
