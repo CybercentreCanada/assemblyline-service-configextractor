@@ -81,10 +81,6 @@ class Parser:
         self.run_on = run_on
 
     def __eq__(self, other):
-        if not isinstance(other, Parser):
-            # don't attempt to compare against unrelated types
-            return NotImplemented
-
         # TODO: Find a way to compare equality between yara.Rules objects (compiled_rules)
         return self.name == other.name and self.parser_list == other.parser_list and \
                self.match == other.match and self.classification == other.classification and \
