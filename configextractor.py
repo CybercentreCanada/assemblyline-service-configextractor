@@ -96,7 +96,6 @@ class ConfigExtractor(ServiceBase):
         # get matches for both, dedup then run
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
         output_fields = cli.run(parsers, request.file_path, self.mwcp_reporter)
-
         for parser, field_dict in output_fields.items():
             self.section_builder(parser, field_dict, result)
         fd, temp_path = tempfile.mkstemp(dir=self.working_directory)
@@ -170,23 +169,23 @@ def classification_checker(res_section, parser_name, file_parsers):
 
 def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
     # TODO: maybe iterate through fields and check if field in FIELD_TAG_MAP? not sure which is smaller
-    for field, tag in FIELD_TAG_MAP.items():
-        if field in fields:
+    for mwcp_field, mwcp_field_data in fields.items():
+        if mwcp_field in FIELD_TAG_MAP:
+            tag = FIELD_TAG_MAP[mwcp_field]
             table_body = []
-            table_section = ResultSection(f"Extracted {field.capitalize()}")
-            field_data = fields[field]
+            table_section = ResultSection(f"Extracted {mwcp_field.capitalize()}")
             if tag:
                 # TODO: is field_data always a list?
-                for x in field_data:
+                for x in mwcp_field_data:
                     table_section.add_tag(tag, x)
                 # Tag everything that we can
             # Add data to section body
-            for line in field_data:
+            for line in mwcp_field_data:
                 if type(line) is str:
-                    table_body.append({field: line})
+                    table_body.append({mwcp_field: line})
                 elif type(line) is list:
                     for item in line:
-                        table_body.append({field: item})
+                        table_body.append({mwcp_field: item})
             table_section.set_body(body_format=BODY_FORMAT.TABLE, body=json.dumps(table_body))
 
             parent_section.add_subsection(table_section)
