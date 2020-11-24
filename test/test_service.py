@@ -77,6 +77,7 @@ def get_section_builder_inputs() -> list:
                     'RedLeaf', 'Redsip', 'Retefe', 'SmokeLoader', 'QakBot']
     parser_types = ["MWCP", "RATDecoder"]
     field_dict = {
+        "address": ['999'],
             "other": {
                 "a": "b"
             },
@@ -328,7 +329,6 @@ class TestConfigExtractor:
 
         assert test_result_response == correct_result_response
 
-    # TODO: Incorporate field_dict into POSSIBLE_INPUTS
     @staticmethod
     @pytest.mark.parametrize("parser,field_dict,parsertype",
         get_section_builder_inputs()
@@ -340,7 +340,7 @@ class TestConfigExtractor:
         correct_sections = create_correct_result_section_tree(field_dict, parsers, parsertype, parser)
         class_instance.file_parsers = correct_tag_parsers
         class_instance.section_builder(parser=parser, field_dict=field_dict, result=result, parsertype=parsertype)
-        # TODO: Compare result object attributes
+
         assert check_section_equality(result.sections[0], correct_sections)
         pass
 
