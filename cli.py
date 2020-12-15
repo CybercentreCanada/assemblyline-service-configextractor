@@ -164,11 +164,6 @@ def initialize_parser_objs(tags: dict = None):
     return parser_objs
 
 
-def cb(data):
-    match = data['matches']
-    if match:
-        pass
-
 
 def validate_parser_config():
     yaml_parsers = {}

@@ -78,11 +78,11 @@ def get_section_builder_inputs() -> list:
     parser_types = ["MWCP", "RATDecoder"]
     field_dict = {
         "address": ['999'],
-            "other": {
-                "a": "b"
-            },
-            "not_in_field_map": True
-        }
+        "other": {
+            "a": "b"
+        },
+        "not_in_field_map": True
+    }
     for parser_name in parser_names:
         for parser_type in parser_types:
             possible_inputs_for_section_builder.append((parser_name, field_dict, parser_type))
@@ -119,23 +119,24 @@ def check_section_equality(this, that) -> bool:
     # Heuristics also need their own equality checks
     if this.heuristic and that.heuristic:
         heuristic_equality = this.heuristic.definition.attack_id == that.heuristic.definition.attack_id and \
-            this.heuristic.definition.classification == that.heuristic.definition.classification and \
-            this.heuristic.definition.description == that.heuristic.definition.description and \
-            this.heuristic.definition.filetype == that.heuristic.definition.filetype and \
-            this.heuristic.definition.heur_id == that.heuristic.definition.heur_id and \
-            this.heuristic.definition.id == that.heuristic.definition.id and \
-            this.heuristic.definition.max_score == that.heuristic.definition.max_score and \
-            this.heuristic.definition.name == that.heuristic.definition.name and \
-            this.heuristic.definition.score == that.heuristic.definition.score and \
-            this.heuristic.definition.signature_score_map == that.heuristic.definition.signature_score_map
+                             this.heuristic.definition.classification == that.heuristic.definition.classification and \
+                             this.heuristic.definition.description == that.heuristic.definition.description and \
+                             this.heuristic.definition.filetype == that.heuristic.definition.filetype and \
+                             this.heuristic.definition.heur_id == that.heuristic.definition.heur_id and \
+                             this.heuristic.definition.id == that.heuristic.definition.id and \
+                             this.heuristic.definition.max_score == that.heuristic.definition.max_score and \
+                             this.heuristic.definition.name == that.heuristic.definition.name and \
+                             this.heuristic.definition.score == that.heuristic.definition.score and \
+                             this.heuristic.definition.signature_score_map == \
+                             that.heuristic.definition.signature_score_map
 
         result_heuristic_equality = heuristic_equality and \
-            this.heuristic.attack_ids == that.heuristic.attack_ids and \
-            this.heuristic.frequency == that.heuristic.frequency and \
-            this.heuristic.heur_id == that.heuristic.heur_id and \
-            this.heuristic.score == that.heuristic.score and \
-            this.heuristic.score_map == that.heuristic.score_map and \
-            this.heuristic.signatures == that.heuristic.signatures
+                                    this.heuristic.attack_ids == that.heuristic.attack_ids and \
+                                    this.heuristic.frequency == that.heuristic.frequency and \
+                                    this.heuristic.heur_id == that.heuristic.heur_id and \
+                                    this.heuristic.score == that.heuristic.score and \
+                                    this.heuristic.score_map == that.heuristic.score_map and \
+                                    this.heuristic.signatures == that.heuristic.signatures
 
     elif not this.heuristic and not that.heuristic:
         result_heuristic_equality = True
@@ -144,12 +145,12 @@ def check_section_equality(this, that) -> bool:
 
     # Assuming we are given the "root section" at all times, it is safe to say that we don't need to confirm parent
     current_section_equality = result_heuristic_equality and \
-        this.body == that.body and \
-        this.body_format == that.body_format and \
-        this.classification == that.classification and \
-        this.depth == that.depth and \
-        len(this.subsections) == len(that.subsections) and \
-        this.title_text == that.title_text
+                               this.body == that.body and \
+                               this.body_format == that.body_format and \
+                               this.classification == that.classification and \
+                               this.depth == that.depth and \
+                               len(this.subsections) == len(that.subsections) and \
+                               this.title_text == that.title_text
 
     if not current_section_equality:
         return False
@@ -339,8 +340,8 @@ class TestConfigExtractor:
 
     @staticmethod
     @pytest.mark.parametrize("parser,field_dict,parsertype",
-        get_section_builder_inputs()
-    )
+                             get_section_builder_inputs()
+                             )
     def test_section_builder(parser, field_dict, parsertype, class_instance, parsers):
         from assemblyline_v4_service.common.result import Result
         result = Result()
@@ -353,8 +354,8 @@ class TestConfigExtractor:
 
     @staticmethod
     @pytest.mark.parametrize("res_section,parser_name",
-        get_classification_checker_inputs()
-    )
+                             get_classification_checker_inputs()
+                             )
     def test_classification_checker(res_section, parser_name, parsers):
         from configextractor import classification_checker
         from assemblyline.common import forge
@@ -364,14 +365,16 @@ class TestConfigExtractor:
         parser_classification = correct_file_parsers[parser_name].classification
         correct_classification = cl_engine.normalize_classification(parser_classification)
 
-        # TODO: Note that classification_checker() only needs the parser classification for the passed parser_name, not all parsers
-        test_res_section = classification_checker(res_section=res_section, parser_name=parser_name, file_parsers=correct_file_parsers)
+        # TODO: Note that classification_checker() only needs the parser classification for the passed parser_name,
+        #  not all parsers
+        test_res_section = classification_checker(res_section=res_section,
+                                                  parser_name=parser_name, file_parsers=correct_file_parsers)
         assert test_res_section.classification == correct_classification
 
     @staticmethod
     @pytest.mark.parametrize("parent_section,fields",
-        get_subsection_builder_inputs()
-    )
+                             get_subsection_builder_inputs()
+                             )
     def test_subsection_builder(parent_section, fields):
         from configextractor import subsection_builder
         correct_parent_section = create_correct_result_section_tree(fields)
@@ -480,8 +483,8 @@ def get_new_tags():
 class TestCLI:
     @staticmethod
     @pytest.mark.parametrize("parser_list",
-        get_validate_parser_inputs()
-    )
+                             get_validate_parser_inputs()
+                             )
     def test_validate_parsers(parser_list):
         from cli import validate_parsers
         mwcp_key = "MWCP"
@@ -505,13 +508,13 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("paths",
-        [
-            [],
-            [""],
-            ["fake_path"],
-            ['./tag_rules/emotet.rule']
-        ]
-    )
+                             [
+                                 [],
+                                 [""],
+                                 ["fake_path"],
+                                 ['./tag_rules/emotet.rule']
+                             ]
+                             )
     def test_check_paths(paths):
         from cli import check_paths
         if not paths:
@@ -527,11 +530,11 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("tags",
-        [
-            {},
-            get_tags()
-        ]
-    )
+                             [
+                                 {},
+                                 get_tags()
+                             ]
+                             )
     def test_initialize_parser_objs(tags):
         from cli import initialize_parser_objs
         correct_parser_objs = create_correct_parser_objs(tags)
@@ -539,11 +542,6 @@ class TestCLI:
         assert test_parser_objs.keys() == correct_parser_objs.keys()
         for key in correct_parser_objs.keys():
             assert test_parser_objs[key] == correct_parser_objs[key]
-
-    @staticmethod
-    def test_cb():
-        # TODO: this method is going to be removed from cli.py
-        pass
 
     @staticmethod
     def test_validate_parser_config():
@@ -583,10 +581,10 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("f_path",
-        yield_sample_file_paths()
-    )
+                             yield_sample_file_paths()
+                             )
     def test_run(f_path, parsers):
-        # TODO: need way to simulate actual malware so that parsers get matchedr
+        # TODO: need way to simulate actual malware so that parsers get matched
         from cli import run
         correct_reporter = get_reporter()
         correct_outputs = {}
@@ -603,11 +601,11 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("parsers",
-        [
-            set(),
-            set({"item"})
-        ]
-    )
+                             [
+                                 set(),
+                                 {"item"}
+                             ]
+                             )
     def test_check_names(parsers):
         from cli import MWCP_PARSER_PATHS, check_names
         mwcp_parsers = set()
@@ -620,8 +618,8 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("file_path",
-        yield_sample_file_paths()
-    )
+                             yield_sample_file_paths()
+                             )
     def test_deduplicate(file_path, parsers):
         # TODO: this method needs a lot of work, specifically we need file paths for samples that would hit
         from cli import deduplicate, validate_parsers, check_names
@@ -645,15 +643,15 @@ class TestCLI:
         # for malware, top in and_malware.items():
         #     file_rules = correct_file_parsers[top].compiled_rules
         #     tag_rules = correct_tag_parsers[top].compiled_rules
-            # TODO: figure out how to simulate all_rules_match since we can't access it here
-            # file_bool = all_rules_match(file_rules)
-            # tag_bool = all_rules_match(tag_rules)
-            # if file_bool and tag_bool:
-            #     print("both file and tag rules have match")
-            # else:
-            #     print('tag or file rule did not match, excluding...')
-            #     malware_to_parsers = correct_file_parsers[top].parser_list
-            #     super_parser_list = [x for x in super_parser_list if x not in malware_to_parsers]
+        # TODO: figure out how to simulate all_rules_match since we can't access it here
+        # file_bool = all_rules_match(file_rules)
+        # tag_bool = all_rules_match(tag_rules)
+        # if file_bool and tag_bool:
+        #     print("both file and tag rules have match")
+        # else:
+        #     print('tag or file rule did not match, excluding...')
+        #     malware_to_parsers = correct_file_parsers[top].parser_list
+        #     super_parser_list = [x for x in super_parser_list if x not in malware_to_parsers]
 
         super_parser_list = [i[0].upper() + i[1:] for i in super_parser_list]
         super_parser_list_set = set(super_parser_list)
@@ -666,8 +664,8 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("tags",
-        [get_tags(), None]
-    )
+                             [get_tags(), None]
+                             )
     def test_compile(tags):
         from cli import compile
         correct_parser_objs = create_correct_parser_objs()
@@ -688,14 +686,14 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {"val": "no_backslashes"},
-            {"val": "\\backslashes"},
-            {"val": ".period"},
-            {"val": "localhost"},
-            {"val": "localhost*"},
-        ]
-    )
+                             [
+                                 {"val": "no_backslashes"},
+                                 {"val": "\\backslashes"},
+                                 {"val": ".period"},
+                                 {"val": "localhost"},
+                                 {"val": "localhost*"},
+                             ]
+                             )
     def test_check_for_backslashes(data):
         from cli import check_for_backslashes
         ta_key = "val"
@@ -719,12 +717,12 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data,field_list,mwcp_key",
-        [
-            ({"address": "b"}, [], None),
-            ({}, ["address"], None),
-            ({"address": "b"}, ["address"], "address")
-        ]
-    )
+                             [
+                                 ({"address": "b"}, [], None),
+                                 ({}, ["address"], None),
+                                 ({"address": "b"}, ["address"], "address")
+                             ]
+                             )
     def test_map_fields(data, field_list, mwcp_key):
         from cli import map_fields
         correct_reporter = add_metadata(data, field_list, mwcp_key)
@@ -735,15 +733,15 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {
-                "Process Injection": "a",
-                "Injection": "b",
-                "Inject Exe": "c"
-            },
-        ]
-    )
+                             [
+                                 {},
+                                 {
+                                     "Process Injection": "a",
+                                     "Injection": "b",
+                                     "Inject Exe": "c"
+                                 },
+                             ]
+                             )
     def test_map_injectionprocess_fields(data):
         from cli import map_injectionprocess_fields, INJECTIONPROCESS_LIST
         correct_reporter = add_metadata(data, INJECTIONPROCESS_LIST, "injectionprocess")
@@ -754,15 +752,15 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {
-                "Screen Rec Link": "a",
-                "WebPanel": "b",
-                "Plugins": "c"
-            },
-        ]
-    )
+                             [
+                                 {},
+                                 {
+                                     "Screen Rec Link": "a",
+                                     "WebPanel": "b",
+                                     "Plugins": "c"
+                                 },
+                             ]
+                             )
     def test_map_networkgroup_nonc2_fields(data):
         from cli import map_networkgroup_nonc2_fields, NONC2_URL_LIST
         correct_reporter = add_metadata(data, NONC2_URL_LIST, "url")
@@ -773,17 +771,17 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {"FTP UserName": "a", "FTP Password": "b"},
-            {"FTPUserName": "a", "FTPPassword": "b"},
-            {"FTPUSER": "a", "FTPPASS": "b"},
-            {"FTPPASS": "a"},
-            {"FTPUSER": "a"},
-            {"Password": "a"},
-            {"password": "a"}
-        ]
-    )
+                             [
+                                 {},
+                                 {"FTP UserName": "a", "FTP Password": "b"},
+                                 {"FTPUserName": "a", "FTPPassword": "b"},
+                                 {"FTPUSER": "a", "FTPPASS": "b"},
+                                 {"FTPPASS": "a"},
+                                 {"FTPUSER": "a"},
+                                 {"Password": "a"},
+                                 {"password": "a"}
+                             ]
+                             )
     def test_map_username_password_fields(data):
         from cli import map_username_password_fields, USERNAME_LIST, PASSWORD_LIST, PASSWORD_ONLY_LIST
         correct_reporter = get_reporter()
@@ -802,15 +800,15 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-         [
-             {},
-             {
-                 "Screen Rec Link": "a",
-                 "WebPanel": "b",
-                 "Plugins": "c"
-             },
-         ]
-     )
+                             [
+                                 {},
+                                 {
+                                     "Screen Rec Link": "a",
+                                     "WebPanel": "b",
+                                     "Plugins": "c"
+                                 },
+                             ]
+                             )
     def test_map_network_fields(data):
         from cli import map_network_fields, NONC2_URL_LIST
         correct_reporter = add_metadata(data, NONC2_URL_LIST, "url")
@@ -821,18 +819,18 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("scriptname,data",
-         [
-             ("NotIgnored", {"Install Path": "a", "Install Name": "b"}),
-             ("NotIgnored", {"Install Path": "a"}),
-             ("NotIgnored", {"Install Name": "a"}),
-             ("NotIgnored", {}),
-             ("Pandora", {"Install Path": "a"}),
-             ("Pandora", {"Install Name": "a"}),
-             ("Punisher", {"Install Path": "a", "Install Name": "b"}),
-             ("Punisher", {})
-         ]
-     )
-    def test_map_filepath_fields(scriptname,data):
+                             [
+                                 ("NotIgnored", {"Install Path": "a", "Install Name": "b"}),
+                                 ("NotIgnored", {"Install Path": "a"}),
+                                 ("NotIgnored", {"Install Name": "a"}),
+                                 ("NotIgnored", {}),
+                                 ("Pandora", {"Install Path": "a"}),
+                                 ("Pandora", {"Install Name": "a"}),
+                                 ("Punisher", {"Install Path": "a", "Install Name": "b"}),
+                                 ("Punisher", {})
+                             ]
+                             )
+    def test_map_filepath_fields(scriptname, data):
         from cli import map_filepath_fields, FILEPATH_CONCATENATE_PAIR_LIST
         IGNORE_SCRIPT_LIST = ['Pandora', 'Punisher']
 
@@ -859,31 +857,31 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {
-                "FTP Directory": "a",
-                "FTP Address": "b",
-                "FTP Port": "c",
-                "FTP Server": "d",
-                "FTPHost": "e",
-                "FTPHOST": "f"
-            },
-            {
-                "FTP Directory": "a",
-                "FTP Port": "c",
-                "FTP Server": "d",
-                "FTPHost": "e",
-                "FTPHOST": "f"
-            },
-            {"FTP Directory": "a"},
-            {"FTP Address": "a"},
-            {
-                "FTP Server": "a",
-                "FTP Folder": "b"
-            }
-        ]
-    )
+                             [
+                                 {},
+                                 {
+                                     "FTP Directory": "a",
+                                     "FTP Address": "b",
+                                     "FTP Port": "c",
+                                     "FTP Server": "d",
+                                     "FTPHost": "e",
+                                     "FTPHOST": "f"
+                                 },
+                                 {
+                                     "FTP Directory": "a",
+                                     "FTP Port": "c",
+                                     "FTP Server": "d",
+                                     "FTPHost": "e",
+                                     "FTPHOST": "f"
+                                 },
+                                 {"FTP Directory": "a"},
+                                 {"FTP Address": "a"},
+                                 {
+                                     "FTP Server": "a",
+                                     "FTP Folder": "b"
+                                 }
+                             ]
+                             )
     def test_map_ftp_fields(data):
         from cli import map_ftp_fields, FTP_FIELD_PAIRS
         correct_reporter = get_reporter()
@@ -928,23 +926,23 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-         [
-             {},
-             {
-                 "Install Dir": "a",
-                 "InstallDir": "b",
-                 "InstallPath": "c",
-                 "Install Folder": "d",
-                 "Install Folder1": "e",
-                 "Install Folder2": "f",
-                 "Install Folder3": "g",
-                 "Folder Name": "h",
-                 "FolderName": "i",
-                 "pluginfoldername": "j",
-                 "nombreCarpeta": "k",
-             },
-         ]
-     )
+                             [
+                                 {},
+                                 {
+                                     "Install Dir": "a",
+                                     "InstallDir": "b",
+                                     "InstallPath": "c",
+                                     "Install Folder": "d",
+                                     "Install Folder1": "e",
+                                     "Install Folder2": "f",
+                                     "Install Folder3": "g",
+                                     "Folder Name": "h",
+                                     "FolderName": "i",
+                                     "pluginfoldername": "j",
+                                     "nombreCarpeta": "k",
+                                 },
+                             ]
+                             )
     def test_map_directory_fields(data):
         from cli import map_directory_fields, DIRECTORY_LIST
         correct_reporter = add_metadata(data, DIRECTORY_LIST, "directory")
@@ -955,22 +953,22 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-         [
-             {},
-             {
-                 "InstallName": "a",
-                 "Install Name": "b",
-                 "Exe Name": "c",
-                 "Jar Name": "d",
-                 "JarName": "e",
-                 "StartUp Name": "f",
-                 "File Name": "g",
-                 "USB Name": "h",
-                 "Log File": "i",
-                 "Install File Name": "j",
-             },
-         ]
-     )
+                             [
+                                 {},
+                                 {
+                                     "InstallName": "a",
+                                     "Install Name": "b",
+                                     "Exe Name": "c",
+                                     "Jar Name": "d",
+                                     "JarName": "e",
+                                     "StartUp Name": "f",
+                                     "File Name": "g",
+                                     "USB Name": "h",
+                                     "Log File": "i",
+                                     "Install File Name": "j",
+                                 },
+                             ]
+                             )
     def test_map_filename_fields(data):
         from cli import map_filename_fields, FILENAME_LIST
         correct_reporter = add_metadata(data, FILENAME_LIST, "filename")
@@ -981,40 +979,40 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {
-                "Domain": "a",
-                "Domains": "two\\backslashes\\",
-                "dns": "one_backslashes\\and|",
-                "C2": "one_backslashes\\and*",
-            },
-            {
-                "Domain": ":",
-                "Domains": "a",
-                "p1": "b",
-                "p2": "c",
-            },
-            {
-                "Domain": ":",
-                "Domains": "a",
-                "Port": "d",
-                "Port1": "e",
-                "Port2": "f",
-            },
-            {
-                "Domain": "a",
-                "Client Control Port": "g",
-                "Client Transfer Port": "h",
-            },
-            {
-                "C2": ["a"],
-                "Client Control Port": "g",
-                "Client Transfer Port": "h",
-            },
+                             [
+                                 {},
+                                 {
+                                     "Domain": "a",
+                                     "Domains": "two\\backslashes\\",
+                                     "dns": "one_backslashes\\and|",
+                                     "C2": "one_backslashes\\and*",
+                                 },
+                                 {
+                                     "Domain": ":",
+                                     "Domains": "a",
+                                     "p1": "b",
+                                     "p2": "c",
+                                 },
+                                 {
+                                     "Domain": ":",
+                                     "Domains": "a",
+                                     "Port": "d",
+                                     "Port1": "e",
+                                     "Port2": "f",
+                                 },
+                                 {
+                                     "Domain": "a",
+                                     "Client Control Port": "g",
+                                     "Client Transfer Port": "h",
+                                 },
+                                 {
+                                     "C2": ["a"],
+                                     "Client Control Port": "g",
+                                     "Client Transfer Port": "h",
+                                 },
 
-        ]
-    )
+                             ]
+                             )
     def test_map_c2_domains(data):
         from cli import map_c2_domains, DOMAINS_LIST
         correct_reporter = get_reporter()
@@ -1049,9 +1047,11 @@ class TestCLI:
                         elif domain_key == 'Domain' and (
                                 "Client Control Port" in data or "Client Transfer Port" in data):
                             if "Client Control Port" in data:
-                                correct_reporter.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
+                                correct_reporter.add_metadata("address",
+                                                              f"{data['Domain']}:{data['Client Control Port']}")
                             if "Client Transfer Port" in data:
-                                correct_reporter.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
+                                correct_reporter.add_metadata("address",
+                                                              f"{data['Domain']}:{data['Client Transfer Port']}")
                         # Handle Mirai Case
                         elif domain_key == 'C2' and isinstance(data[domain_key], list):
                             for domain in data[domain_key]:
@@ -1065,25 +1065,25 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {
-                "Domain1": ":0",
-                "Domain2": "a:b",
-                "Domain3": "not_in_special_handling_list"
-            },
-            {
-                "Domain1": "a",
-                "Domain2": "b",
-                "Port": "c",
-                "Port2": "d",
-            },
-            {
-                "Domain1": "a",
-                "Port1": "b",
-            },
-        ]
-    )
+                             [
+                                 {},
+                                 {
+                                     "Domain1": ":0",
+                                     "Domain2": "a:b",
+                                     "Domain3": "not_in_special_handling_list"
+                                 },
+                                 {
+                                     "Domain1": "a",
+                                     "Domain2": "b",
+                                     "Port": "c",
+                                     "Port2": "d",
+                                 },
+                                 {
+                                     "Domain1": "a",
+                                     "Port1": "b",
+                                 },
+                             ]
+                             )
     def test_map_domainX_fields(data):
         from cli import map_domainX_fields
         correct_reporter = get_reporter()
@@ -1114,25 +1114,25 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {
-                "Mutex": "a",
-                "mutex": "b",
-                "Mutex Main": "c",
-                "Mutex 4": "d",
-                "MUTEX": "e",
-                "Mutex Grabber": "f",
-                "Mutex Per": "g"
-            },
-            {
-                "Mutex": "false"
-            },
-            {
-                "Mutex": "true"
-            }
-        ]
-    )
+                             [
+                                 {},
+                                 {
+                                     "Mutex": "a",
+                                     "mutex": "b",
+                                     "Mutex Main": "c",
+                                     "Mutex 4": "d",
+                                     "MUTEX": "e",
+                                     "Mutex Grabber": "f",
+                                     "Mutex Per": "g"
+                                 },
+                                 {
+                                     "Mutex": "false"
+                                 },
+                                 {
+                                     "Mutex": "true"
+                                 }
+                             ]
+                             )
     def test_map_mutex(data):
         from cli import map_mutex, MUTEX_LIST
         correct_reporter = get_reporter()
@@ -1152,18 +1152,18 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-         [
-             {},
-             {
-                 "Campaign ID": "a",
-                 "CampaignID": "b",
-                 "Campaign Name": "c",
-                 "Campaign": "d",
-                 "ID": "e",
-                 "prefijo": "f",
-             },
-         ]
-     )
+                             [
+                                 {},
+                                 {
+                                     "Campaign ID": "a",
+                                     "CampaignID": "b",
+                                     "Campaign Name": "c",
+                                     "Campaign": "d",
+                                     "ID": "e",
+                                     "prefijo": "f",
+                                 },
+                             ]
+                             )
     def test_map_missionid_fields(data):
         from cli import map_missionid_fields, MISSIONID_LIST
         correct_reporter = add_metadata(data, MISSIONID_LIST, "missionid")
@@ -1174,14 +1174,14 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-         [
-             {},
-             {
-                 "Version": "a",
-                 "version": "b",
-             },
-         ]
-     )
+                             [
+                                 {},
+                                 {
+                                     "Version": "a",
+                                     "version": "b",
+                                 },
+                             ]
+                             )
     def test_map_version(data):
         from cli import map_version, VERSION_LIST
         correct_reporter = add_metadata(data, VERSION_LIST, "version")
@@ -1192,50 +1192,50 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {
-                'Domain': 'a',
-                'Reg Key': 'a',
-                'StartupName': 'a',
-                'Active X Key': 'a',
-                'ActiveX Key': 'a',
-                'Active X Startup': 'a',
-                'Registry Key': 'a',
-                'Startup Key': 'a',
-                'REG Key HKLM': 'a',
-                'REG Key HKCU': 'a',
-                'HKLM Value': 'a',
-                'RegistryKey': 'a',
-                'HKCUKey': 'a',
-                'HKCU Key': 'a',
-                'Registry Value': 'a',
-                'keyClase': 'a',
-                'regname': 'a',
-                'registryname': 'a',
-                'Custom Reg Key': 'a',
-                'Custom Reg Name': 'a',
-                'Custom Reg Value': 'a',
-                'HKCU': 'a',
-                'HKLM': 'a',
-                'RegKey1': 'a',
-                'RegKey2': 'a',
-                'Reg Value': 'a'
-            },
-            {
-                "Domain": "\\backslashes"
-            },
-            {
-                "Domain": ".period"
-            },
-            {
-                "Domain": "localhost"
-            },
-            {
-                "Domain": "localhost*"
-            }
-        ]
-    )
+                             [
+                                 {},
+                                 {
+                                     'Domain': 'a',
+                                     'Reg Key': 'a',
+                                     'StartupName': 'a',
+                                     'Active X Key': 'a',
+                                     'ActiveX Key': 'a',
+                                     'Active X Startup': 'a',
+                                     'Registry Key': 'a',
+                                     'Startup Key': 'a',
+                                     'REG Key HKLM': 'a',
+                                     'REG Key HKCU': 'a',
+                                     'HKLM Value': 'a',
+                                     'RegistryKey': 'a',
+                                     'HKCUKey': 'a',
+                                     'HKCU Key': 'a',
+                                     'Registry Value': 'a',
+                                     'keyClase': 'a',
+                                     'regname': 'a',
+                                     'registryname': 'a',
+                                     'Custom Reg Key': 'a',
+                                     'Custom Reg Name': 'a',
+                                     'Custom Reg Value': 'a',
+                                     'HKCU': 'a',
+                                     'HKLM': 'a',
+                                     'RegKey1': 'a',
+                                     'RegKey2': 'a',
+                                     'Reg Value': 'a'
+                                 },
+                                 {
+                                     "Domain": "\\backslashes"
+                                 },
+                                 {
+                                     "Domain": ".period"
+                                 },
+                                 {
+                                     "Domain": "localhost"
+                                 },
+                                 {
+                                     "Domain": "localhost*"
+                                 }
+                             ]
+                             )
     def test_map_registry(data):
         from cli import map_registry, check_for_backslashes, REGISTRYPATH_LIST
         correct_reporter = get_reporter()
@@ -1254,15 +1254,15 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {
-             "FTP Interval": "a",
-             "Remote Delay": "b",
-             "RetryInterval": "c"
-            },
-        ]
-    )
+                             [
+                                 {},
+                                 {
+                                     "FTP Interval": "a",
+                                     "Remote Delay": "b",
+                                     "RetryInterval": "c"
+                                 },
+                             ]
+                             )
     def test_map_interval_fields(data):
         from cli import map_interval_fields, INTERVAL_LIST
         correct_reporter = add_metadata(data, INTERVAL_LIST, "interval")
@@ -1273,19 +1273,19 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-        [
-            {},
-            {
-                "jarfoldername": "a",
-                "jarname": "b",
-                "RetryInterval": "c"
-            },
-            {
-                "jarname": "a",
-                "extensionname": "b"
-            }
-        ]
-    )
+                             [
+                                 {},
+                                 {
+                                     "jarfoldername": "a",
+                                     "jarname": "b",
+                                     "RetryInterval": "c"
+                                 },
+                                 {
+                                     "jarname": "a",
+                                     "extensionname": "b"
+                                 }
+                             ]
+                             )
     def test_map_jar_fields(data):
         from cli import map_jar_fields
         correct_reporter = get_reporter()
@@ -1312,13 +1312,13 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("data",
-         [
-             {},
-             {
-                 "EncryptionKey": "a",
-             },
-         ]
-     )
+                             [
+                                 {},
+                                 {
+                                     "EncryptionKey": "a",
+                                 },
+                             ]
+                             )
     def test_map_key_fields(data):
         from cli import map_key_fields
         correct_reporter = add_metadata(data, ["EncryptionKey"], "key")
@@ -1329,8 +1329,8 @@ class TestCLI:
 
     @staticmethod
     @pytest.mark.parametrize("file_path",
-        yield_sample_file_paths()
-    )
+                             yield_sample_file_paths()
+                             )
     def test_run_ratdecoders(file_path):
         from cli import run_ratdecoders
         # correct_reporter = get_reporter()

@@ -169,14 +169,12 @@ def classification_checker(res_section, parser_name, file_parsers):
 
 
 def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
-    # TODO: maybe iterate through fields and check if field in FIELD_TAG_MAP? not sure which is smaller
     for mwcp_field, mwcp_field_data in fields.items():
         if mwcp_field in FIELD_TAG_MAP:
             tag = FIELD_TAG_MAP[mwcp_field]
             table_body = []
             table_section = ResultSection(f"Extracted {mwcp_field.capitalize()}")
             if tag:
-                # TODO: is field_data always a list?
                 for x in mwcp_field_data:
                     table_section.add_tag(tag, x)
                 # Tag everything that we can
