@@ -10,7 +10,7 @@ import hashlib
 import datetime
 from mwcp.parser import Parser
 from Crypto.Cipher import ARC4
-import blzpack
+import _blzpack
 import logging
 log = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ def parse_binary_c2(data):
     Decompress data with blzpack decompression
 """
 def decompress(data):
-    return blzpack.decompress_data(BRIEFLZ_HEADER.join(data.split(QAKBOT_HEADER)))
+    return _blzpack.decompress_data(BRIEFLZ_HEADER.join(data.split(QAKBOT_HEADER)))
 
 """
     Decrypts the data using the last 20 bytes as a rc4 key.

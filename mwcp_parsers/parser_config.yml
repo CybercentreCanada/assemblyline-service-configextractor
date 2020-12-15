@@ -3,11 +3,26 @@ RedLeaf:
   description: RedLeaf Parser
   parsers:
   - .redleaf
+Zloader:
+  author: Not Found
+  description: Zloader Parser
+  parsers:
+  - .Zloader
+IcedIDStage2:
+  author: Not Found
+  description: IcedIDStage2 Parser
+  parsers:
+  - .IcedIDStage2
 BitPaymer:
   author: Not Found
   description: BitPaymer Parser
   parsers:
   - .BitPaymer
+DridexLoader:
+  author: Not Found
+  description: DridexLoader Parser
+  parsers:
+  - .DridexLoader
 Remcos:
   author: Not Found
   description: Remcos Parser
@@ -18,6 +33,11 @@ ChChes:
   description: ChChes Parser
   parsers:
   - .ChChes
+IcedIDStage1:
+  author: Not Found
+  description: IcedIDStage1 Parser
+  parsers:
+  - .IcedIDStage1
 HttpBrowser:
   author: Not Found
   description: HttpBrowser Parser
@@ -33,6 +53,11 @@ IcedID:
   description: IcedID Parser
   parsers:
   - .IcedID
+Hancitor:
+  author: Not Found
+  description: Hancitor Parser
+  parsers:
+  - .Hancitor
 EvilGrab:
   author: Not Found
   description: EvilGrab Parser
