@@ -62,6 +62,23 @@ DoppelPaymer:
   parser: 
       - MWCP:
          - DoppelPaymer
+DridexLoader:
+  description: Banking Trojan that uses Microsoft word macros
+  classification: 'TLP:W'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: 'S0384'
+  malware: 'DridexLoader'
+  malware_type:
+    - 'Banker'
+    - 'Loader'
+  run_on: 'OR'
+  selector:
+    yara_rule:
+      - ./yara_rules/dridexloader.yara
+  parser: 
+      - MWCP:
+         - DridexLoader
 Emotet:
   description: Emotet malware family parser and yara rules for both payload and assemblyline tags
   classification: 'TLP:W'
@@ -130,6 +147,22 @@ HttpBrowser:
   parser: 
       - MWCP:
          - HttpBrowser
+Hancitor:
+  description: Trojan that targets windows platform and drops PONY and VAWTRAK
+  classification: 'TLP:W'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: 'S0499'
+  malware: 'Hancitor'
+  malware_type:
+    - 'Trojan'
+  run_on: 'OR'
+  selector:
+    yara_rule:
+      - ./yara_rules/hancitor.yara
+  parser: 
+      - MWCP:
+         - Hancitor
 IcedID:
   description: Yara rule match runs IcedID banking trojan parser
   classification: 'TLP:W'
@@ -146,6 +179,38 @@ IcedID:
   parser: 
       - MWCP:
          - IcedID
+IcedIDStage1:
+  description: Yara rule match runs IcedID banking trojan parser
+  classification: 'TLP:W'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: 'S0483'
+  malware: 'IcedID'
+  malware_type:
+    - 'Banker'
+  run_on: 'OR'
+  selector:
+    yara_rule:
+      - ./yara_rules/icedidstage1.yara
+  parser: 
+      - MWCP:
+         - IcedIDStage1
+IcedIDStage2:
+  description: Yara rule match runs IcedID banking trojan parser
+  classification: 'TLP:W'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: 'S0483'
+  malware: 'IcedID'
+  malware_type:
+    - 'Banker'
+  run_on: 'OR'
+  selector:
+    yara_rule:
+      - ./yara_rules/icedidstage2.yara
+  parser: 
+      - MWCP:
+         - IcedIDStage2
 RCSession:
   description: Yara rule match on RCSession RAT payload runs parser
   classification: 'TLP:W'
@@ -210,6 +275,22 @@ Retefe:
   parser: 
       - MWCP:
          - Retefe
+Remcos:
+  description: 
+  classification: 'TLP:W'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: ''
+  malware: 'Remcos'
+  malware_type:
+    - 'Banker'
+  run_on: 'OR'
+  selector:
+    yara_rule:
+      - ./yara_rules/remcos.yara
+  parser: 
+      - MWCP:
+         - Remcos
 SmokeLoader:
   description: Malware loader. Yara rule match extracts c2 information
   classification: 'TLP:W'
@@ -232,7 +313,7 @@ QakBot:
   classification: 'TLP:W'
   category: 'MALWARE'
   mitre_group: ''
-  mitre_att: 'S0266'
+  mitre_att: ''
   malware: 'QakBot'
   malware_type:
     - 'Banker'
@@ -243,4 +324,21 @@ QakBot:
   parser:
       - MWCP:
          - QakBot
+Zloader:
+  description: Zeus malware payload
+  classification: 'TLP:W'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: ''
+  malware: 'Zloader'
+  malware_type:
+    - 'Banker'
+    - 'Trojan'
+  run_on: 'OR'
+  selector:
+    yara_rule: 
+      - ./yara_rules/zloader.yara
+  parser:
+      - MWCP:
+         - Zloader
 
