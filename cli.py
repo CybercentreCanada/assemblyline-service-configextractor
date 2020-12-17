@@ -230,7 +230,7 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
                 matched_rules = []
                 for rule in obj.compiled_rules:
                     # each compiled rule object from yara_rule in yml
-                    matched_rule = rule.match(file_path, callback=cb, externals=tags_dict)
+                    matched_rule = rule.match(file_path, externals=tags_dict)
                     if matched_rule:
                         matched_rules.extend(matched_rule)
                         super_parser_list.extend(obj.parser_list)
@@ -263,7 +263,7 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
     def all_rules_match(compiled_rules):
         ctr = 0
         for rule in compiled_rules:
-            match = rule.match(file_path, callback=cb, externals=tags_dict)
+            match = rule.match(file_path, externals=tags_dict)
             if match:
                 ctr = ctr + 1
         if len(compiled_rules) == ctr:

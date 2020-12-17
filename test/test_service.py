@@ -577,7 +577,9 @@ class TestCLI:
         validate_parser_config()
         assert filecmp.cmp(test_mwcp_parser_config, MWCP_PARSER_CONFIG_PATH, shallow=False)
         os.remove(test_mwcp_parser_config)
-        # TODO: Raise exception length error
+        with pytest.raises(Exception):
+            parsers_in_config.append('apythonfileinmwcp_parsers')
+            assert filecmp.cmp(test_mwcp_parser_config, MWCP_PARSER_CONFIG_PATH, shallow=False)
 
     @staticmethod
     @pytest.mark.parametrize("f_path",
@@ -711,9 +713,19 @@ class TestCLI:
         assert test_reporter.__dict__ == correct_reporter.__dict__
 
     @staticmethod
-    def test_ta_mapping():
-        # TODO: find a way to test this method effectively
-        pass
+    @pytest.mark.parametrize("output,scriptname",
+                             [
+                                 ({}, 'unrecom'),
+                                 ({}, 'notunrecom'),
+                             ]
+                             )
+    def test_ta_mapping(output, scriptname):
+        from cli import ta_mapping
+        test_reporter = get_reporter()
+        correct_reporter = get_reporter()
+        ta_mapping(output, test_reporter, scriptname)
+        assert test_reporter.__dict__ == correct_reporter.__dict__
+
 
     @staticmethod
     @pytest.mark.parametrize("data,field_list,mwcp_key",
