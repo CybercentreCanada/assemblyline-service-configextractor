@@ -18,6 +18,25 @@ sample1 = dict(
     service_config={},
     fileinfo=dict(
         magic='ASCII text, with no line terminators',
+        md5='fda4e701258ba56f465e3636e60d36ec',
+        mime='text/plain',
+        sha1='af2c2618032c679333bebf745e75f9088748d737',
+        sha256='c805d89c6d26e6080994257d549fd8fec2a894dd15310053b0b8078064a5754b',
+        size=19,
+        type='unknown',
+    ),
+    filename='c805d89c6d26e6080994257d549fd8fec2a894dd15310053b0b8078064a5754b',
+    min_classification='TLP:WHITE',
+    max_files=501,  # TODO: get the actual value
+    ttl=3600,
+)
+sample2 = dict(
+    sid=1,
+    metadata={},
+    service_name='configextractor',
+    service_config={},
+    fileinfo=dict(
+        magic='ASCII text, with no line terminators',
         md5='5e7b980fb1dea6f8839ec7f3380515ea',
         mime='text/plain',
         sha1='337e266de08572c25c0499297477899215ff361c',
@@ -1347,12 +1366,14 @@ class TestCLI:
         from cli import run_ratdecoders
         # correct_reporter = get_reporter()
         no_result = "[!] No RATDecoder or File is Packed"
-        correct_result = {'Parser Name': {'c2':'8.8.8.8'}}
+        correct_result = {'Mirai': {'other': {'Comment': 'File could not be decrypted '}}}
 
         test_reporter = get_reporter()
         test_result = run_ratdecoders(file_path, test_reporter)
-        # successful result always returns dict, unsuccessful returns string
-        assert isinstance(test_result, type(correct_result))
+        if file_path.endswith('c805d89c6d26e6080994257d549fd8fec2a894dd15310053b0b8078064a5754b'):
+            assert no_result == test_result
+        elif file_path.endswith('mirai_strings'):
+            assert correct_result == test_result
 
     @staticmethod
     def test_main():
