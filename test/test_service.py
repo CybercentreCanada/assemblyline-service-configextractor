@@ -44,7 +44,7 @@ sample2 = dict(
         size=19,
         type='unknown',
     ),
-    filename='mirai_strings',
+    filename='35a6da3379b6e543b7f8eb45f27f3fd227c03c2620c4c72d8630583d7da82bba',
     min_classification='TLP:WHITE',
     max_files=501,  # TODO: get the actual value
     ttl=3600,
@@ -1372,7 +1372,7 @@ class TestCLI:
         test_result = run_ratdecoders(file_path, test_reporter)
         if file_path.endswith('c805d89c6d26e6080994257d549fd8fec2a894dd15310053b0b8078064a5754b'):
             assert no_result == test_result
-        elif file_path.endswith('mirai_strings'):
+        elif file_path.endswith('35a6da3379b6e543b7f8eb45f27f3fd227c03c2620c4c72d8630583d7da82bba'):
             assert correct_result == test_result
 
     @staticmethod
