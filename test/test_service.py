@@ -18,14 +18,14 @@ sample1 = dict(
     service_config={},
     fileinfo=dict(
         magic='ASCII text, with no line terminators',
-        md5='1f09ecbd362fa0dfff88d4788e6f5df0',
+        md5='5e7b980fb1dea6f8839ec7f3380515ea',
         mime='text/plain',
-        sha1='a649bf201cde05724e48f2d397a615b201be34fb',
-        sha256='dadc624d4454e10293dbd1b701b9ee9f99ef83b4cd07b695111d37eb95abcff8',
+        sha1='337e266de08572c25c0499297477899215ff361c',
+        sha256='35a6da3379b6e543b7f8eb45f27f3fd227c03c2620c4c72d8630583d7da82bba',
         size=19,
         type='unknown',
     ),
-    filename='dadc624d4454e10293dbd1b701b9ee9f99ef83b4cd07b695111d37eb95abcff8',
+    filename='mirai_strings',
     min_classification='TLP:WHITE',
     max_files=501,  # TODO: get the actual value
     ttl=3600,
@@ -1346,14 +1346,15 @@ class TestCLI:
     def test_run_ratdecoders(file_path):
         from cli import run_ratdecoders
         # correct_reporter = get_reporter()
-        # TODO: we need a way to simulate the processing of a RATDecoder
-        correct_result = "[!] No RATDecoder or File is Packed"
+        no_result = "[!] No RATDecoder or File is Packed"
+        correct_result = {'Parser Name': {'c2':'8.8.8.8'}}
 
         test_reporter = get_reporter()
         test_result = run_ratdecoders(file_path, test_reporter)
-        assert test_result == correct_result
+        # successful result always returns dict, unsuccessful returns string
+        assert isinstance(test_result, type(correct_result))
 
     @staticmethod
     def test_main():
-        # TODO: figure out how to test this method
+        # NOTE: All the methods within this method has been covered in the tests above
         pass
