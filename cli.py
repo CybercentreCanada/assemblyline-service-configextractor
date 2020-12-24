@@ -164,7 +164,6 @@ def initialize_parser_objs(tags: dict = None):
     return parser_objs
 
 
-
 def validate_parser_config():
     yaml_parsers = {}
     # find name of parser class
@@ -189,7 +188,7 @@ def validate_parser_config():
             yaml.dump(p, f)
 
     if len(MWCP_PARSER_PATHS) != len(parsers_in_config):
-        raise Exception("Number of parsers in Directory and parser_config.yml don't match")
+        raise Exception("Number of parsers in mwcp_parsers and parser_config.yml don't match")
 
 
 def run(parser_list: List[str], f_path: str, reporter):

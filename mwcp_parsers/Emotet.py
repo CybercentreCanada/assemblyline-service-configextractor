@@ -39,14 +39,13 @@ rule Emotet
         $snippet7 = {8B 48 ?? C7 [5-6] C7 40 ?? ?? ?? ?? ?? C7 ?? ?? 00 00 00 [0-1] 83 3C CD ?? ?? ?? ?? 00 74 0E 41 89 48 ?? 83 3C CD ?? ?? ?? ?? 00 75 F2}
         $snippet8 = {85 C0 74 3? B9 [2] 40 00 33 D2 89 ?8 [0-1] 89 [1-2] 8B [1-2] 89 [1-2] EB 0? 41 89 [1-2] 39 14 CD [2] 40 00 75 F? 8B CE E8 [4] 85 C0 74 05 33 C0 40 5E C3}
         $snippet9 = {85 C0 74 4? 8B ?8 [0-1] C7 40 [5] C7 [5-6] C7 40 ?? 00 00 00 00 83 3C CD [4] 00 74 0? 41 89 [2-3] 3C CD [4] 00 75 F? 8B CF E8 [4] 85 C0 74 07 B8 01 00 00 00 5F C3}
-        $ref_rsa = {6A 00 6A 01 FF [4-9] C0 [5-11] E8 ?? ?? FF FF 8D 4? [1-2] B9 ?? ?? 40 00 8D 5? [4-6] E8}
+        $ref_rsa = {6A 00 6A 01 FF [4-9] C0 [5-11] E8 ?? ?? FF FF 8D 4? [1-2] B9 ?? ?? ?? 00 8D 5? [4-6] E8}
     condition:
         uint16(0) == 0x5A4D and (($snippet1) and ($snippet2)) or ($snippet3) or ($snippet4) or ($snippet5) or ($snippet6) or ($snippet7) or ($snippet8) or ($snippet9) or ($ref_rsa)
 }
 """
 
 MAX_IP_STRING_SIZE = 16  # aaa.bbb.ccc.ddd\0
-
 
 def yara_scan(raw_data, rule_name):
     addresses = {}
@@ -59,24 +58,41 @@ def yara_scan(raw_data, rule_name):
                     addresses[item[1]] = item[0]
                     return addresses
 
-
 def xor_data(data, key):
     key = [q for q in key]
     data = [q for q in data]
     return bytes([c ^ k for c, k in zip(data, cycle(key))])
 
-
 # This function is originally by Jason Reaves (@sysopfb),
-# suggested as an addition by @pollo290987.
-# A big thank you to both.
-def extract_emotet_rsakey(filedata):
-    pub_matches = re.findall(b"""\x30[\x00-\xff]{100}\x02\x03\x01\x00\x01\x00\x00""", filedata)
+# suggested as an addition by @pollo290987, updated by
+# phate1. A big thank you to all.
+def extract_emotet_rsakey(pe):
+    for section in pe.sections:
+        if section.Name.replace(b'\x00',b'') == b'.data':
+            data_section = section.get_data()
+    pub_matches = re.findall(b"""\x00{4,12}(?=([\x01-\xff][\x00-\xff]{120}))""", data_section)
     if pub_matches:
-        pub_key = pub_matches[0][0:106]
+        res_list = []
+        for match in pub_matches:
+            xor_key = int.from_bytes(match[:4], byteorder='little')
+            encoded_size = int.from_bytes(match[4:8], byteorder='little')
+            decoded_size = ((xor_key ^ encoded_size)&0xfffffffc)+4
+            if decoded_size == 0x6c:
+                offset = 8
+                res = b''
+                for count in range(int(0x6c/4)):
+                    off_from = offset+count*4
+                    off_to = off_from+4
+                    encoded_dw = int.from_bytes(match[off_from:off_to], byteorder='little')
+                    decoded = xor_key ^ encoded_dw
+                    res = res + decoded.to_bytes(4, byteorder='little')
+                res_list.append(res)
+
+        res_list = list(set(res_list))
+        pub_key = res_list[0][0:106]
         seq = asn1.DerSequence()
         seq.decode(pub_key)
         return RSA.construct((seq[0], seq[1]))
-
 
 class Emotet(Parser):
     # def __init__(self, reporter=None):
@@ -89,10 +105,7 @@ class Emotet(Parser):
         filebuf = self.file_object.file_data
         pe = pefile.PE(data=filebuf, fast_load=False)
         image_base = pe.OPTIONAL_HEADER.ImageBase
-
-        pem_key = extract_emotet_rsakey(filebuf)
-        if pem_key:
-            self.reporter.add_metadata("other", {"RSA public key": pem_key.exportKey()})
+        c2found = False
 
         c2list = yara_scan(filebuf, "$c2list")
         if c2list:
@@ -106,10 +119,10 @@ class Emotet(Parser):
 
                 if c2_address and port:
                     self.reporter.add_metadata("address", c2_address + ":" + port)
+                    c2found = True
 
                 ips_offset += 8
                 ip = struct.unpack("I", filebuf[ips_offset : ips_offset + 4])[0]
-            return
         else:
             refc2list = yara_scan(filebuf, "$snippet3")
         if refc2list:
@@ -136,6 +149,7 @@ class Emotet(Parser):
 
                 if c2_address and port:
                     self.reporter.add_metadata("address", c2_address + ":" + port)
+                    c2found = True
                 else:
                     return
                 c2_list_offset += 8
@@ -165,6 +179,7 @@ class Emotet(Parser):
 
                     if c2_address and port:
                         self.reporter.add_metadata("address", c2_address + ":" + port)
+                        c2found = True
                     else:
                         return
                     c2_list_offset += 8
@@ -195,7 +210,6 @@ class Emotet(Parser):
                         c2_list_offset = pe.get_offset_from_rva(c2_list_rva)
                     except pefile.PEFormatError as err:
                         return
-
                     while 1:
                         try:
                             ip = struct.unpack("<I", filebuf[c2_list_offset : c2_list_offset + 4])[0]
@@ -208,6 +222,7 @@ class Emotet(Parser):
 
                         if c2_address and port:
                             self.reporter.add_metadata("address", c2_address + ":" + port)
+                            c2found = True
                         else:
                             break
                         c2_list_offset += 8
@@ -224,7 +239,6 @@ class Emotet(Parser):
                             c2_list_offset = pe.get_offset_from_rva(c2_list_rva)
                         except pefile.PEFormatError as err:
                             pass
-
                         while 1:
                             try:
                                 ip = struct.unpack("<I", filebuf[c2_list_offset : c2_list_offset + 4])[0]
@@ -237,6 +251,7 @@ class Emotet(Parser):
 
                             if c2_address and port:
                                 self.reporter.add_metadata("address", c2_address + ":" + port)
+                                c2found = True
                             else:
                                 break
                             c2_list_offset += 8
@@ -257,7 +272,6 @@ class Emotet(Parser):
                                 c2_list_offset = pe.get_offset_from_rva(c2_list_rva)
                             except pefile.PEFormatError as err:
                                 pass
-
                             while 1:
                                 try:
                                     ip = struct.unpack("<I", filebuf[c2_list_offset : c2_list_offset + 4])[0]
@@ -270,11 +284,17 @@ class Emotet(Parser):
 
                                 if c2_address and port:
                                     self.reporter.add_metadata("address", c2_address + ":" + port)
+                                    c2found = True
                                 else:
                                     break
                                 c2_list_offset += 8
 
-        if not pem_key:
+        if not c2found:
+            return
+        pem_key = extract_emotet_rsakey(pe)
+        if pem_key:
+            self.reporter.add_metadata("other", {"RSA public key": pem_key.exportKey().decode('utf8')})
+        else:
             ref_rsa = yara_scan(filebuf, "$ref_rsa")
             if ref_rsa:
                 ref_rsa_offset = int(ref_rsa["$ref_rsa"])
