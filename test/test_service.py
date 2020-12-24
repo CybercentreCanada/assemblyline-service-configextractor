@@ -11,7 +11,7 @@ SERVICE_CONFIG_PATH = os.path.join(ROOT_DIR, SERVICE_CONFIG_NAME)
 TEMP_SERVICE_CONFIG_PATH = os.path.join("/tmp", SERVICE_CONFIG_NAME)
 
 # Samples that we will be sending to the service
-sample1 = dict(
+samples = [ dict(
     sid=1,
     metadata={},
     service_name='configextractor',
@@ -29,8 +29,8 @@ sample1 = dict(
     min_classification='TLP:WHITE',
     max_files=501,  # TODO: get the actual value
     ttl=3600,
-)
-sample2 = dict(
+    ),
+    dict(
     sid=1,
     metadata={},
     service_name='configextractor',
@@ -48,7 +48,8 @@ sample2 = dict(
     min_classification='TLP:WHITE',
     max_files=501,  # TODO: get the actual value
     ttl=3600,
-)
+    )
+]
 
 
 def create_tmp_manifest():
@@ -314,9 +315,9 @@ class TestConfigExtractor:
         assert class_instance.tag_parsers == correct_tag_parsers
 
     @staticmethod
-    @pytest.mark.parametrize("sample", [
-        sample1
-    ])
+    @pytest.mark.parametrize("sample",
+        samples
+    )
     def test_execute(sample, class_instance):
         # Imports required to execute the sample
         from assemblyline_v4_service.common.task import Task
@@ -324,7 +325,7 @@ class TestConfigExtractor:
         from assemblyline_v4_service.common.request import ServiceRequest
 
         # Creating the required objects for execution
-        service_task = ServiceTask(sample1)
+        service_task = ServiceTask(sample)
         task = Task(service_task)
         class_instance._task = task
         service_request = ServiceRequest(task)
