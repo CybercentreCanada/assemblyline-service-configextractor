@@ -23,9 +23,9 @@ import pefile
 import yara
 from Crypto.Cipher import ARC4
 from mwcp.parser import Parser
-
-rule_path = './yara_rules/icedidstage2.yara'
-yara_rule = open(rule_path, "r").read()
+MAIN_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+RULE_PATH = os.path.join(MAIN_DIR, "yara_rules/icedidstage2.yara")
+yara_rule = open(RULE_PATH, "r").read()
 
 def yara_scan(raw_data):
     try:

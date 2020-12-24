@@ -10,7 +10,7 @@ import hashlib
 import datetime
 from mwcp.parser import Parser
 from Crypto.Cipher import ARC4
-import _blzpack
+from . import _blzpack
 import logging
 log = logging.getLogger(__name__)
 
