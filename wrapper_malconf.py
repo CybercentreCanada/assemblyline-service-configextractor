@@ -1,7 +1,9 @@
 import os
 import sys
 import json
-sys.path.insert(0, './RATDecoders')
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+RAT_DECODERS_PATH = os.path.join(ROOT_DIR, "RATDecoders")
+sys.path.insert(0, RAT_DECODERS_PATH)
 from malwareconfig import fileparser
 from malwareconfig.modules import __decoders__, __preprocessors__
 

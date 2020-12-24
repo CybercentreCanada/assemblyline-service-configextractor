@@ -1,0 +1,46 @@
+name: tests
+
+trigger: ["*"]
+pr: ["*"]
+
+pool:
+  vmImage: 'ubuntu-18.04'
+
+jobs:
+- job: run_test
+  strategy:
+    matrix:
+      python3_7:
+        python.version: '3.7'
+      Python3_8:
+        python.version: '3.8'
+
+  timeoutInMinutes: 10
+
+  steps:
+    - task: UsePythonVersion@0
+      displayName: Set python version
+      inputs:
+        versionSpec: '$(python.version)'
+    - script: |
+        install_path=`pwd`
+        sudo apt-get update
+        sudo apt-get install -y libfuzzy-dev git libssl1.1 libmagic1 libssl-dev libmagic-dev automake libtool make gcc wget
+        sudo rm -rf /var/lib/apt/lists/*
+        wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v3.11.0.tar.gz
+        tar -zxf /tmp/yara.tar.gz -C /tmp
+        cd /tmp/yara-3.11.0
+        ./bootstrap.sh
+        ./configure --enable-magic --enable-dotnet --with-crypto --prefix /tmp/yara_install
+        make
+        make install
+        sudo cp -r /tmp/yara_install /usr/local
+        cd $install_path
+        sudo env "PATH=$PATH" python -m pip install -U --no-cache-dir assemblyline assemblyline_v4_service magic-yara-python gitpython plyara pyparsing==2.3.0 -r `pwd`/requirements.txt
+        sudo env "PATH=$PATH" python -m pip install -U -r `pwd`/test/requirements.txt
+        sudo rm -rf /tmp/* /var/lib/apt/lists/* ~/.cache/pip
+      displayName: Setup environment
+    - script: python -m pytest --durations=10 -rsx -vv --cov-report=xml --cov=configextractor
+      displayName: Test
+    - script: python -m codecov
+      displayName: Upload Coverage
