@@ -62,7 +62,8 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 MWCP_PARSER_PATHS = [p for p in Path(MWCP_PARSERS_DIR_PATH).glob("[!_]*.py")]
 
-global reporter
+# This reporter will be used as a global variable for each file submission (or each time you register it)
+reporter = None
 
 
 class Parser:
@@ -85,7 +86,7 @@ class Parser:
                self.match == other.match and self.classification == other.classification and \
                self.malware == other.malware and self.malware_types == other.malware_types and \
                self.mitre_group == other.mitre_group and self.mitre_att == other.mitre_att and \
-               self.category == other.category and self.run_on == other.run_on
+               self.category == other.category
 
 
 class Entry:
@@ -113,10 +114,6 @@ YARA_PARSERS_LOAD = yaml.full_load(open(YARA_PARSER_PATH, 'r'))
 YARA_PARSERS = {}
 for entry_name, dict_values in YARA_PARSERS_LOAD.items():
     selector = dict_values['selector']
-    if 'tag_rule' in selector:
-        tag_rules = selector['tag_rule']
-    else:
-        tag_rules = None
     YARA_PARSERS[entry_name] = Entry(description=dict_values['description'],
                                      classification=dict_values['classification'],
                                      category=dict_values['category'],
@@ -127,7 +124,7 @@ for entry_name, dict_values in YARA_PARSERS_LOAD.items():
                                      yara_rules=selector['yara_rule'],
                                      malware_types=dict_values['malware_type'],
                                      parsers=dict_values['parser'],
-                                     tag_rules=tag_rules,
+                                     tag_rules=selector.get("tag"),
                                      selector=selector)
 
 
@@ -157,9 +154,8 @@ def check_paths(paths: List[str]):
 
 def initialize_parser_objs(tags: dict = None):
     parser_objs = {}
-    for parser_name in YARA_PARSERS:
+    for parser_name, yara_parser in YARA_PARSERS.items():
         # if tags are present then get tag rule paths
-        yara_parser = YARA_PARSERS[parser_name]
         if tags:
             rule_source_paths = yara_parser.tag_rules
         else:
@@ -340,7 +336,7 @@ def ta_mapping(output, scriptname=""):
     c2_domains = {val: output[val] for val in DOMAINS_LIST if val in output}
     if c2_domains:
         c2_ports = {val: output[val] for val in PORT_LIST if val in output}
-        map_c2_domains(c2_domains, c2_ports)
+        map_c2_domains({**c2_domains, **c2_ports})
     mutexes = {val: output[val] for val in MUTEX_LIST if val in output}
     if mutexes:
         map_mutex(mutexes)
@@ -361,7 +357,7 @@ def ta_mapping(output, scriptname=""):
         'interval': INTERVAL_LIST,
         'filename': FILENAME_LIST,
         'directory': DIRECTORY_LIST,
-        'key': 'EncryptionKey'
+        'key': ['EncryptionKey']
     }
 
     for key, value in mwcp_key_map.items():
@@ -379,8 +375,9 @@ def refine_data(output, keys_of_interest):
 
 def map_fields(data, mwcp_key):
     global reporter
-    for key in data:
-        val = data[key]
+    if not mwcp_key:
+        return
+    for key, val in data.items():
         reporter.add_metadata(mwcp_key, val)
 
 
@@ -457,46 +454,54 @@ def map_ftp_fields(data):
                 reporter.add_metadata("c2_url", "ftp://" + data[address])
 
 
-def map_c2_domains(domain_data, port_data):
+def map_c2_domains(data):
     global reporter
-    # keys are only from DOMAIN_LIST
-    for dom_key in domain_data:
-        dom_val = domain_data[dom_key]
-        """ Hack here to handle a LuxNet case where a registry path is stored
-            under the Domain key. """
-        if isinstance(dom_val, str) and dom_val.count('\\') < 2:
-            if '|' in dom_val:
-                """ The '|' is a separator character so strip it if
-                    it is the last character so the split does not produce
-                    an empty string i.e. '' """
-                uri_list = dom_val.rstrip('|').split('|')
-            elif '*' in dom_val:
-                """ The '*' is a separator character so strip it if
-                    it is the last character """
-                uri_list = dom_val.rstrip('*').split('*')
-            else:
-                uri_list = [dom_val]
-            for uri in uri_list:
-                if ":" in uri:
-                    # It is assumed that if a : exists in uri, then the string follows ip:port
-                    reporter.add_metadata("address", uri)
-                # keys are only from PORT_LIST
-                for port_key in port_data:
-                    SPECIAL_HANDLING = 'Port'
-                    port_val = port_data[port_key]
-                    if port_key == SPECIAL_HANDLING:
-                        # CyberGate has a separator character in the field
-                        # remove it here
-                        port_val = port_val.rstrip('|').strip('|')
-                        reporter.add_metadata("address", f"{uri}:{port_val}")
+    for domain_key in DOMAINS_LIST:
+        if domain_key in data:
+            """ Hack here to handle a LuxNet case where a registry path is stored
+                under the Domain key. """
+            if data[domain_key].count('\\') < 2:
+                if '|' in data[domain_key]:
+                    """ The '|' is a separator character so strip it if
+                        it is the last character so the split does not produce
+                        an empty string i.e. '' """
+                    domain_list = data[domain_key].rstrip('|').split('|')
+                elif '*' in data[domain_key]:
+                    """ The '*' is a separator character so strip it if
+                        it is the last character """
+                    domain_list = data[domain_key].rstrip('*').split('*')
+                else:
+                    domain_list = [data[domain_key]]
+                for addport in domain_list:
+                    if ":" in addport:
+                        reporter.add_metadata("address", f"{addport}")
+                    elif 'p1' in data or 'p2' in data:
+                        if 'p1' in data:
+                            reporter.add_metadata("address", f"{data[domain_key]}:{data['p1']}")
+                        if 'p2' in data:
+                            reporter.add_metadata("address", f"{data[domain_key]}:{data['p2']}")
+                    elif 'Port' in data or 'Port1' in data or 'Port2' in data:
+                        if 'Port' in data:
+                            # CyberGate has a separator character in the field
+                            # remove it here
+                            data['Port'] = data['Port'].rstrip('|').strip('|')
+                            for port in data['Port']:
+                                reporter.add_metadata("address", f"{addport}:{data['Port']}")
+                        if 'Port1' in data:
+                            reporter.add_metadata("address", f"{addport}:{data['Port1']}")
+                        if 'Port2' in data:
+                            reporter.add_metadata("address", f"{addport}:{data['Port2']}")
+                    elif domain_key == 'Domain' and ("Client Control Port" in data or "Client Transfer Port" in data):
+                        if "Client Control Port" in data:
+                            reporter.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
+                        if "Client Transfer Port" in data:
+                            reporter.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
+                    # Handle Mirai Case
+                    elif domain_key == 'C2' and isinstance(data[domain_key], list):
+                        for domain in data[domain_key]:
+                            reporter.add_metadata('address', domain)
                     else:
-                        reporter.add_metadata("address", f"{uri}:{port_val}")
-        elif isinstance(dom_val, list):
-            #Handle Mirai Case
-            for domain in dom_val:
-                reporter.add_metadata('address', domain)
-        else:
-            reporter.add_metadata('address', dom_val)
+                        reporter.add_metadata('address', addport)
 
 
 def map_domainX_fields(data):
