@@ -829,7 +829,6 @@ class TestCLI:
                                      "Mutex Per": "g"
                                  }, "unrecom", "mutex"),
                                  ({
-                                     'Domain': 'a',
                                      'Reg Key': 'a',
                                      'StartupName': 'a',
                                      'Active X Key': 'a',
@@ -860,8 +859,8 @@ class TestCLI:
                              )
     def test_ta_mapping(output, scriptname, mwcp_key):
         from cli import ta_mapping, register
-        test_reporter = register()
         correct_reporter = add_metadata(output, mwcp_key)
+        test_reporter = register()
         ta_mapping(output, scriptname)
         assert check_reporter_equality(test_reporter, correct_reporter)
 
