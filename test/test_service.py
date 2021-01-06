@@ -21,11 +21,11 @@ samples = [ dict(
         md5='fda4e701258ba56f465e3636e60d36ec',
         mime='text/plain',
         sha1='af2c2618032c679333bebf745e75f9088748d737',
-        sha256='0cc1653c7d62ae525f92ff80e34cff2e72599a62f9a2d6416c2719b2422ae28f',
+        sha256='c805d89c6d26e6080994257d549fd8fec2a894dd15310053b0b8078064a5754b',
         size=19,
         type='unknown',
     ),
-    filename='0cc1653c7d62ae525f92ff80e34cff2e72599a62f9a2d6416c2719b2422ae28f',
+    filename='c805d89c6d26e6080994257d549fd8fec2a894dd15310053b0b8078064a5754b',
     min_classification='TLP:WHITE',
     max_files=501,  # TODO: get the actual value
     ttl=3600,
@@ -1324,7 +1324,7 @@ class TestCLI:
 
         test_reporter = get_reporter()
         test_result = run_ratdecoders(file_path, test_reporter)
-        if file_path.endswith('0cc1653c7d62ae525f92ff80e34cff2e72599a62f9a2d6416c2719b2422ae28f'):
+        if file_path.endswith('c805d89c6d26e6080994257d549fd8fec2a894dd15310053b0b8078064a5754b'):
             assert no_result == test_result
         elif file_path.endswith('35a6da3379b6e543b7f8eb45f27f3fd227c03c2620c4c72d8630583d7da82bba'):
             assert correct_result == test_result
