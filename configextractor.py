@@ -77,9 +77,11 @@ class ConfigExtractor(ServiceBase):
         self.mwcp_reporter._Reporter__reset()
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, self.mwcp_reporter)
-        if type(output) in [dict, str]:
+        if type(output) is str:
             self.log.info(output)
+            output = ""
         if type(output) is dict:
+            self.log.info(output)
             for parser, fields in output.items():
                 self.section_builder(parser, fields, result, "RATDecoder")
 
@@ -101,10 +103,11 @@ class ConfigExtractor(ServiceBase):
         for parser, field_dict in output_fields.items():
             self.section_builder(parser, field_dict, result)
         fd, temp_path = tempfile.mkstemp(dir=self.working_directory)
-        with os.fdopen(fd, "w") as myfile:
-            myfile.write(json.dumps(output))
-            myfile.write(json.dumps(output_fields))
-        request.add_supplementary(temp_path, "output.json", "This is MWCP output as a JSON file")
+        if output or output_fields:
+            with os.fdopen(fd, "w") as myfile:
+                myfile.write(json.dumps(output))
+                myfile.write(json.dumps(output_fields))
+            request.add_supplementary(temp_path, "output.json", "This is MWCP output as a JSON file")
         request.result = result
 
     def section_builder(self, parser, field_dict, result, parsertype="MWCP"):
