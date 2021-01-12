@@ -350,11 +350,12 @@ class TestConfigExtractor:
         correct_result_response = correct_result.pop("response")
         assert test_result == correct_result
 
-        # Comparing everything in the response except for the service_completed and the output.json path
+        # Comparing everything in the response except for the service_completed and the output.json supplementary
         test_result_response["milestones"].pop("service_completed")
         correct_result_response["milestones"].pop("service_completed")
-        test_result_response["supplementary"][0].pop("path")
-        correct_result_response["supplementary"][0].pop("path")
+        correct_result_response.pop("supplementary")
+        test_result_response.pop("supplementary")
+
 
         assert test_result_response == correct_result_response
 
