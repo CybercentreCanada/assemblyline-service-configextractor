@@ -1,4 +1,6 @@
 # ConfigExtractor Service
+This service extract malware configuration (such as IP, URL and domain) for various malware family. Most of the time this is only possible on unpacked version of malware such as in a memory dump. See our Cuckoo service to automate extraction of malware memory dump.
+
 The code found in this repository contains two main aspects: the Assemblyline service code
 (configextractor.py) and the command line interface (cli.py). The Assemblyline service code
 utilizes cli.py in order to perform Assemblyline related functionality, 
