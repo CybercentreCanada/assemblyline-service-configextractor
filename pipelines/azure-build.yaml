@@ -31,6 +31,6 @@ stages:
         docker run -v `pwd`/test/:/opt/al_service/test/ cccs/assemblyline-service-configextractor:latest bash -c 'pip install -U -r test/requirements.txt; pytest'
       displayName: Test containers
     - script: |
-        docker push cccs/assemblyline-service-configextractor
+        docker push cccs/assemblyline-service-configextractor --all-tags
 
       displayName: Deploy to Docker Hub
