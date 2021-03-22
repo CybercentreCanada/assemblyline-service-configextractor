@@ -1,7 +1,5 @@
 import yaml
 import yara
-import sys
-# add path for forked mwcp repo sys.path.insert(0, "/home/lucky/git/DC3-MWCP")
 import mwcp
 import click
 import os
@@ -22,6 +20,7 @@ DIRECTORY_LIST = ['Install Dir', 'InstallDir', 'InstallPath', 'Install Folder',
                   'Install Folder1', 'Install Folder2', 'Install Folder3',
                   'Folder Name', 'FolderName', 'pluginfoldername', 'nombreCarpeta']
 DOMAINS_LIST = ['Domain', 'Domains', 'dns', 'C2']
+PORT_LIST = ['p1', 'p2', 'Port', 'Port1', 'Port2', "Client Control Port", "Client Control Transfer"]
 FILENAME_LIST = ['InstallName', 'Install Name', 'Exe Name',
                  'Jar Name', 'JarName', 'StartUp Name', 'File Name',
                  'USB Name', 'Log File', 'Install File Name']
@@ -63,11 +62,13 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 MWCP_PARSER_PATHS = [p for p in Path(MWCP_PARSERS_DIR_PATH).glob("[!_]*.py")]
 
+# This reporter will be used as a global variable for each file submission (or each time you register it)
+reporter = None
+
 
 class Parser:
     def __init__(self, name: str, parser_list: List[str], compiled_rules: List[yara.Rules], classification: str,
-                 malware: str, malware_types: List[str], mitre_group: str, mitre_att: str, category: str,
-                 run_on: str):
+                 malware: str, malware_types: List[str], mitre_group: str, mitre_att: str, category: str):
         self.name = name
         self.parser_list = parser_list
         self.compiled_rules = compiled_rules
@@ -78,7 +79,6 @@ class Parser:
         self.mitre_group = mitre_group
         self.mitre_att = mitre_att
         self.category = category
-        self.run_on = run_on
 
     def __eq__(self, other):
         # TODO: Find a way to compare equality between yara.Rules objects (compiled_rules)
@@ -86,22 +86,49 @@ class Parser:
                self.match == other.match and self.classification == other.classification and \
                self.malware == other.malware and self.malware_types == other.malware_types and \
                self.mitre_group == other.mitre_group and self.mitre_att == other.mitre_att and \
-               self.category == other.category and self.run_on == other.run_on
+               self.category == other.category
 
 
 class Entry:
-    # Entry defined in yara_parser.yaml
-    def __init__(self, description: str, classification: str,
-                 malware: str, yara_rules: List[str], tag_rules: List[str], parsers: List[str]):
+    # Entry defined in yara_parser.yaml used internally
+    def __init__(self, description: str, classification: str, category: str, mitre_group: str,
+                 mitre_att: str, malware: str, run_on: str, yara_rules: List[str],
+                 malware_types: List[str], parsers: List[dict], selector: dict,
+                 tag_rules: List[str] = None):
         self.description = description
-        self.classification = classification,
+        self.classification = classification
+        self.category = category
+        self.mitre_group = mitre_group
+        self.mitre_att = mitre_att
         self.malware = malware
+        self.run_on = run_on
         self.yara_rules = yara_rules
         self.tag_rules = tag_rules
+        self.malware_types = malware_types
         self.parsers = parsers
+        self.selector = selector
 
 
-def validate_parsers(parser_list: List[str]):
+# Loading up YARA Parsers
+YARA_PARSERS_LOAD = yaml.full_load(open(YARA_PARSER_PATH, 'r'))
+YARA_PARSERS = {}
+for entry_name, dict_values in YARA_PARSERS_LOAD.items():
+    selector = dict_values['selector']
+    YARA_PARSERS[entry_name] = Entry(description=dict_values['description'],
+                                     classification=dict_values['classification'],
+                                     category=dict_values['category'],
+                                     mitre_group=dict_values['mitre_group'],
+                                     mitre_att=dict_values['mitre_att'],
+                                     malware=dict_values['malware'],
+                                     run_on=dict_values['run_on'],
+                                     yara_rules=selector['yara_rule'],
+                                     malware_types=dict_values['malware_type'],
+                                     parsers=dict_values['parser'],
+                                     tag_rules=selector.get("tag"),
+                                     selector=selector)
+
+
+def validate_parsers(parser_list: List[dict]):
     mwcp_key = "MWCP"
     parsers_set = set()
     for parser in parser_list:
@@ -126,21 +153,16 @@ def check_paths(paths: List[str]):
 
 
 def initialize_parser_objs(tags: dict = None):
-    # Compile yara rules from yaml, rules designed for malware
-    stream = open(YARA_PARSER_PATH, 'r')
-    parser_entries = yaml.full_load(stream)
     parser_objs = {}
-    for parser_name, parser_details in parser_entries.items():
-        rule_source_paths = []
+    for parser_name, yara_parser in YARA_PARSERS.items():
         # if tags are present then get tag rule paths
-
-        if tags and 'tag' in parser_details['selector']:
-            rule_source_paths = parser_details['selector']['tag']
-        elif not tags and 'yara_rule' in parser_details['selector']:
-            rule_source_paths = parser_details['selector']['yara_rule']
+        if tags:
+            rule_source_paths = yara_parser.tag_rules
+        else:
+            rule_source_paths = yara_parser.yara_rules
         if not check_paths(rule_source_paths):
             continue
-        validated_parsers = validate_parsers(parser_details['parser'])
+        validated_parsers = validate_parsers(yara_parser.parsers)
         compiled_rules = []
         for rule_source_path in rule_source_paths:
             abs_path = os.path.join(ROOT_DIR, rule_source_path)
@@ -153,13 +175,12 @@ def initialize_parser_objs(tags: dict = None):
             name=parser_name,
             parser_list=validated_parsers,
             compiled_rules=compiled_rules,
-            classification=parser_details['classification'],
-            malware=parser_details['malware'],
-            malware_types=parser_details['malware_type'],
-            mitre_group=parser_details['mitre_group'],
-            mitre_att=parser_details['mitre_att'],
-            category=parser_details['category'],
-            run_on=parser_details['run_on']
+            classification=yara_parser.classification,
+            malware=yara_parser.malware,
+            malware_types=yara_parser.malware_types,
+            mitre_group=yara_parser.mitre_group,
+            mitre_att=yara_parser.mitre_att,
+            category=yara_parser.category,
         )
     return parser_objs
 
@@ -220,9 +241,6 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
     # for each entry we get all compiled file yara rules and see if theres a match,
     # if there is a match then we add all parsers for that parser object to the super list
     def is_match(file_path: str, parser_objects: Dict, tags_dict=None) -> Dict[str, List[yara.Rules]]:
-        match_found = False
-        matches = {}
-
         nonlocal super_parser_list
         if parser_objects is not None:
             for pars, obj in parser_objects.items():
@@ -233,29 +251,26 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
                     if matched_rule:
                         matched_rules.extend(matched_rule)
                         super_parser_list.extend(obj.parser_list)
-                matches[obj.malware] = matched_rules
-        return matches
 
     # eliminate common parsers between yara tag match and yara file match so parsers aren't run twice
     super_parser_list = []
-    and_malware = {}  # top malware name: level name
+    and_malware = {}  # dict containing parsers to be run that are specified as AND (both file and tag rules need match)
     # add wildcard parsers that are run under all conditions
-    stream = open(YARA_PARSER_PATH, 'r')
-    parser_entries = yaml.full_load(stream)
-    for parser in parser_entries:
-        if 'wildcard' in parser_entries[parser]['selector']:
-            wildcard_parsers = validate_parsers(parser_entries[parser]['parser'])
+    for parser_name in YARA_PARSERS:
+        yara_parser = YARA_PARSERS[parser_name]
+        if 'wildcard' in yara_parser.selector:
+            wildcard_parsers = validate_parsers(yara_parser.parsers)
             super_parser_list.extend(wildcard_parsers)
-        if 'AND' in parser_entries[parser]['run_on']:  # everything else is OR by default
-            if 'tag' in parser_entries[parser]['selector'] and 'yara_rule' in parser_entries[parser]['selector']:
+        if 'AND' in yara_parser.run_on:  # everything else is OR by default
+            if 'tag' in yara_parser.selector and 'yara_rule' in yara_parser.selector:
                 # then match must exist for some parser for both tag and file
-                malware_name = parser_entries[parser]['malware']
-                and_malware[malware_name] = parser
+                malware_name = yara_parser.malware
+                and_malware[malware_name] = parser_name
             else:
                 raise Exception("AND cannot be specified without both tag and file yara rules")
 
-    file_match = is_match(file_path, file_pars)
-    tag_match = is_match(file_path, tag_pars, tags_dict)
+    is_match(file_path, file_pars)
+    is_match(file_path, tag_pars, tags_dict)
 
     # run check to exclude and parsers
 
@@ -270,16 +285,17 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
         else:
             return False
 
-    for malware, top in and_malware.items():
-        file_rules = file_pars[top].compiled_rules
-        tag_rules = tag_pars[top].compiled_rules
-        file_bool = all_rules_match(file_rules)
-        tag_bool = all_rules_match(tag_rules)
+    # Provide AND/OR run functionality
+    for malware, top_name in and_malware.items():
+        file_yara_rules = file_pars[top_name].compiled_rules
+        tag_yara_rules = tag_pars[top_name].compiled_rules
+        file_bool = all_rules_match(file_yara_rules)
+        tag_bool = all_rules_match(tag_yara_rules)
         if file_bool and tag_bool:
             print("both file and tag rules have match")
         else:
             print('tag or file rule did not match, excluding...')
-            malware_to_parsers = file_pars[top].parser_list
+            malware_to_parsers = file_pars[top_name].parser_list
             super_parser_list = [x for x in super_parser_list if x not in malware_to_parsers]
 
     super_parser_list = [i[0].upper() + i[1:] for i in super_parser_list]
@@ -300,6 +316,7 @@ def compile(tags=None):
 
 
 def register():
+    global reporter
     mwcp.register_entry_points()
     mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
     reporter = mwcp.Reporter()
@@ -314,44 +331,58 @@ def check_for_backslashes(ta_key, mwcp_key, data, reporter):
         reporter.add_metadata(mwcp_key, data[ta_key])
 
 
-def ta_mapping(output, reporter, scriptname=""):
+def ta_mapping(output, scriptname=""):
     # takes malwareconfig json output matches to mwcp fields found in reporter.metadata
-    map_c2_domains(output, reporter)
-    map_mutex(output, reporter)
-    map_version(output, reporter)
-    map_registry(output, reporter)
-    map_domainX_fields(output, reporter)
-    map_key_fields(output, reporter)
-    map_missionid_fields(output, reporter)
-    map_ftp_fields(output, reporter)
-    map_network_fields(output, reporter)
-    map_injectionprocess_fields(output, reporter)
-    map_filepath_fields(scriptname, output, reporter)
-    map_username_password_fields(output, reporter)
-    map_interval_fields(output, reporter)
-    map_filename_fields(output, reporter)
-    map_network_fields(output, reporter)
-    map_directory_fields(output, reporter)
+    c2_domains = {val: output[val] for val in DOMAINS_LIST if val in output}
+    if c2_domains:
+        c2_ports = {val: output[val] for val in PORT_LIST if val in output}
+        map_c2_domains({**c2_domains, **c2_ports})
+    mutexes = {val: output[val] for val in MUTEX_LIST if val in output}
+    if mutexes:
+        map_mutex(mutexes)
+    registries = {val: output[val] for val in REGISTRYPATH_LIST if val in output}
+    if registries:
+        map_registry(registries)
+
+    map_domainX_fields(output)
+    map_ftp_fields(output)
+    map_filepath_fields(scriptname, output)
+    map_username_password_fields(output)
+
+    mwcp_key_map = {
+        'version': VERSION_LIST,
+        'missionid': MISSIONID_LIST,
+        'url': NONC2_URL_LIST,
+        'injectionprocess': INJECTIONPROCESS_LIST,
+        'interval': INTERVAL_LIST,
+        'filename': FILENAME_LIST,
+        'directory': DIRECTORY_LIST,
+        'key': ['EncryptionKey']
+    }
+
+    for key, value in mwcp_key_map.items():
+        refined = refine_data(output, value)
+        if refined:
+            map_fields(refined, key)
+
     if scriptname == 'unrecom':
-        map_jar_fields(output, reporter)
+        map_jar_fields(output)
 
 
-def map_fields(data, reporter, field_list, mwcp_key):
-    for field in field_list:
-        if data.get(field):
-            reporter.add_metadata(mwcp_key, data[field])
+def refine_data(output, keys_of_interest):
+    return {val: output[val] for val in keys_of_interest if val in output}
 
 
-def map_injectionprocess_fields(data, reporter):
-    map_fields(data, reporter, INJECTIONPROCESS_LIST,
-               'injectionprocess')
+def map_fields(data, mwcp_key):
+    global reporter
+    if not mwcp_key:
+        return
+    for key, val in data.items():
+        reporter.add_metadata(mwcp_key, val)
 
 
-def map_networkgroup_nonc2_fields(data, reporter):
-    map_fields(data, reporter, NONC2_URL_LIST, 'url')
-
-
-def map_username_password_fields(data, reporter):
+def map_username_password_fields(data):
+    global reporter
     for username, password in zip(USERNAME_LIST, PASSWORD_LIST):
         if username in data and password in data:
             reporter.add_metadata(
@@ -361,14 +392,12 @@ def map_username_password_fields(data, reporter):
         elif username in data:
             reporter.add_metadata('username', data[username])
 
-    map_fields(data, reporter, PASSWORD_ONLY_LIST, 'password')
+    passwords = {val: data[val] for val in PASSWORD_ONLY_LIST if val in data}
+    map_fields(passwords, 'password')
 
 
-def map_network_fields(data, reporter):
-    map_networkgroup_nonc2_fields(data, reporter)
-
-
-def map_filepath_fields(scriptname, data, reporter):
+def map_filepath_fields(scriptname, data):
+    global reporter
     IGNORE_SCRIPT_LIST = ['Pandora', 'Punisher']
     for pname, fname in iteritems(FILEPATH_CONCATENATE_PAIR_LIST):
         if scriptname not in IGNORE_SCRIPT_LIST:
@@ -387,7 +416,8 @@ def map_filepath_fields(scriptname, data, reporter):
                 reporter.add_metadata('filename', data[fname])
 
 
-def map_ftp_fields(data, reporter):
+def map_ftp_fields(data):
+    global reporter
     SPECIAL_HANDLING_PAIRS = {'FTP Address': 'FTP Port'}
     for host, port in iteritems(SPECIAL_HANDLING_PAIRS):
         ftpdirectory = ''
@@ -424,15 +454,8 @@ def map_ftp_fields(data, reporter):
                 reporter.add_metadata("c2_url", "ftp://" + data[address])
 
 
-def map_directory_fields(data, reporter):
-    map_fields(data, reporter, DIRECTORY_LIST, 'directory')
-
-
-def map_filename_fields(data, reporter):
-    map_fields(data, reporter, FILENAME_LIST, 'filename')
-
-
-def map_c2_domains(data, reporter):
+def map_c2_domains(data):
+    global reporter
     for domain_key in DOMAINS_LIST:
         if domain_key in data:
             """ Hack here to handle a LuxNet case where a registry path is stored
@@ -478,10 +501,11 @@ def map_c2_domains(data, reporter):
                         for domain in data[domain_key]:
                             reporter.add_metadata('address', domain)
                     else:
-                        reporter.add_metadata('address', data[domain_key])
+                        reporter.add_metadata('address', addport)
 
 
-def map_domainX_fields(data, reporter):
+def map_domainX_fields(data):
+    global reporter
     SPECIAL_HANDLING_LIST = ['Domain1', 'Domain2']
     for suffix in range(1, 21):
         suffix = str(suffix)
@@ -504,40 +528,29 @@ def map_domainX_fields(data, reporter):
                         reporter.add_metadata('address', data[field])
 
 
-def map_mutex(data, reporter):
+def map_mutex(data):
+    global reporter
     SPECIAL_HANDLING = 'Mutex'
-    for mutex_key in MUTEX_LIST:
-        if mutex_key in data:
-            if mutex_key != SPECIAL_HANDLING:
-                reporter.add_metadata('mutex', data[mutex_key])
-            else:
-                if data[mutex_key] != 'false' and data[mutex_key] != 'true':
-                    reporter.add_metadata('mutex', data[mutex_key])
+    for key in data:
+        val = data[key]
+        if key == SPECIAL_HANDLING and val in ['false', 'true']:
+            continue
+        reporter.add_metadata('mutex', val)
 
 
-def map_missionid_fields(data, reporter):
-    map_fields(data, reporter, MISSIONID_LIST, 'missionid')
-
-
-def map_version(data, reporter):
-    map_fields(data, reporter, VERSION_LIST, 'version')
-
-
-def map_registry(data, reporter):
+def map_registry(data):
+    global reporter
     SPECIAL_HANDLING = 'Domain'
-    for ta_key in REGISTRYPATH_LIST:
-        if ta_key in data:
-            if ta_key == SPECIAL_HANDLING:
-                check_for_backslashes(ta_key, 'registrypath', data, reporter)
-            else:
-                reporter.add_metadata('registrypath', data[ta_key])
+    for key in data:
+        val = data[key]
+        if key == SPECIAL_HANDLING:
+            check_for_backslashes(key, 'registrypath', data, reporter)
+        else:
+            reporter.add_metadata('registrypath', val)
 
 
-def map_interval_fields(data, reporter):
-    map_fields(data, reporter, INTERVAL_LIST, 'interval')
-
-
-def map_jar_fields(data, reporter):
+def map_jar_fields(data):
+    global reporter
     """This routine is for the unrecom family"""
     jarinfo = ''
     mwcpkey = ''
@@ -557,19 +570,16 @@ def map_jar_fields(data, reporter):
     reporter.add_metadata(mwcpkey, jarinfo)
 
 
-def map_key_fields(data, reporter):
-    if "EncryptionKey" in data:
-        reporter.add_metadata("key", data["EncryptionKey"])
-
-
-def run_ratdecoders(file_path, reporter):
+def run_ratdecoders(file_path, passed_reporter):
+    global reporter
+    reporter = passed_reporter
     file_info = malconf.preprocess(file_path)
     script_name = file_info.malware_name
-    output = malconf.process_file(file_info, file_path)
+    output = malconf.process_file(file_info)
     if type(output) is str:
         print(output)
         return output
-    ta_mapping(output, reporter, script_name)
+    ta_mapping(output, script_name)
     others = {}
 
     for key in output:
@@ -590,13 +600,14 @@ def main(file_path) -> None:
     file_path : relative or absolute path for file to be analyzed
     """
     # if running cli mode tags are not expected
+    global reporter
     reporter = register()
-    run_ratdecoders(file_path, reporter)
+    run_ratdecoders(file_path)
     validate_parser_config()
     file_pars, tag_pars = compile()
     parsers = deduplicate(file_pars, tag_pars, file_path)
     # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
-    run(parsers, file_path, reporter)
+    run(parsers, file_path)
     reporter.print_report()
 
     # but can't run parsers until final list of parsers to run, from tag and file parsers is finished

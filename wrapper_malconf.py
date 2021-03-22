@@ -22,7 +22,9 @@ def preprocess(file_path):
         module.pre_process()
 
     return file_info
-def process_file(file_info, file_path):
+
+
+def process_file(file_info):
     if file_info.malware_name in __decoders__:
         print("  [-] Running Decoder")
         module = __decoders__[file_info.malware_name]['obj']()
@@ -37,6 +39,7 @@ def process_file(file_info, file_path):
 
         return "[!] No RATDecoder or File is Packed"
 
+
 def list_decoders():
     print("[+] Listing Decoders")
     for name in __decoders__.keys():
@@ -47,9 +50,10 @@ def list_decoders():
         print("  [-] Loaded: {0}".format(name))
     sys.exit()
 
+
 def check_file(f_path=None):
     # We need at least one arg
-    if f_path==None:
+    if f_path == None:
         print("[!] Not enough Arguments, Need at least file path\n")
         sys.exit()
     # Check for file or dir
@@ -62,9 +66,10 @@ def check_file(f_path=None):
         print("[!] You did not provide a valid file.\n")
         sys.exit()
 
+
 if __name__ == "__main__":
     print("[+] RATDecoders Running")
-    path=sys.argv[1]
+    path = sys.argv[1]
     check_file(path)
     file = preprocess(path)
-    output = process_file(file,path)
+    output = process_file(file)
