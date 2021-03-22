@@ -32,5 +32,4 @@ stages:
       displayName: Test containers
     - script: |
         docker push cccs/assemblyline-service-configextractor --all-tags
-
       displayName: Deploy to Docker Hub
