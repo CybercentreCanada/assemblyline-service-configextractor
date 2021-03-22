@@ -92,7 +92,7 @@ class Parser:
 class Entry:
     # Entry defined in yara_parser.yaml used internally
     def __init__(self, description: str, classification: str, category: str, mitre_group: str,
-                 mitre_att: str, malware: str, run_on: str, yara_rules: List[str],
+                 mitre_att: str, malware: str, yara_rules: List[str],
                  malware_types: List[str], parsers: List[dict], selector: dict,
                  tag_rules: List[str] = None):
         self.description = description
@@ -101,7 +101,6 @@ class Entry:
         self.mitre_group = mitre_group
         self.mitre_att = mitre_att
         self.malware = malware
-        self.run_on = run_on
         self.yara_rules = yara_rules
         self.tag_rules = tag_rules
         self.malware_types = malware_types
