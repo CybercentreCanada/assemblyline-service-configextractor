@@ -68,7 +68,7 @@ reporter = None
 
 class Parser:
     def __init__(self, name: str, parser_list: List[str], compiled_rules: List[yara.Rules], classification: str,
-                 malware: str, malware_types: List[str], mitre_group: str, mitre_att: str, category: str):
+                 malware: str, malware_types: List[str], mitre_group: str, mitre_att: str, category: str, run_on: str):
         self.name = name
         self.parser_list = parser_list
         self.compiled_rules = compiled_rules
@@ -79,6 +79,7 @@ class Parser:
         self.mitre_group = mitre_group
         self.mitre_att = mitre_att
         self.category = category
+        self.run_on = run_on
 
     def __eq__(self, other):
         # TODO: Find a way to compare equality between yara.Rules objects (compiled_rules)
@@ -92,7 +93,7 @@ class Parser:
 class Entry:
     # Entry defined in yara_parser.yaml used internally
     def __init__(self, description: str, classification: str, category: str, mitre_group: str,
-                 mitre_att: str, malware: str, yara_rules: List[str],
+                 mitre_att: str, malware: str, run_on: str, yara_rules: List[str],
                  malware_types: List[str], parsers: List[dict], selector: dict,
                  tag_rules: List[str] = None):
         self.description = description
@@ -101,6 +102,7 @@ class Entry:
         self.mitre_group = mitre_group
         self.mitre_att = mitre_att
         self.malware = malware
+        self.run_on = run_on
         self.yara_rules = yara_rules
         self.tag_rules = tag_rules
         self.malware_types = malware_types
@@ -180,6 +182,7 @@ def initialize_parser_objs(tags: dict = None):
             mitre_group=yara_parser.mitre_group,
             mitre_att=yara_parser.mitre_att,
             category=yara_parser.category,
+            run_on=yara_parser.run_on
         )
     return parser_objs
 

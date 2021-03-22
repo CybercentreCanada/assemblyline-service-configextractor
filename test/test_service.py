@@ -503,6 +503,7 @@ def create_correct_parser_objs(tags=None):
             mitre_group=parser_details['mitre_group'],
             mitre_att=parser_details['mitre_att'],
             category=parser_details['category'],
+            run_on=parser_details['run_on']
         )
     return parser_objs
 
