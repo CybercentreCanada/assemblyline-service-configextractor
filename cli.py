@@ -121,7 +121,7 @@ for entry_name, dict_values in YARA_PARSERS_LOAD.items():
                                      mitre_att=dict_values['mitre_att'],
                                      malware=dict_values['malware'],
                                      run_on=dict_values['run_on'],
-                                     yara_rules=selector['yara_rule'],
+                                     yara_rules=selector.get('yara_rule'),
                                      malware_types=dict_values['malware_type'],
                                      parsers=dict_values['parser'],
                                      tag_rules=selector.get("tag"),
