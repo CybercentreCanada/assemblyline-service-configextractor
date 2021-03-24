@@ -579,7 +579,6 @@ def run_ratdecoders(file_path, passed_reporter):
     script_name = file_info.malware_name
     output = malconf.process_file(file_info)
     if type(output) is str:
-        print(output)
         return output
     ta_mapping(output, script_name)
     others = {}
@@ -604,12 +603,12 @@ def main(file_path) -> None:
     # if running cli mode tags are not expected
     global reporter
     reporter = register()
-    run_ratdecoders(file_path)
+    run_ratdecoders(file_path, reporter)
     validate_parser_config()
     file_pars, tag_pars = compile()
     parsers = deduplicate(file_pars, tag_pars, file_path)
     # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
-    run(parsers, file_path)
+    run(parsers, file_path, reporter)
     reporter.print_report()
 
     # but can't run parsers until final list of parsers to run, from tag and file parsers is finished
