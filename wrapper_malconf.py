@@ -8,14 +8,14 @@ from malwareconfig import fileparser
 from malwareconfig.modules import __decoders__, __preprocessors__
 import logging
 
-log_level = os.getenv('LOG_LEVEL') or 'INFO'
+log_level = os.getenv('log_level') or 'INFO'
 handler = logging.StreamHandler(sys.stdout)
-logger = logging.getLogger('assemblyline.svc.configextractor.wrapper_malconf')
-
+logger = logging.getLogger('assemblyline.service.configextractor.wrapper_malconf')
+logger.setLevel(log_level)
 if sys.stdin.isatty():
     #if running as cli then redirect logs to stdout
     logger.addHandler(handler)
-    logger.setLevel(log_level)
+
 
 
 def preprocess(file_path):
