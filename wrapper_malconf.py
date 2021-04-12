@@ -8,7 +8,7 @@ from malwareconfig import fileparser
 from malwareconfig.modules import __decoders__, __preprocessors__
 import logging
 
-log_level = os.getenv('log_level') or 'INFO'
+log_level = os.getenv('LOG_LEVEL') or 'INFO'
 handler = logging.StreamHandler(sys.stdout)
 logger = logging.getLogger('assemblyline.service.configextractor.wrapper_malconf')
 logger.setLevel(log_level)
