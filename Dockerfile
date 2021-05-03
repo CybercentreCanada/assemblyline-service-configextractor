@@ -10,11 +10,11 @@ FROM base AS build
 RUN apt-get update && apt-get install -y git libssl-dev libmagic-dev automake libtool make gcc wget  && rm -rf /var/lib/apt/lists/*
 
 # Compile and install YARA
-RUN wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v3.11.0.tar.gz
+RUN wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v4.1.0.tar.gz
 RUN tar -zxf /tmp/yara.tar.gz -C /tmp
-WORKDIR /tmp/yara-3.11.0
+WORKDIR /tmp/yara-4.1.0
 RUN ./bootstrap.sh
-RUN ./configure --enable-magic --enable-dotnet --with-crypto --prefix /tmp/yara_install
+RUN ./configure --enable-cuckoo --enable-magic --enable-dotnet --with-crypto --prefix /tmp/yara_install
 RUN make
 RUN make install
 
