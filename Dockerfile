@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 && rm -rf /var/
 # Create a temporary image to do our compiling in
 FROM base AS build
 
-RUN apt-get update && apt-get install -y git libssl-dev libmagic-dev automake libtool make gcc wget libjansson-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git libssl-dev libmagic-dev automake libtool make gcc wget libjansson-dev pkg-config && rm -rf /var/lib/apt/lists/*
 
 # Compile and install YARA
 RUN wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v4.1.0.tar.gz
