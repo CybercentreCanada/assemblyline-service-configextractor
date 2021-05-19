@@ -108,21 +108,22 @@ class ConfigExtractor(ServiceBase):
 
         for parser, field_dict in output_fields.items():
             self.section_builder(parser, field_dict, result)
+            if "outputfile" in field_dict:
+                # outputfile value is a list of lists containing filename, description and md5 has of additional
+                # outputfiles
+                outputfiles = field_dict['outputfile']
+                for output_list in outputfiles:
+                    output_filename = output_list[0]
+                    output_description = output_list[1]
+                    output_md5 = output_list[2]
+                    output_fullpath = os.path.join(os.getcwd(), output_md5[:5] + '_' + output_filename)
+                    request.add_supplementary(output_fullpath, output_filename, output_description)
         fd, temp_path = tempfile.mkstemp(dir=self.working_directory)
         if output or output_fields:
             with os.fdopen(fd, "w") as myfile:
                 myfile.write(json.dumps(output))
                 myfile.write(json.dumps(output_fields))
             request.add_supplementary(temp_path, "output.json", "This is MWCP output as a JSON file")
-        if "outputfile" in field_dict:
-            # outputfile value is a list of lists containing filename, description and md5 has of additional outputfiles
-            outputfiles = field_dict['outputfile']
-            for output_list in outputfiles:
-                output_filename = output_list[0]
-                output_description = output_list[1]
-                output_md5 = output_list[2]
-                output_fullpath = os.path.join(os.getcwd(), output_md5[:5] + '_' + output_filename)
-                request.add_supplementary(output_fullpath, output_filename, output_description)
         request.result = result
 
     def section_builder(self, parser, field_dict, result, parsertype="MWCP"):
