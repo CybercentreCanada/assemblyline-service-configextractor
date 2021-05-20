@@ -1,11 +1,12 @@
+import click
+import json
+import mwcp
+import os
+import re
 import yaml
 import yara
-import mwcp
-import click
-import os
-import json
-from six import iteritems
 from pathlib import Path
+from six import iteritems
 from typing import List, Dict
 
 import wrapper_malconf as malconf
@@ -188,12 +189,14 @@ def initialize_parser_objs(tags: dict = None):
 
 
 def validate_parser_config():
+
+    pattern = '.*class.*(Parser).*'
     yaml_parsers = {}
     # find name of parser class
     for parser in MWCP_PARSER_PATHS:
         file = open(parser, "r")
         for line in file:
-            if line.partition("class ")[2].partition("(Parser):")[0]:
+            if re.match(pattern, line):
                 parser_class = line.partition("class ")[2].partition("(Parser):")[0]
                 entry = {
                     "description": f"{parser.stem} Parser",
