@@ -18,6 +18,10 @@ RUN ./configure --enable-cuckoo --enable-magic --enable-dotnet --with-crypto --p
 RUN make
 RUN make install
 
+# Get MWCFG modules
+WORKDIR /tmp
+RUN git clone https://github.com/c3rb3ru5d3d53c/mwcfg-modules.git modules/
+
 # Build the yara python plugins, install other dependencies
 USER assemblyline
 RUN touch /tmp/before-pip
@@ -36,6 +40,7 @@ RUN chown root:root -R /var/lib/assemblyline/.local
 FROM base
 
 COPY --from=build /tmp/yara_install /usr/local
+COPY --from=build /tmp/modules /opt/al_service
 COPY --chown=assemblyline:assemblyline --from=build /var/lib/assemblyline/.local /var/lib/assemblyline/.local
 
 # Create directories
