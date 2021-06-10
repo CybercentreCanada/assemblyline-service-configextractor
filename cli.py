@@ -598,8 +598,7 @@ def run_ratdecoders(file_path, passed_reporter):
 def run_mwcfg(file_path, reporter):
     process = subprocess.run(['mwcfg', '--input', f'{file_path}', '-m', './modules'], capture_output=True)
     output = ast.literal_eval(process.stdout.decode())
-    configs = output[0]['configs'][0]
-    extracted = {k: v for k, v in configs.items()}
+    extracted = output[0]['configs'][0]
     if extracted:
         for k, v in extracted.items():
             if k == 'urls':
