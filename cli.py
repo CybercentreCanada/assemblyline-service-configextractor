@@ -1,8 +1,10 @@
+import ast
 import click
 import json
 import mwcp
 import os
 import re
+import subprocess
 import yaml
 import yara
 from pathlib import Path
@@ -590,8 +592,23 @@ def run_ratdecoders(file_path, passed_reporter):
         if key not in SUPER_LIST:
             others[key] = output[key]
     reporter.add_metadata("other", others)
-
     return {script_name: reporter.metadata}
+
+
+def run_mwcfg(file_path, reporter):
+    process = subprocess.run(['mwcfg', '--input', f'{file_path}', '-m', './modules'], capture_output=True)
+    output = ast.literal_eval(process.stdout.decode())
+    extracted = output[0]['configs'][0]
+    if extracted:
+        for k, v in extracted.items():
+            if k == 'urls':
+                for url in v:
+                    reporter.add_metadata("url", url)
+                continue
+            try:
+                reporter.add_metadata(k, v)
+            except KeyError:
+                reporter.add_metadata("other", {k: v})
 
 
 @click.command()
@@ -607,6 +624,7 @@ def main(file_path) -> None:
     global reporter
     reporter = register()
     run_ratdecoders(file_path, reporter)
+    run_mwcfg(file_path)
     validate_parser_config()
     file_pars, tag_pars = compile()
     parsers = deduplicate(file_pars, tag_pars, file_path)
