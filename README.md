@@ -13,7 +13,7 @@ a wrapper for popular malware configuration data decoders from:
 * CAPE Sandbox: https://github.com/kevoreilly/CAPEv2/ [GPL license] (many thanks to @kevoreilly for releasing so many open source parsers).
 * MWCFG : https://github.com/c3rb3ru5d3d53c/mwcfg [BSD 3-Clause License]
 
-This wrapper and the AssemblyLine service is released under the MIT license, but includes work released under the GPL license and includes the license and copyright.
+This wrapper and the AssemblyLine service is released under the MIT license, but includes work released under the GPL and BSD license and includes the license and copyright.
 
 
 ## Service structure
