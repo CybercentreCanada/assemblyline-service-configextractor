@@ -61,7 +61,7 @@ class ConfigExtractor(ServiceBase):
         self.file_parsers = {}
         self.tag_parsers = None
         self.parser_classification = []  # default should be the classification set for the service.
-        self.mwcp_reporter = None
+        self.mwcp_report = None
 
     def start(self):
         yara_externals = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
@@ -77,12 +77,12 @@ class ConfigExtractor(ServiceBase):
         self.tag_parsers = tag_parsers
 
     def execute(self, request):
-        self.mwcp_reporter = cli.register()
+        self.mwcp_report = cli.register()
         result = Result()
         # clear metadata from previous submision since ratdecoder run doesn't clear metadata
-        self.mwcp_reporter._Reporter__reset()
+        #self.mwcp_reporter._Reporter__reset()
         # Run Ratdecoders
-        output = cli.run_ratdecoders(request.file_path, self.mwcp_reporter)
+        output = cli.run_ratdecoders(request.file_path, self.mwcp_report)
         if type(output) is str:
             self.log.info(output)
             output = ""

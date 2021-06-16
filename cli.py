@@ -224,7 +224,7 @@ def run(parser_list: List[str], f_path: str, reporter):
     # all parsers to be run must be in yml file in parser_dir
     outputs = {}
     for parser in parser_list:
-        reporter.run_parser(parser, file_path=f_path)
+        reporter.run(parser, file_path=f_path)
         output = reporter.get_output_text()
         if reporter.metadata:
             outputs[parser] = reporter.metadata
@@ -326,7 +326,7 @@ def register():
     global reporter
     mwcp.register_entry_points()
     mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
-    reporter = mwcp.Reporter()
+    reporter = mwcp.Report()
     return reporter
 
 
@@ -577,9 +577,9 @@ def map_jar_fields(data):
     reporter.add_metadata(mwcpkey, jarinfo)
 
 
-def run_ratdecoders(file_path, passed_reporter):
-    global reporter
-    reporter = passed_reporter
+def run_ratdecoders(file_path, passed_report):
+    global report
+    report = passed_report
     file_info = malconf.preprocess(file_path)
     script_name = file_info.malware_name
     output = malconf.process_file(file_info)
@@ -591,8 +591,8 @@ def run_ratdecoders(file_path, passed_reporter):
     for key in output:
         if key not in SUPER_LIST:
             others[key] = output[key]
-    reporter.add_metadata("other", others)
-    return {script_name: reporter.metadata}
+    report.add(mwcp.metadata.Other("other", others))
+    return {script_name: report.metadata} # TODO change report.metadata deprecated
 
 
 def run_mwcfg(file_path, reporter):
@@ -624,7 +624,7 @@ def main(file_path) -> None:
     global reporter
     reporter = register()
     run_ratdecoders(file_path, reporter)
-    run_mwcfg(file_path)
+    run_mwcfg(file_path, report)
     validate_parser_config()
     file_pars, tag_pars = compile()
     parsers = deduplicate(file_pars, tag_pars, file_path)
