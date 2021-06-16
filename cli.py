@@ -10,7 +10,7 @@ import yara
 from pathlib import Path
 from six import iteritems
 from typing import List, Dict
-
+from mwcp import metadata
 import wrapper_malconf as malconf
 
 # Important file and directory paths
@@ -65,8 +65,8 @@ SUPER_LIST.extend(FTPP + FLCP)
 
 MWCP_PARSER_PATHS = [p for p in Path(MWCP_PARSERS_DIR_PATH).glob("[!_]*.py")]
 
-# This reporter will be used as a global variable for each file submission (or each time you register it)
-reporter = None
+# This Report object will be used as a global variable for each file submission (or each time you register it)
+report = None
 
 
 class Parser:
@@ -225,11 +225,10 @@ def run(parser_list: List[str], f_path: str, report):
     outputs = {}
     for parser in parser_list:
         mwcp.run(parser, file_path=f_path)
-        output = report.as_text()
         if report.metadata:
-            outputs[parser] = reporter.metadata
+            outputs[parser] = report.metadata
     if __name__ == '__main__':
-        reporter.output_file(bytes(str(json.dumps(outputs)), encoding='utf-8'), "output.json")
+        report.output_file(bytes(str(json.dumps(outputs)), encoding='utf-8'), "output.json")
     return outputs
 
 
@@ -321,23 +320,23 @@ def compile(tags=None):
 
 
 def register():
-    global reporter
+    global report
     mwcp.register_entry_points()
     mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
-    reporter = mwcp.Report()
-    return reporter
+    report = mwcp.Report()
+    return report
 
 
-def check_for_backslashes(ta_key, mwcp_key, data, reporter):
+def check_for_backslashes(ta_key, mwcp_key, data, report):
     IGNORE_FIELD_LIST = ['localhost', 'localhost*']
     if '\\' in data[ta_key]:
-        reporter.add_metadata(mwcp_key, data[ta_key])
+        report.add_metadata(mwcp_key, data[ta_key])
     elif '.' not in data[ta_key] and data[ta_key] not in IGNORE_FIELD_LIST:
-        reporter.add_metadata(mwcp_key, data[ta_key])
+        report.add_metadata(mwcp_key, data[ta_key])
 
 
 def ta_mapping(output, scriptname=""):
-    # takes malwareconfig json output matches to mwcp fields found in reporter.metadata
+    # takes malwareconfig json output matches to mwcp fields found in report.metadata
     c2_domains = {val: output[val] for val in DOMAINS_LIST if val in output}
     if c2_domains:
         c2_ports = {val: output[val] for val in PORT_LIST if val in output}
@@ -379,50 +378,50 @@ def refine_data(output, keys_of_interest):
 
 
 def map_fields(data, mwcp_key):
-    global reporter
+    global report
     if not mwcp_key:
         return
     for key, val in data.items():
-        reporter.add_metadata(mwcp_key, val)
+        report.add_metadata(mwcp_key, val)
 
 
 def map_username_password_fields(data):
-    global reporter
+    global report
     for username, password in zip(USERNAME_LIST, PASSWORD_LIST):
         if username in data and password in data:
-            reporter.add_metadata(
+            report.add_metadata(
                 'credential', [data[username], data[password]])
         elif password in data:
-            reporter.add_metadata('password', data[password])
+            report.add_metadata('password', data[password])
         elif username in data:
-            reporter.add_metadata('username', data[username])
+            report.add_metadata('username', data[username])
 
     passwords = {val: data[val] for val in PASSWORD_ONLY_LIST if val in data}
     map_fields(passwords, 'password')
 
 
 def map_filepath_fields(scriptname, data):
-    global reporter
+    global report
     IGNORE_SCRIPT_LIST = ['Pandora', 'Punisher']
     for pname, fname in iteritems(FILEPATH_CONCATENATE_PAIR_LIST):
         if scriptname not in IGNORE_SCRIPT_LIST:
             if pname in data:
                 if fname in data:
-                    reporter.add_metadata(
+                    report.add_metadata(
                         "filepath", data[pname].rstrip("\\") + "\\" + data[fname])
                 else:
-                    reporter.add_metadata('directory', data[pname])
+                    report.add_metadata('directory', data[pname])
             elif fname in data:
-                reporter.add_metadata('filename', data[fname])
+                report.add_metadata('filename', data[fname])
         else:
             if pname in data:
-                reporter.add_metadata('directory', data[pname])
+                report.add_metadata('directory', data[pname])
             if fname in data:
-                reporter.add_metadata('filename', data[fname])
+                report.add_metadata('filename', data[fname])
 
 
 def map_ftp_fields(data):
-    global reporter
+    global report
     SPECIAL_HANDLING_PAIRS = {'FTP Address': 'FTP Port'}
     for host, port in iteritems(SPECIAL_HANDLING_PAIRS):
         ftpdirectory = ''
@@ -441,26 +440,26 @@ def map_ftp_fields(data):
         if ftpdirectory:
             if mwcpkey == 'c2_url':
                 ftpinfo += '/' + ftpdirectory
-                reporter.add_metadata(mwcpkey, ftpinfo)
+                report.add_metadata(mwcpkey, ftpinfo)
             elif mwcpkey:
-                reporter.add_metadata(mwcpkey, ftpinfo)
-                reporter.add_metadata('directory', ftpdirectory)
+                report.add_metadata(mwcpkey, ftpinfo)
+                report.add_metadata('directory', ftpdirectory)
             else:
-                reporter.add_metadata('directory', ftpdirectory)
+                report.add_metadata('directory', ftpdirectory)
         elif mwcpkey:
-            reporter.add_metadata(mwcpkey, ftpinfo)
+            report.add_metadata(mwcpkey, ftpinfo)
 
     for address, port in iteritems(FTP_FIELD_PAIRS):
         if address in data:
             if port in data:
-                reporter.add_metadata(
+                report.add_metadata(
                     "c2_url", "ftp://" + data[address] + "/" + data[port])
             else:
-                reporter.add_metadata("c2_url", "ftp://" + data[address])
+                report.add_metadata("c2_url", "ftp://" + data[address])
 
 
 def map_c2_domains(data):
-    global reporter
+    global report
     for domain_key in DOMAINS_LIST:
         if domain_key in data:
             """ Hack here to handle a LuxNet case where a registry path is stored
@@ -479,38 +478,38 @@ def map_c2_domains(data):
                     domain_list = [data[domain_key]]
                 for addport in domain_list:
                     if ":" in addport:
-                        reporter.add_metadata("address", f"{addport}")
+                        report.add_metadata("address", f"{addport}")
                     elif 'p1' in data or 'p2' in data:
                         if 'p1' in data:
-                            reporter.add_metadata("address", f"{data[domain_key]}:{data['p1']}")
+                            report.add_metadata("address", f"{data[domain_key]}:{data['p1']}")
                         if 'p2' in data:
-                            reporter.add_metadata("address", f"{data[domain_key]}:{data['p2']}")
+                            report.add_metadata("address", f"{data[domain_key]}:{data['p2']}")
                     elif 'Port' in data or 'Port1' in data or 'Port2' in data:
                         if 'Port' in data:
                             # CyberGate has a separator character in the field
                             # remove it here
                             data['Port'] = data['Port'].rstrip('|').strip('|')
                             for port in data['Port']:
-                                reporter.add_metadata("address", f"{addport}:{data['Port']}")
+                                report.add_metadata("address", f"{addport}:{data['Port']}")
                         if 'Port1' in data:
-                            reporter.add_metadata("address", f"{addport}:{data['Port1']}")
+                            report.add_metadata("address", f"{addport}:{data['Port1']}")
                         if 'Port2' in data:
-                            reporter.add_metadata("address", f"{addport}:{data['Port2']}")
+                            report.add_metadata("address", f"{addport}:{data['Port2']}")
                     elif domain_key == 'Domain' and ("Client Control Port" in data or "Client Transfer Port" in data):
                         if "Client Control Port" in data:
-                            reporter.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
+                            report.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
                         if "Client Transfer Port" in data:
-                            reporter.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
+                            report.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
                     # Handle Mirai Case
                     elif domain_key == 'C2' and isinstance(data[domain_key], list):
                         for domain in data[domain_key]:
-                            reporter.add_metadata('address', domain)
+                            report.add_metadata('address', domain)
                     else:
-                        reporter.add_metadata('address', addport)
+                        report.add_metadata('address', addport)
 
 
 def map_domainX_fields(data):
-    global reporter
+    global report
     SPECIAL_HANDLING_LIST = ['Domain1', 'Domain2']
     for suffix in range(1, 21):
         suffix = str(suffix)
@@ -519,43 +518,43 @@ def map_domainX_fields(data):
             if data[field] != ':0':
                 if ':' in data[field]:
                     address, port = data[field].split(':')
-                    reporter.add_metadata('address', f"{address}:{port}")
+                    report.add_metadata('address', f"{address}:{port}")
                 else:
                     if field in SPECIAL_HANDLING_LIST:
                         if "Port" in data:
-                            reporter.add_metadata('address', f"{data[field]}:{data['Port']}")
+                            report.add_metadata('address', f"{data[field]}:{data['Port']}")
                         elif "Port" + suffix in data:
                             # customization if this doesn't hold
-                            reporter.add_metadata('address', f"{data[field]}:{data['Port' + suffix]}")
+                            report.add_metadata('address', f"{data[field]}:{data['Port' + suffix]}")
                         else:
-                            reporter.add_metadata("address", data[field])
+                            report.add_metadata("address", data[field])
                     else:
-                        reporter.add_metadata('address', data[field])
+                        report.add_metadata('address', data[field])
 
 
 def map_mutex(data):
-    global reporter
+    global report
     SPECIAL_HANDLING = 'Mutex'
     for key in data:
         val = data[key]
         if key == SPECIAL_HANDLING and val in ['false', 'true']:
             continue
-        reporter.add_metadata('mutex', val)
+        report.add_metadata('mutex', val)
 
 
 def map_registry(data):
-    global reporter
+    global report
     SPECIAL_HANDLING = 'Domain'
     for key in data:
         val = data[key]
         if key == SPECIAL_HANDLING:
-            check_for_backslashes(key, 'registrypath', data, reporter)
+            check_for_backslashes(key, 'registrypath', data, report)
         else:
-            reporter.add_metadata('registrypath', val)
+            report.add_metadata('registrypath', val)
 
 
 def map_jar_fields(data):
-    global reporter
+    global report
     """This routine is for the unrecom family"""
     jarinfo = ''
     mwcpkey = ''
@@ -572,7 +571,7 @@ def map_jar_fields(data):
             jarinfo = data['jarname']
         if 'extensionname' in data:
             jarinfo += '.' + data['extensionname']
-    reporter.add_metadata(mwcpkey, jarinfo)
+    report.add_metadata(mwcpkey, jarinfo)
 
 
 def run_ratdecoders(file_path, passed_report):
@@ -593,7 +592,7 @@ def run_ratdecoders(file_path, passed_report):
     return {script_name: report.metadata} # TODO change report.metadata deprecated
 
 
-def run_mwcfg(file_path, reporter):
+def run_mwcfg(file_path, report):
     process = subprocess.run(['mwcfg', '--input', f'{file_path}', '-m', './modules'], capture_output=True)
     output = ast.literal_eval(process.stdout.decode())
     extracted = output[0]['configs']
@@ -601,12 +600,12 @@ def run_mwcfg(file_path, reporter):
         for k, v in extracted[0].items():
             if k == 'urls':
                 for url in v:
-                    reporter.add_metadata("url", url)
+                    report.add_metadata("url", url)
                 continue
             try:
-                reporter.add_metadata(k, v)
+                report.add_metadata(k, v)
             except KeyError:
-                reporter.add_metadata("other", {k: v})
+                report.add_metadata("other", {k: v})
 
 
 @click.command()

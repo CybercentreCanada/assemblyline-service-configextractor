@@ -80,7 +80,7 @@ class ConfigExtractor(ServiceBase):
         self.mwcp_report = cli.register()
         result = Result()
         # clear metadata from previous submision since ratdecoder run doesn't clear metadata
-        #self.mwcp_reporter._Reporter__reset()
+        self.mwcp_report._Runner__cleanup()
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, self.mwcp_report)
         if type(output) is str:
@@ -103,7 +103,7 @@ class ConfigExtractor(ServiceBase):
             newtags[key] = value
         # get matches for both, dedup then run
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
-        output_fields = cli.run(parsers, request.file_path, self.mwcp_reporter)
+        output_fields = cli.run(parsers, request.file_path, self.mwcp_report)
 
 
         for parser, field_dict in output_fields.items():
