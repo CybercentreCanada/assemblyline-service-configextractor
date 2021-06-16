@@ -313,7 +313,7 @@ class TestConfigExtractor:
         assert class_instance.file_parsers == {}
         assert class_instance.tag_parsers is None
         assert class_instance.parser_classification == []
-        assert class_instance.mwcp_reporter is None
+        assert class_instance.mwcp_report is None
 
     @staticmethod
     def test_start(class_instance, parsers):
@@ -436,7 +436,7 @@ def get_reporter():
     from cli import MWCP_PARSERS_DIR_PATH
     mwcp.register_entry_points()
     mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
-    reporter = mwcp.Reporter()
+    reporter = mwcp.Report()
     return reporter
 
 
@@ -618,12 +618,13 @@ class TestCLI:
     def test_run(f_path, parsers):
         # TODO: need way to simulate actual malware so that parsers get matched
         from cli import run
+        import mwcp
         correct_reporter = get_reporter()
         correct_outputs = {}
         correct_file_parsers = parsers[0]
         for parser in correct_file_parsers:
-            correct_reporter.run_parser(parser, file_path=f_path)
-            output = correct_reporter.get_output_text()
+            mwcp.run(parser, file_path=f_path)
+            output = correct_reporter.as_text()
             if correct_reporter.metadata:
                 correct_outputs[parser] = correct_reporter.metadata
 
@@ -714,7 +715,7 @@ class TestCLI:
         from cli import register
         correct_reporter = get_reporter()
         test_reporter = register()
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("data",

@@ -79,8 +79,6 @@ class ConfigExtractor(ServiceBase):
     def execute(self, request):
         self.mwcp_report = cli.register()
         result = Result()
-        # clear metadata from previous submision since ratdecoder run doesn't clear metadata
-        self.mwcp_report._Runner__cleanup()
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, self.mwcp_report)
         if type(output) is str:
