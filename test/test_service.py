@@ -165,10 +165,10 @@ def check_section_equality(this, that) -> bool:
 
 
 def check_reporter_equality(this, that) -> bool:
-    # Checks all mwcp.Reporter attributes except for managed_tempdir
-    reporter_equality = this.PORT_RE == that.PORT_RE and this.SHA1_RE == that.SHA1_RE and this.URL_RE == that.URL_RE \
-                        and this.errors == that.errors and this.fields == that.fields \
-                        and this.input_file == that.input_file and this.tempdir == that.tempdir
+    # Checks all mwcp.Report attributes except for managed_tempdir
+    reporter_equality = this.errors == that.errors and this.finalized == that.finalized \
+                        and this.input_file == that.input_file and this.metadata == that.metadata \
+                        and this.parser == that.parser
     if not reporter_equality:
         return reporter_equality
 
@@ -440,13 +440,13 @@ def get_reporter():
     return reporter
 
 
-def add_metadata(data, mwcp_key, correct_reporter=None):
-    if not correct_reporter:
-        correct_reporter = get_reporter()
-    for val in data.values():
-        if mwcp_key in correct_reporter.fields:
-            correct_reporter.add_metadata(mwcp_key, val)
-    return correct_reporter
+# def add_metadata(data, mwcp_key, correct_reporter=None):
+#     from mwcp import metadata
+#     if not correct_reporter:
+#         correct_reporter = get_reporter()
+#     for val in data.values():
+#         correct_reporter.add_metadata(mwcp_key, val)
+#     return correct_reporter
 
 
 def create_correct_parser_objs(tags=None):
@@ -624,7 +624,6 @@ class TestCLI:
         correct_file_parsers = parsers[0]
         for parser in correct_file_parsers:
             mwcp.run(parser, file_path=f_path)
-            output = correct_reporter.as_text()
             if correct_reporter.metadata:
                 correct_outputs[parser] = correct_reporter.metadata
 
@@ -732,16 +731,16 @@ class TestCLI:
         ta_key = "val"
         mwcp_key = "address"
         val = data[ta_key]
-        correct_reporter = get_reporter()
+        correct_report = get_reporter()
         IGNORE_FIELD_LIST = ['localhost', 'localhost*']
         if '\\' in val:
-            correct_reporter.add_metadata(mwcp_key, val)
+            correct_report.add_metadata(mwcp_key, val)
         elif '.' not in val and val not in IGNORE_FIELD_LIST:
-            correct_reporter.add_metadata(mwcp_key, val)
+            correct_report.add_metadata(mwcp_key, val)
 
-        test_reporter = get_reporter()
-        check_for_backslashes(ta_key, mwcp_key, data, test_reporter)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        test_report = get_reporter()
+        check_for_backslashes(ta_key, mwcp_key, data, test_report)
+        assert test_report.as_dict() == correct_report.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("output,scriptname,mwcp_key",
@@ -876,7 +875,7 @@ class TestCLI:
         correct_reporter = add_metadata(data, mwcp_key)
         test_reporter = register()
         map_fields(data, mwcp_key)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
 
     @staticmethod
