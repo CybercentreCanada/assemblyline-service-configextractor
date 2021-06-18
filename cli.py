@@ -8,7 +8,6 @@ import subprocess
 import yaml
 import yara
 from pathlib import Path
-from six import iteritems
 from typing import List, Dict
 from mwcp import metadata
 import wrapper_malconf as malconf
@@ -389,12 +388,11 @@ def map_username_password_fields(data):
     global report
     for username, password in zip(USERNAME_LIST, PASSWORD_LIST):
         if username in data and password in data:
-            report.add_metadata(
-                'credential', [data[username], data[password]])
+            report.add(metadata.Credential([data[username], data[password]]))
         elif password in data:
-            report.add_metadata('password', data[password])
+            report.add(metadata.Password(data[password]))
         elif username in data:
-            report.add_metadata('username', data[username])
+            report.add(metadata.Username(data[username]))
 
     passwords = {val: data[val] for val in PASSWORD_ONLY_LIST if val in data}
     map_fields(passwords, 'password')
@@ -403,27 +401,26 @@ def map_username_password_fields(data):
 def map_filepath_fields(scriptname, data):
     global report
     IGNORE_SCRIPT_LIST = ['Pandora', 'Punisher']
-    for pname, fname in iteritems(FILEPATH_CONCATENATE_PAIR_LIST):
+    for pname, fname in FILEPATH_CONCATENATE_PAIR_LIST.items():
         if scriptname not in IGNORE_SCRIPT_LIST:
             if pname in data:
                 if fname in data:
-                    report.add_metadata(
-                        "filepath", data[pname].rstrip("\\") + "\\" + data[fname])
+                    report.add(metadata.FilePath(data[pname].rstrip("\\") + "\\" + data[fname]))
                 else:
-                    report.add_metadata('directory', data[pname])
+                    report.add(metadata.Directory(data[pname]))
             elif fname in data:
-                report.add_metadata('filename', data[fname])
+                report.add(metadata.FileName(data[fname]))
         else:
             if pname in data:
-                report.add_metadata('directory', data[pname])
+                report.add(metadata.Directory(data[pname]))
             if fname in data:
-                report.add_metadata('filename', data[fname])
+                report.add(metadata.FileName(data[fname]))
 
 
 def map_ftp_fields(data):
     global report
     SPECIAL_HANDLING_PAIRS = {'FTP Address': 'FTP Port'}
-    for host, port in iteritems(SPECIAL_HANDLING_PAIRS):
+    for host, port in SPECIAL_HANDLING_PAIRS.items():
         ftpdirectory = ''
         if 'FTP Directory' in data:
             ftpdirectory = data['FTP Directory']
@@ -440,22 +437,20 @@ def map_ftp_fields(data):
         if ftpdirectory:
             if mwcpkey == 'c2_url':
                 ftpinfo += '/' + ftpdirectory
-                report.add_metadata(mwcpkey, ftpinfo)
+                report.add(metadata.C2URL(ftpinfo))
             elif mwcpkey:
-                report.add_metadata(mwcpkey, ftpinfo)
-                report.add_metadata('directory', ftpdirectory)
+                report.add(metadata.Directory(ftpdirectory))
             else:
-                report.add_metadata('directory', ftpdirectory)
+                report.add(metadata.Directory(ftpdirectory))
         elif mwcpkey:
             report.add_metadata(mwcpkey, ftpinfo)
 
-    for address, port in iteritems(FTP_FIELD_PAIRS):
+    for address, port in FTP_FIELD_PAIRS.items():
         if address in data:
             if port in data:
-                report.add_metadata(
-                    "c2_url", "ftp://" + data[address] + "/" + data[port])
+                report.add(metadata.C2URL("ftp://" + data[address] + "/" + data[port]))
             else:
-                report.add_metadata("c2_url", "ftp://" + data[address])
+                report.add(metadata.C2URL("ftp://" + data[address]))
 
 
 def map_c2_domains(data):
@@ -478,34 +473,34 @@ def map_c2_domains(data):
                     domain_list = [data[domain_key]]
                 for addport in domain_list:
                     if ":" in addport:
-                        report.add_metadata("address", f"{addport}")
+                        report.add(metadata.Address(f"{addport}"))
                     elif 'p1' in data or 'p2' in data:
                         if 'p1' in data:
-                            report.add_metadata("address", f"{data[domain_key]}:{data['p1']}")
+                            report.add(metadata.Address(f"{data[domain_key]}:{data['p1']}"))
                         if 'p2' in data:
-                            report.add_metadata("address", f"{data[domain_key]}:{data['p2']}")
+                            report.add(metadata.Address(f"{data[domain_key]}:{data['p2']}"))
                     elif 'Port' in data or 'Port1' in data or 'Port2' in data:
                         if 'Port' in data:
                             # CyberGate has a separator character in the field
                             # remove it here
                             data['Port'] = data['Port'].rstrip('|').strip('|')
                             for port in data['Port']:
-                                report.add_metadata("address", f"{addport}:{data['Port']}")
+                                report.add(metadata.Address(f"{addport}:{data['Port']}"))
                         if 'Port1' in data:
-                            report.add_metadata("address", f"{addport}:{data['Port1']}")
+                            report.add(metadata.Address(f"{addport}:{data['Port1']}"))
                         if 'Port2' in data:
-                            report.add_metadata("address", f"{addport}:{data['Port2']}")
+                            report.add(metadata.Address(f"{addport}:{data['Port2']}"))
                     elif domain_key == 'Domain' and ("Client Control Port" in data or "Client Transfer Port" in data):
                         if "Client Control Port" in data:
-                            report.add_metadata("address", f"{data['Domain']}:{data['Client Control Port']}")
+                            report.add(metadata.Address(f"{data['Domain']}:{data['Client Control Port']}"))
                         if "Client Transfer Port" in data:
-                            report.add_metadata("address", f"{data['Domain']}:{data['Client Transfer Port']}")
+                            report.add(metadata.Address(f"{data['Domain']}:{data['Client Transfer Port']}"))
                     # Handle Mirai Case
                     elif domain_key == 'C2' and isinstance(data[domain_key], list):
                         for domain in data[domain_key]:
-                            report.add_metadata('address', domain)
+                            report.add(metadata.Address(domain))
                     else:
-                        report.add_metadata('address', addport)
+                        report.add(metadata.Address(addport))
 
 
 def map_domainX_fields(data):
@@ -518,18 +513,18 @@ def map_domainX_fields(data):
             if data[field] != ':0':
                 if ':' in data[field]:
                     address, port = data[field].split(':')
-                    report.add_metadata('address', f"{address}:{port}")
+                    report.add(metadata.Address(f"{address}:{port}"))
                 else:
                     if field in SPECIAL_HANDLING_LIST:
                         if "Port" in data:
-                            report.add_metadata('address', f"{data[field]}:{data['Port']}")
+                            report.add(metadata.Address(f"{data[field]}:{data['Port']}"))
                         elif "Port" + suffix in data:
                             # customization if this doesn't hold
-                            report.add_metadata('address', f"{data[field]}:{data['Port' + suffix]}")
+                            report.add(metadata.Address(f"{data[field]}:{data['Port' + suffix]}"))
                         else:
-                            report.add_metadata("address", data[field])
+                            report.add(metadata.Address(data[field]))
                     else:
-                        report.add_metadata('address', data[field])
+                        report.add(metadata.Address(data[field]))
 
 
 def map_mutex(data):
@@ -539,7 +534,7 @@ def map_mutex(data):
         val = data[key]
         if key == SPECIAL_HANDLING and val in ['false', 'true']:
             continue
-        report.add_metadata('mutex', val)
+        report.add(metadata.Mutex(val))
 
 
 def map_registry(data):
@@ -550,7 +545,7 @@ def map_registry(data):
         if key == SPECIAL_HANDLING:
             check_for_backslashes(key, 'registrypath', data, report)
         else:
-            report.add_metadata('registrypath', val)
+            report.add(metadata.Registry(val))
 
 
 def map_jar_fields(data):
@@ -588,7 +583,7 @@ def run_ratdecoders(file_path, passed_report):
     for key in output:
         if key not in SUPER_LIST:
             others[key] = output[key]
-    report.add(mwcp.metadata.Other("other", others))
+    report.add(metadata.Other("other", others))
     return {script_name: report.metadata} # TODO change report.metadata deprecated
 
 
@@ -600,7 +595,7 @@ def run_mwcfg(file_path, report):
         for k, v in extracted[0].items():
             if k == 'urls':
                 for url in v:
-                    report.add_metadata("url", url)
+                    report.add(metadata.URL(url))
                 continue
             try:
                 report.add_metadata(k, v)

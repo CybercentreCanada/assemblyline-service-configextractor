@@ -930,17 +930,16 @@ class TestCLI:
             if scriptname not in IGNORE_SCRIPT_LIST:
                 if pname in data:
                     if fname in data:
-                        correct_report.add_metadata(
-                            "filepath", data[pname].rstrip("\\") + "\\" + data[fname])
+                        correct_report.add(metadata.FilePath(data[pname].rstrip("\\") + "\\" + data[fname]))
                     else:
-                        correct_report.add_metadata('directory', data[pname])
+                        correct_report.add(metadata.Directory(data[pname]))
                 elif fname in data:
-                    correct_report.add_metadata('filename', data[fname])
+                    correct_report.add(metadata.FileName(data[fname]))
             else:
                 if pname in data:
-                    correct_report.add_metadata('directory', data[pname])
+                    correct_report.add(metadata.Directory(data[pname]))
                 if fname in data:
-                    correct_report.add_metadata('filename', data[fname])
+                    correct_report.add(metadata.FileName(data[fname]))
 
         test_report = register()
         map_filepath_fields(scriptname, data)
@@ -992,22 +991,20 @@ class TestCLI:
             if ftpdirectory:
                 if mwcpkey == 'c2_url':
                     ftpinfo += '/' + ftpdirectory
-                    correct_report.add_metadata(mwcpkey, ftpinfo)
+                    correct_report.add(metadata.C2URL(ftpinfo))
                 elif mwcpkey:
-                    correct_report.add_metadata(mwcpkey, ftpinfo)
-                    correct_report.add_metadata('directory', ftpdirectory)
+                    correct_report.add(metadata.Directory(ftpdirectory))
                 else:
-                    correct_report.add_metadata('directory', ftpdirectory)
+                    correct_report.add(metadata.Directory(ftpdirectory))
             elif mwcpkey:
                 correct_report.add_metadata(mwcpkey, ftpinfo)
 
         for address, port in FTP_FIELD_PAIRS.items():
             if address in data:
                 if port in data:
-                    correct_report.add_metadata(
-                        "c2_url", "ftp://" + data[address] + "/" + data[port])
+                    correct_report.add(metadata.C2URL("ftp://" + data[address] + "/" + data[port]))
                 else:
-                    correct_report.add_metadata("c2_url", "ftp://" + data[address])
+                    correct_report.add(metadata.C2URL("ftp://" + data[address]))
 
         test_report = register()
         map_ftp_fields(data)
@@ -1064,37 +1061,35 @@ class TestCLI:
                         domain_list = [data[domain_key]]
                     for addport in domain_list:
                         if ":" in addport:
-                            correct_report.add_metadata("address", f"{addport}")
+                            correct_report.add(metadata.Address(f"{addport}"))
                         elif 'p1' in data or 'p2' in data:
                             if 'p1' in data:
-                                correct_report.add_metadata("address", f"{data[domain_key]}:{data['p1']}")
+                                correct_report.add(metadata.Address(f"{data[domain_key]}:{data['p1']}"))
                             if 'p2' in data:
-                                correct_report.add_metadata("address", f"{data[domain_key]}:{data['p2']}")
+                                correct_report.add(metadata.Address(f"{data[domain_key]}:{data['p2']}"))
                         elif 'Port' in data or 'Port1' in data or 'Port2' in data:
                             if 'Port' in data:
                                 # CyberGate has a separator character in the field
                                 # remove it here
                                 data['Port'] = data['Port'].rstrip('|').strip('|')
                                 for port in data['Port']:
-                                    correct_report.add_metadata("address", f"{addport}:{data['Port']}")
+                                    correct_report.add(metadata.Address(f"{addport}:{data['Port']}"))
                             if 'Port1' in data:
-                                correct_report.add_metadata("address", f"{addport}:{data['Port1']}")
+                                correct_report.add(metadata.Address(f"{addport}:{data['Port1']}"))
                             if 'Port2' in data:
-                                correct_report.add_metadata("address", f"{addport}:{data['Port2']}")
+                                correct_report.add(metadata.Address(f"{addport}:{data['Port2']}"))
                         elif domain_key == 'Domain' and (
                                 "Client Control Port" in data or "Client Transfer Port" in data):
                             if "Client Control Port" in data:
-                                correct_report.add_metadata("address",
-                                                              f"{data['Domain']}:{data['Client Control Port']}")
+                                correct_report.add(metadata.Address(f"{data['Domain']}:{data['Client Control Port']}"))
                             if "Client Transfer Port" in data:
-                                correct_report.add_metadata("address",
-                                                              f"{data['Domain']}:{data['Client Transfer Port']}")
+                                correct_report.add(metadata.Address(f"{data['Domain']}:{data['Client Transfer Port']}"))
                         # Handle Mirai Case
                         elif domain_key == 'C2' and isinstance(data[domain_key], list):
                             for domain in data[domain_key]:
-                                correct_report.add_metadata('address', domain)
+                                correct_report.add(metadata.Address(domain))
                         else:
-                            correct_report.add_metadata('address', addport)
+                            correct_report.add(metadata.Address(addport))
         test_report = register()
         map_c2_domains(data)
         assert test_report.as_dict() == correct_report.as_dict()
@@ -1134,18 +1129,18 @@ class TestCLI:
                 if data[field] != ':0':
                     if ':' in data[field]:
                         address, port = data[field].split(':')
-                        correct_report.add_metadata('address', f"{address}:{port}")
+                        correct_report.add(metadata.Address(f"{address}:{port}"))
                     else:
                         if field in SPECIAL_HANDLING_LIST:
                             if "Port" in data:
-                                correct_report.add_metadata('address', f"{data[field]}:{data['Port']}")
+                                correct_report.add(metadata.Address(f"{data[field]}:{data['Port']}"))
                             elif "Port" + suffix in data:
                                 # customization if this doesn't hold
-                                correct_report.add_metadata('address', f"{data[field]}:{data['Port' + suffix]}")
+                                correct_report.add(metadata.Address(f"{data[field]}:{data['Port' + suffix]}"))
                             else:
-                                correct_report.add_metadata("address", data[field])
+                                correct_report.add(metadata.Address(data[field]))
                         else:
-                            correct_report.add_metadata('address', data[field])
+                            correct_report.add(metadata.Address(data[field]))
 
         test_report = register()
         map_domainX_fields(data)
@@ -1180,10 +1175,10 @@ class TestCLI:
         for mutex_key in MUTEX_LIST:
             if mutex_key in data:
                 if mutex_key != SPECIAL_HANDLING:
-                    correct_report.add_metadata('mutex', data[mutex_key])
+                    correct_report.add(metadata.Mutex(data[mutex_key]))
                 else:
                     if data[mutex_key] != 'false' and data[mutex_key] != 'true':
-                        correct_report.add_metadata('mutex', data[mutex_key])
+                        correct_report.add(metadata.Mutex(data[mutex_key]))
 
         test_report = register()
         map_mutex(data)
@@ -1246,7 +1241,7 @@ class TestCLI:
                 if ta_key == SPECIAL_HANDLING:
                     check_for_backslashes(ta_key, 'registrypath', data, correct_report)
                 else:
-                    correct_report.add_metadata('registrypath', data[ta_key])
+                    correct_report.add(metadata.Registry(data[ta_key]))
 
         test_report = register()
         map_registry(data)
