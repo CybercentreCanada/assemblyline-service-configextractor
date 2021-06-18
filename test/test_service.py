@@ -167,7 +167,8 @@ def check_section_equality(this, that) -> bool:
 def check_reporter_equality(this, that) -> bool:
     # Checks all mwcp.Report attributes except for managed_tempdir
     reporter_equality = this.errors == that.errors and this.finalized == that.finalized \
-                        and this.input_file == that.input_file and this.metadata == that.metadata \
+                        and this.input_file == that.input_file \
+                        and {x: sorted(this.metadata[x]) for x in this.metadata.keys()} == that.metadata \
                         and this.parser == that.parser
     if not reporter_equality:
         return reporter_equality
@@ -440,13 +441,13 @@ def get_reporter():
     return reporter
 
 
-# def add_metadata(data, mwcp_key, correct_reporter=None):
-#     from mwcp import metadata
-#     if not correct_reporter:
-#         correct_reporter = get_reporter()
-#     for val in data.values():
-#         correct_reporter.add_metadata(mwcp_key, val)
-#     return correct_reporter
+def add_metadata(data, mwcp_key, correct_reporter=None):
+    from mwcp import metadata
+    if not correct_reporter:
+        correct_reporter = get_reporter()
+    for val in data.values():
+        correct_reporter.add_metadata(mwcp_key, val)
+    return correct_reporter
 
 
 def create_correct_parser_objs(tags=None):
@@ -863,9 +864,8 @@ class TestCLI:
 
 
     @staticmethod
-    @pytest.mark.parametrize("data,mwcp_key",
+    @pytest.mark.parametrize("data, mwcp_key",
                              [
-                                 ({"address": "b"}, None),
                                  ({}, None),
                                  ({"address": "b"}, "address")
                              ]
@@ -906,7 +906,7 @@ class TestCLI:
 
         test_reporter = register()
         map_username_password_fields(data)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("scriptname,data",
@@ -944,7 +944,7 @@ class TestCLI:
 
         test_reporter = register()
         map_filepath_fields(scriptname, data)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("data",
@@ -953,14 +953,12 @@ class TestCLI:
                                  {
                                      "FTP Directory": "a",
                                      "FTP Address": "b",
-                                     "FTP Port": "c",
                                      "FTP Server": "d",
                                      "FTPHost": "e",
                                      "FTPHOST": "f"
                                  },
                                  {
                                      "FTP Directory": "a",
-                                     "FTP Port": "c",
                                      "FTP Server": "d",
                                      "FTPHost": "e",
                                      "FTPHOST": "f"
@@ -1013,7 +1011,7 @@ class TestCLI:
 
         test_reporter = register()
         map_ftp_fields(data)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
 
     @staticmethod
@@ -1099,7 +1097,7 @@ class TestCLI:
                             correct_reporter.add_metadata('address', addport)
         test_reporter = register()
         map_c2_domains(data)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("data",
@@ -1151,7 +1149,7 @@ class TestCLI:
 
         test_reporter = register()
         map_domainX_fields(data)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("data",
@@ -1189,7 +1187,7 @@ class TestCLI:
 
         test_reporter = register()
         map_mutex(data)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
 
     @staticmethod
@@ -1252,7 +1250,7 @@ class TestCLI:
 
         test_reporter = register()
         map_registry(data)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
 
     @staticmethod
@@ -1292,7 +1290,7 @@ class TestCLI:
 
         test_reporter = register()
         map_jar_fields(data)
-        assert test_reporter.__dict__ == correct_reporter.__dict__
+        assert test_reporter.as_dict() == correct_reporter.as_dict()
 
 
     @staticmethod
