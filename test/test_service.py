@@ -3,6 +3,7 @@ import json
 import pytest
 import shutil
 
+from mwcp import metadata
 # Getting absolute paths, names and regexes
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(TEST_DIR)
@@ -432,7 +433,7 @@ def get_validate_parser_inputs():
     return possible_inputs_for_validate_parser
 
 
-def get_reporter():
+def get_report():
     import mwcp
     from cli import MWCP_PARSERS_DIR_PATH
     mwcp.register_entry_points()
@@ -441,13 +442,12 @@ def get_reporter():
     return reporter
 
 
-def add_metadata(data, mwcp_key, correct_reporter=None):
-    from mwcp import metadata
-    if not correct_reporter:
-        correct_reporter = get_reporter()
+def add_metadata(data, mwcp_key, correct_report=None):
+    if not correct_report:
+        correct_report = get_report()
     for val in data.values():
-        correct_reporter.add_metadata(mwcp_key, val)
-    return correct_reporter
+        correct_report.add_metadata(mwcp_key, val)
+    return correct_report
 
 
 def create_correct_parser_objs(tags=None):
@@ -620,16 +620,16 @@ class TestCLI:
         # TODO: need way to simulate actual malware so that parsers get matched
         from cli import run
         import mwcp
-        correct_reporter = get_reporter()
+        correct_report = get_report()
         correct_outputs = {}
         correct_file_parsers = parsers[0]
         for parser in correct_file_parsers:
             mwcp.run(parser, file_path=f_path)
-            if correct_reporter.metadata:
-                correct_outputs[parser] = correct_reporter.metadata
+            if correct_report.metadata:
+                correct_outputs[parser] = correct_report.metadata
 
-        test_reporter = get_reporter()
-        test_outputs = run(correct_file_parsers, f_path, test_reporter)
+        test_report = get_report()
+        test_outputs = run(correct_file_parsers, f_path, test_report)
         assert test_outputs == correct_outputs
 
     @staticmethod
@@ -713,9 +713,9 @@ class TestCLI:
     @staticmethod
     def test_register():
         from cli import register
-        correct_reporter = get_reporter()
-        test_reporter = register()
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        correct_report = get_report()
+        test_report = register()
+        assert test_report.as_dict() == correct_report.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("data",
@@ -732,14 +732,14 @@ class TestCLI:
         ta_key = "val"
         mwcp_key = "address"
         val = data[ta_key]
-        correct_report = get_reporter()
+        correct_report = get_report()
         IGNORE_FIELD_LIST = ['localhost', 'localhost*']
         if '\\' in val:
             correct_report.add_metadata(mwcp_key, val)
         elif '.' not in val and val not in IGNORE_FIELD_LIST:
             correct_report.add_metadata(mwcp_key, val)
 
-        test_report = get_reporter()
+        test_report = get_report()
         check_for_backslashes(ta_key, mwcp_key, data, test_report)
         assert test_report.as_dict() == correct_report.as_dict()
 
@@ -843,10 +843,10 @@ class TestCLI:
                              )
     def test_ta_mapping(output, scriptname, mwcp_key):
         from cli import ta_mapping, register
-        correct_reporter = add_metadata(output, mwcp_key)
-        test_reporter = register()
+        correct_report = add_metadata(output, mwcp_key)
+        test_report = register()
         ta_mapping(output, scriptname)
-        assert check_reporter_equality(test_reporter, correct_reporter)
+        assert check_reporter_equality(test_report, correct_report)
 
     @staticmethod
     @pytest.mark.parametrize("output,keys_of_interest",
@@ -872,10 +872,10 @@ class TestCLI:
                              )
     def test_map_fields(data, mwcp_key):
         from cli import map_fields, register
-        correct_reporter = add_metadata(data, mwcp_key)
-        test_reporter = register()
+        correct_report = add_metadata(data, mwcp_key)
+        test_report = register()
         map_fields(data, mwcp_key)
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        assert test_report.as_dict() == correct_report.as_dict()
 
 
     @staticmethod
@@ -893,20 +893,20 @@ class TestCLI:
                              )
     def test_map_username_password_fields(data):
         from cli import map_username_password_fields, USERNAME_LIST, PASSWORD_LIST, PASSWORD_ONLY_LIST, register
-        correct_reporter = get_reporter()
+        correct_report = get_report()
         for username, password in zip(USERNAME_LIST, PASSWORD_LIST):
             if username in data and password in data:
-                correct_reporter.add_metadata('credential', [data[username], data[password]])
+                correct_report.add(metadata.Credential([data[username], data[password]]))
             elif password in data:
-                correct_reporter.add_metadata('password', data[password])
+                correct_report.add(metadata.Password(data[password]))
             elif username in data:
-                correct_reporter.add_metadata('username', data[username])
+                correct_report.add(metadata.Username(data[username]))
         only_password_data = {val: data[val] for val in PASSWORD_ONLY_LIST if val in data}
-        correct_reporter = add_metadata(only_password_data, "password", correct_reporter)
+        correct_report = add_metadata(only_password_data, "password", correct_report)
 
-        test_reporter = register()
+        test_report = register()
         map_username_password_fields(data)
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        assert test_report.as_dict() == correct_report.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("scriptname,data",
@@ -925,26 +925,26 @@ class TestCLI:
         from cli import map_filepath_fields, FILEPATH_CONCATENATE_PAIR_LIST, register
         IGNORE_SCRIPT_LIST = ['Pandora', 'Punisher']
 
-        correct_reporter = get_reporter()
+        correct_report = get_report()
         for pname, fname in FILEPATH_CONCATENATE_PAIR_LIST.items():
             if scriptname not in IGNORE_SCRIPT_LIST:
                 if pname in data:
                     if fname in data:
-                        correct_reporter.add_metadata(
+                        correct_report.add_metadata(
                             "filepath", data[pname].rstrip("\\") + "\\" + data[fname])
                     else:
-                        correct_reporter.add_metadata('directory', data[pname])
+                        correct_report.add_metadata('directory', data[pname])
                 elif fname in data:
-                    correct_reporter.add_metadata('filename', data[fname])
+                    correct_report.add_metadata('filename', data[fname])
             else:
                 if pname in data:
-                    correct_reporter.add_metadata('directory', data[pname])
+                    correct_report.add_metadata('directory', data[pname])
                 if fname in data:
-                    correct_reporter.add_metadata('filename', data[fname])
+                    correct_report.add_metadata('filename', data[fname])
 
-        test_reporter = register()
+        test_report = register()
         map_filepath_fields(scriptname, data)
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        assert test_report.as_dict() == correct_report.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("data",
@@ -973,7 +973,7 @@ class TestCLI:
                              )
     def test_map_ftp_fields(data):
         from cli import map_ftp_fields, FTP_FIELD_PAIRS, register
-        correct_reporter = get_reporter()
+        correct_report = get_report()
         SPECIAL_HANDLING_PAIRS = {'FTP Address': 'FTP Port'}
         for host, port in SPECIAL_HANDLING_PAIRS.items():
             ftpdirectory = ''
@@ -992,26 +992,26 @@ class TestCLI:
             if ftpdirectory:
                 if mwcpkey == 'c2_url':
                     ftpinfo += '/' + ftpdirectory
-                    correct_reporter.add_metadata(mwcpkey, ftpinfo)
+                    correct_report.add_metadata(mwcpkey, ftpinfo)
                 elif mwcpkey:
-                    correct_reporter.add_metadata(mwcpkey, ftpinfo)
-                    correct_reporter.add_metadata('directory', ftpdirectory)
+                    correct_report.add_metadata(mwcpkey, ftpinfo)
+                    correct_report.add_metadata('directory', ftpdirectory)
                 else:
-                    correct_reporter.add_metadata('directory', ftpdirectory)
+                    correct_report.add_metadata('directory', ftpdirectory)
             elif mwcpkey:
-                correct_reporter.add_metadata(mwcpkey, ftpinfo)
+                correct_report.add_metadata(mwcpkey, ftpinfo)
 
         for address, port in FTP_FIELD_PAIRS.items():
             if address in data:
                 if port in data:
-                    correct_reporter.add_metadata(
+                    correct_report.add_metadata(
                         "c2_url", "ftp://" + data[address] + "/" + data[port])
                 else:
-                    correct_reporter.add_metadata("c2_url", "ftp://" + data[address])
+                    correct_report.add_metadata("c2_url", "ftp://" + data[address])
 
-        test_reporter = register()
+        test_report = register()
         map_ftp_fields(data)
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        assert test_report.as_dict() == correct_report.as_dict()
 
 
     @staticmethod
@@ -1052,7 +1052,7 @@ class TestCLI:
                              )
     def test_map_c2_domains(data):
         from cli import map_c2_domains, DOMAINS_LIST, register
-        correct_reporter = get_reporter()
+        correct_report = get_report()
         for domain_key in DOMAINS_LIST:
             if domain_key in data:
                 if data[domain_key].count('\\') < 2:
@@ -1064,40 +1064,40 @@ class TestCLI:
                         domain_list = [data[domain_key]]
                     for addport in domain_list:
                         if ":" in addport:
-                            correct_reporter.add_metadata("address", f"{addport}")
+                            correct_report.add_metadata("address", f"{addport}")
                         elif 'p1' in data or 'p2' in data:
                             if 'p1' in data:
-                                correct_reporter.add_metadata("address", f"{data[domain_key]}:{data['p1']}")
+                                correct_report.add_metadata("address", f"{data[domain_key]}:{data['p1']}")
                             if 'p2' in data:
-                                correct_reporter.add_metadata("address", f"{data[domain_key]}:{data['p2']}")
+                                correct_report.add_metadata("address", f"{data[domain_key]}:{data['p2']}")
                         elif 'Port' in data or 'Port1' in data or 'Port2' in data:
                             if 'Port' in data:
                                 # CyberGate has a separator character in the field
                                 # remove it here
                                 data['Port'] = data['Port'].rstrip('|').strip('|')
                                 for port in data['Port']:
-                                    correct_reporter.add_metadata("address", f"{addport}:{data['Port']}")
+                                    correct_report.add_metadata("address", f"{addport}:{data['Port']}")
                             if 'Port1' in data:
-                                correct_reporter.add_metadata("address", f"{addport}:{data['Port1']}")
+                                correct_report.add_metadata("address", f"{addport}:{data['Port1']}")
                             if 'Port2' in data:
-                                correct_reporter.add_metadata("address", f"{addport}:{data['Port2']}")
+                                correct_report.add_metadata("address", f"{addport}:{data['Port2']}")
                         elif domain_key == 'Domain' and (
                                 "Client Control Port" in data or "Client Transfer Port" in data):
                             if "Client Control Port" in data:
-                                correct_reporter.add_metadata("address",
+                                correct_report.add_metadata("address",
                                                               f"{data['Domain']}:{data['Client Control Port']}")
                             if "Client Transfer Port" in data:
-                                correct_reporter.add_metadata("address",
+                                correct_report.add_metadata("address",
                                                               f"{data['Domain']}:{data['Client Transfer Port']}")
                         # Handle Mirai Case
                         elif domain_key == 'C2' and isinstance(data[domain_key], list):
                             for domain in data[domain_key]:
-                                correct_reporter.add_metadata('address', domain)
+                                correct_report.add_metadata('address', domain)
                         else:
-                            correct_reporter.add_metadata('address', addport)
-        test_reporter = register()
+                            correct_report.add_metadata('address', addport)
+        test_report = register()
         map_c2_domains(data)
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        assert test_report.as_dict() == correct_report.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("data",
@@ -1125,7 +1125,7 @@ class TestCLI:
                              )
     def test_map_domainX_fields(data):
         from cli import map_domainX_fields, register
-        correct_reporter = get_reporter()
+        correct_report = get_report()
         SPECIAL_HANDLING_LIST = ['Domain1', 'Domain2']
         for suffix in range(1, 21):
             suffix = str(suffix)
@@ -1134,22 +1134,22 @@ class TestCLI:
                 if data[field] != ':0':
                     if ':' in data[field]:
                         address, port = data[field].split(':')
-                        correct_reporter.add_metadata('address', f"{address}:{port}")
+                        correct_report.add_metadata('address', f"{address}:{port}")
                     else:
                         if field in SPECIAL_HANDLING_LIST:
                             if "Port" in data:
-                                correct_reporter.add_metadata('address', f"{data[field]}:{data['Port']}")
+                                correct_report.add_metadata('address', f"{data[field]}:{data['Port']}")
                             elif "Port" + suffix in data:
                                 # customization if this doesn't hold
-                                correct_reporter.add_metadata('address', f"{data[field]}:{data['Port' + suffix]}")
+                                correct_report.add_metadata('address', f"{data[field]}:{data['Port' + suffix]}")
                             else:
-                                correct_reporter.add_metadata("address", data[field])
+                                correct_report.add_metadata("address", data[field])
                         else:
-                            correct_reporter.add_metadata('address', data[field])
+                            correct_report.add_metadata('address', data[field])
 
-        test_reporter = register()
+        test_report = register()
         map_domainX_fields(data)
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        assert test_report.as_dict() == correct_report.as_dict()
 
     @staticmethod
     @pytest.mark.parametrize("data",
@@ -1174,20 +1174,20 @@ class TestCLI:
                              )
     def test_map_mutex(data):
         from cli import map_mutex, MUTEX_LIST, register
-        correct_reporter = get_reporter()
+        correct_report = get_report()
 
         SPECIAL_HANDLING = 'Mutex'
         for mutex_key in MUTEX_LIST:
             if mutex_key in data:
                 if mutex_key != SPECIAL_HANDLING:
-                    correct_reporter.add_metadata('mutex', data[mutex_key])
+                    correct_report.add_metadata('mutex', data[mutex_key])
                 else:
                     if data[mutex_key] != 'false' and data[mutex_key] != 'true':
-                        correct_reporter.add_metadata('mutex', data[mutex_key])
+                        correct_report.add_metadata('mutex', data[mutex_key])
 
-        test_reporter = register()
+        test_report = register()
         map_mutex(data)
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        assert test_report.as_dict() == correct_report.as_dict()
 
 
     @staticmethod
@@ -1238,19 +1238,19 @@ class TestCLI:
                              )
     def test_map_registry(data):
         from cli import map_registry, check_for_backslashes, REGISTRYPATH_LIST, register
-        correct_reporter = get_reporter()
+        correct_report = get_report()
 
         SPECIAL_HANDLING = 'Domain'
         for ta_key in REGISTRYPATH_LIST:
             if ta_key in data:
                 if ta_key == SPECIAL_HANDLING:
-                    check_for_backslashes(ta_key, 'registrypath', data, correct_reporter)
+                    check_for_backslashes(ta_key, 'registrypath', data, correct_report)
                 else:
-                    correct_reporter.add_metadata('registrypath', data[ta_key])
+                    correct_report.add_metadata('registrypath', data[ta_key])
 
-        test_reporter = register()
+        test_report = register()
         map_registry(data)
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        assert test_report.as_dict() == correct_report.as_dict()
 
 
     @staticmethod
@@ -1270,7 +1270,7 @@ class TestCLI:
                              )
     def test_map_jar_fields(data):
         from cli import map_jar_fields, register
-        correct_reporter = get_reporter()
+        correct_report = get_report()
         jarinfo = ''
         mwcpkey = ''
         if 'jarfoldername' in data:
@@ -1286,11 +1286,11 @@ class TestCLI:
                 jarinfo = data['jarname']
             if 'extensionname' in data:
                 jarinfo += '.' + data['extensionname']
-        correct_reporter.add_metadata(mwcpkey, jarinfo)
+        correct_report.add_metadata(mwcpkey, jarinfo)
 
-        test_reporter = register()
+        test_report = register()
         map_jar_fields(data)
-        assert test_reporter.as_dict() == correct_reporter.as_dict()
+        assert test_report.as_dict() == correct_report.as_dict()
 
 
     @staticmethod
@@ -1299,12 +1299,12 @@ class TestCLI:
                              )
     # def test_run_ratdecoders(file_path):
     #     from cli import run_ratdecoders
-    #     # correct_reporter = get_reporter()
+    #     # correct_report = get_report()
     #     no_result = "[!] No RATDecoder or File is Packed"
     #     correct_result = {'Mirai': {'other': {'Comment': 'File could not be decrypted '}}}
     #
-    #     test_reporter = get_reporter()
-    #     test_result = run_ratdecoders(file_path, test_reporter)
+    #     test_report = get_report()
+    #     test_result = run_ratdecoders(file_path, test_report)
     #     if file_path.endswith('c805d89c6d26e6080994257d549fd8fec2a894dd15310053b0b8078064a5754b'):
     #         assert no_result == test_result
     #     elif file_path.endswith('35a6da3379b6e543b7f8eb45f27f3fd227c03c2620c4c72d8630583d7da82bba'):
