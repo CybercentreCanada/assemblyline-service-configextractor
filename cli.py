@@ -583,7 +583,7 @@ def run_ratdecoders(file_path, passed_report):
     for key in output:
         if key not in SUPER_LIST:
             others[key] = output[key]
-    report.add(metadata.Other("other", others))
+    report.add(metadata.Other(others))
     return {script_name: report.metadata} # TODO change report.metadata deprecated
 
 
