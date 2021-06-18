@@ -578,12 +578,10 @@ def run_ratdecoders(file_path, passed_report):
     if type(output) is str:
         return output
     ta_mapping(output, script_name)
-    others = {}
 
     for key in output:
         if key not in SUPER_LIST:
-            others[key] = output[key]
-    report.add(metadata.Other(others))
+            report.add(metadata.Other(key, output[key]))
     return {script_name: report.metadata} # TODO change report.metadata deprecated
 
 
