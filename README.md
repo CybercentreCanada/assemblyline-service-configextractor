@@ -124,7 +124,16 @@ Emotet:
 
 ```
 ## Running in CLI mode
-ConfigExtractor can also be used in cli mode outside of Assemblyline. Ensure that all dependencies are met in requirements.txt and yara and yara-python is installed. run command 'python3 cli.py file\_path' where file\_path is name of file to analyze.
+ConfigExtractor can also be used in cli mode outside of Assemblyline. Ensure that all dependencies are met in requirements.txt and yara and yara-python is installed. Run this command to install some modules.
+
+'git clone https://github.com/c3rb3ru5d3d53c/mwcfg-modules.git modules/'
+
+Run this command to use configextractor in cli mode
+'python3 cli.py file\_path'
+
+where file\_path is name of file to analyze.
+
+
 ## Adding Tag rule
 Since ConfigExtractor is a secondary service; all tags created by core services are available to determine whether a particular parser should be run.
 Yara rules can either be run on files or Assemblyline tags.
