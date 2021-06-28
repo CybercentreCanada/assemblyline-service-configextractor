@@ -322,7 +322,7 @@ def register():
     global report
     mwcp.register_entry_points()
     mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
-    report = mwcp.Report()
+    report = mwcp.Report(output_directory=os.getcwd())
     return report
 
 
