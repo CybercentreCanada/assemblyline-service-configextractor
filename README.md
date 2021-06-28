@@ -129,6 +129,7 @@ ConfigExtractor can also be used in cli mode outside of Assemblyline. Ensure tha
 'git clone https://github.com/c3rb3ru5d3d53c/mwcfg-modules.git modules/'
 
 Run this command to use configextractor in cli mode
+
 'python3 cli.py file\_path'
 
 where file\_path is name of file to analyze.
