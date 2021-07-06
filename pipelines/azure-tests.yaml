@@ -26,6 +26,7 @@ jobs:
         install_path=`pwd`
         sudo apt-get update
         sudo apt-get install -y libfuzzy-dev git libssl1.1 libmagic1 libssl-dev libmagic-dev automake libtool make gcc wget
+        git clone https://github.com/c3rb3ru5d3d53c/mwcfg-modules.git modules/
         sudo rm -rf /var/lib/apt/lists/*
         wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v3.11.0.tar.gz
         tar -zxf /tmp/yara.tar.gz -C /tmp
