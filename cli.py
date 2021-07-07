@@ -3,6 +3,7 @@ import click
 import json
 import mwcp
 import os
+import pkgutil
 import re
 import subprocess
 import yaml
@@ -587,9 +588,19 @@ def run_ratdecoders(file_path, passed_report):
 
 def run_mwcfg(file_path, report):
     repo_path = os.path.dirname(os.path.abspath(__file__))
-    process = subprocess.run(['mwcfg', '--input', f'{file_path}', '-m', f'{repo_path}/modules'], capture_output=True)
-    output = ast.literal_eval(process.stdout.decode())
-    extracted = output[0]['configs']
+    extracted = []
+    for path in ['mwcfg-modules', 'mwcfg-modules-custom']:
+        output = []
+        # check if directory actually contains parsers
+        mod_path = os.path.join(repo_path, path)
+        modules = [name for _, name, _ in pkgutil.iter_modules([mod_path])]
+        if modules:
+            print('some modules exist')
+            process = subprocess.run(['mwcfg', '--input', f'{file_path}', '-m', mod_path], capture_output=True)
+            output = ast.literal_eval(process.stdout.decode())
+            if output[0]['configs']:
+                extracted.append(output[0]['configs'])
+
     if extracted:
         for k, v in extracted[0].items():
             if k == 'urls':
