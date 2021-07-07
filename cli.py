@@ -595,7 +595,6 @@ def run_mwcfg(file_path, report):
         mod_path = os.path.join(repo_path, path)
         modules = [name for _, name, _ in pkgutil.iter_modules([mod_path])]
         if modules:
-            print('some modules exist')
             process = subprocess.run(['mwcfg', '--input', f'{file_path}', '-m', mod_path], capture_output=True)
             output = ast.literal_eval(process.stdout.decode())
             if output[0]['configs']:
