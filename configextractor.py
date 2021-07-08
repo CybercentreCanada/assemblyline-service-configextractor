@@ -102,7 +102,7 @@ class ConfigExtractor(ServiceBase):
         # get matches for both, dedup then run
         cli.run_mwcfg(request.file_path, self.mwcp_report)
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
-        output_fields = cli.run(parsers, request.file_path, self.mwcp_report)
+        output_fields = cli.run(parsers, request.file_path)
 
 
         for parser, field_dict in output_fields.items():
