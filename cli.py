@@ -1,6 +1,7 @@
 import ast
 import click
 import json
+import logging
 import mwcp
 import os
 import pkgutil
@@ -611,10 +612,11 @@ def run_mwcfg(file_path, report):
             except KeyError:
                 report.add_metadata("other", {k: v})
 
-
+@click.option("-d", "--debug", is_flag=True, help="Enables DEBUG level logs.")
+@click.option("-v", "--verbose", is_flag=True, help="Enables INFO level logs.")
 @click.command()
 @click.argument('file_path', type=click.Path(exists=True))
-def main(file_path) -> None:
+def main(file_path, debug, verbose) -> None:
     """
     Runs Malware parsers based on
     output of yara rules defined at and tags from AV hits
@@ -622,6 +624,10 @@ def main(file_path) -> None:
     file_path : relative or absolute path for file to be analyzed
     """
     # if running cli mode tags are not expected
+    if debug:
+        logging.root.setLevel(logging.DEBUG)
+    elif verbose:
+        logging.root.setLevel(logging.INFO)
     global report
     report = register()
     run_ratdecoders(file_path, report)
