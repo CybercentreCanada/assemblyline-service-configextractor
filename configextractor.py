@@ -155,7 +155,7 @@ class ConfigExtractor(ServiceBase):
         if len(field_dict) > 0:  # if any decoder output exists raise heuristic
             parser_section.set_body(json.dumps(json_body), body_format=BODY_FORMAT.KEY_VALUE)
             parser_section.set_heuristic(HEURISTICS_MAP.get(category, 1), attack_id=mitre_att)
-            parser_section.add_tag("source", parsertype)
+            parser_section.add_tag("source", f"{parsertype}.{parser}")
 
             if malware_name:
                 parser_section.add_tag('attribution.implant', malware_name.upper())
