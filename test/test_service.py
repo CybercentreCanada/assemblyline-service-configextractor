@@ -628,8 +628,7 @@ class TestCLI:
             if correct_report.metadata:
                 correct_outputs[parser] = correct_report.metadata
 
-        test_report = get_report()
-        test_outputs = run(correct_file_parsers, f_path, test_report)
+        test_outputs = run(correct_file_parsers, f_path)
         assert test_outputs == correct_outputs
 
     @staticmethod
