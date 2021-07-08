@@ -220,12 +220,12 @@ def validate_parser_config():
         raise Exception("Number of parsers in mwcp_parsers and parser_config.yml don't match")
 
 
-def run(parser_list: List[str], f_path: str, report):
+def run(parser_list: List[str], f_path: str):
     # all parsers in this list already matched
     # all parsers to be run must be in yml file in parser_dir
     outputs = {}
     for parser in parser_list:
-        mwcp.run(parser, file_path=f_path)
+        report = mwcp.run(parser, file_path=f_path)
         if report.metadata:
             outputs[parser] = report.metadata
     if __name__ == '__main__':
@@ -636,7 +636,7 @@ def main(file_path, debug, verbose) -> None:
     file_pars, tag_pars = compile()
     parsers = deduplicate(file_pars, tag_pars, file_path)
     # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
-    run(parsers, file_path, report)
+    run(parsers, file_path)
     print(report.as_text())
 
     # but can't run parsers until final list of parsers to run, from tag and file parsers is finished
