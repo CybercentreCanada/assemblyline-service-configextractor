@@ -622,14 +622,18 @@ class TestCLI:
         import mwcp
         correct_report = get_report()
         correct_outputs = {}
+        correct_reports = []
         correct_file_parsers = parsers[0]
         for parser in correct_file_parsers:
             mwcp.run(parser, file_path=f_path)
             if correct_report.metadata:
                 correct_outputs[parser] = correct_report.metadata
+                correct_reports.append(correct_report)
 
-        test_outputs = run(correct_file_parsers, f_path)
+        test_outputs, test_reports = run(correct_file_parsers, f_path)
         assert test_outputs == correct_outputs
+        assert test_reports == correct_reports
+
 
     @staticmethod
     @pytest.mark.parametrize("parsers",
