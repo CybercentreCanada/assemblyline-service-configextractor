@@ -224,14 +224,16 @@ def run(parser_list: List[str], f_path: str):
     # all parsers in this list already matched
     # all parsers to be run must be in yml file in parser_dir
     outputs = {}
+    reports = []
     for parser in parser_list:
         report = mwcp.run(parser, file_path=f_path)
         if report.metadata:
             outputs[parser] = report.metadata
+            reports.append(report)
     if __name__ == '__main__' and parser_list:
         with open("output.json", "w") as fp:
             fp.write(str(json.dumps(outputs)))
-    return outputs
+    return outputs, reports
 
 
 def check_names(parsers: set):
@@ -637,8 +639,9 @@ def main(file_path, debug, verbose) -> None:
     file_pars, tag_pars = compile()
     parsers = deduplicate(file_pars, tag_pars, file_path)
     # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
-    run(parsers, file_path)
-    print(report.as_text())
+    outputs, reports = run(parsers, file_path)
+    for report in reports:
+        print(report.as_text())
 
     # but can't run parsers until final list of parsers to run, from tag and file parsers is finished
 
