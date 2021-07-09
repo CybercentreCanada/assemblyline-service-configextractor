@@ -233,7 +233,7 @@ def run(parser_list: List[str], f_path: str):
     if __name__ == '__main__' and parser_list:
         with open("output.json", "w") as fp:
             fp.write(str(json.dumps(outputs)))
-    return outputs
+    return outputs, reports
 
 
 def check_names(parsers: set):
