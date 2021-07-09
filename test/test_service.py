@@ -631,7 +631,6 @@ class TestCLI:
 
         test_outputs, test_reports = run(correct_file_parsers, f_path)
         assert test_outputs == correct_outputs
-        assert test_reports == correct_reports
 
 
     @staticmethod
