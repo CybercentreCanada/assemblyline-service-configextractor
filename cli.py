@@ -228,8 +228,9 @@ def run(parser_list: List[str], f_path: str):
         report = mwcp.run(parser, file_path=f_path)
         if report.metadata:
             outputs[parser] = report.metadata
-    if __name__ == '__main__':
-        report.output_file(bytes(str(json.dumps(outputs)), encoding='utf-8'), "output.json")
+    if __name__ == '__main__' and parser_list:
+        with open("output.json", "w") as fp:
+            fp.write(str(json.dumps(outputs)))
     return outputs
 
 
