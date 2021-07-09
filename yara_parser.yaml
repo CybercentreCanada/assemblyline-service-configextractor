@@ -30,6 +30,22 @@ BitPaymer:
   parser: 
       - MWCP:
          - BitPaymer
+BuerLoader:
+  description: Malware loader
+  classification: 'TLP:W'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: ''
+  malware: 'BitPaymer'
+  malware_type:
+    - 'Loader'
+  run_on: 'OR'
+  selector:
+    yara_rule:
+      - ./yara_rules/buerloader.yara
+  parser:
+      - MWCP:
+         - BuerLoader
 ChChes:
   description: Extracts config data from various ChChes trojan families
   classification: 'TLP:W'
