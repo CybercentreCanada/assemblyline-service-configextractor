@@ -227,6 +227,22 @@ IcedIDStage2:
   parser: 
       - MWCP:
          - IcedIDStage2
+Loki:
+  description: Yara rule match runs Lokibot
+  classification: 'TLP:W'
+  category: 'MALWARE'
+  mitre_group: ''
+  mitre_att: 'S0447'
+  malware: 'Loki'
+  malware_type:
+    - 'Trojan'
+  run_on: 'OR'
+  selector:
+    yara_rule:
+      - ./yara_rules/loki.yara
+  parser:
+      - MWCP:
+         - Loki
 RCSession:
   description: Yara rule match on RCSession RAT payload runs parser
   classification: 'TLP:W'
