@@ -42,7 +42,7 @@ HttpBrowser:
   author: Not Found
   description: HttpBrowser Parser
   parsers:
-  - .evilgrab
+  - .HttpBrowser
 Redsip:
   author: Not Found
   description: Redsip Parser
@@ -88,6 +88,11 @@ DoppelPaymer:
   description: DoppelPaymer Parser
   parsers:
   - .DoppelPaymer
+BuerLoader:
+  author: Not Found
+  description: BuerLoader Parser
+  parsers:
+  - .BuerLoader
 SmokeLoader:
   author: Not Found
   description: SmokeLoader Parser

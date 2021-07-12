@@ -4,12 +4,6 @@ rule DridexLoader
         author = "kevoreilly"
         description = "Dridex v4 dropper C2 parsing function"
         cape_type = "DridexLoader Payload"
-    strings:rule DridexLoader
-{
-    meta:
-        author = "kevoreilly"
-        description = "Dridex v4 dropper C2 parsing function"
-        cape_type = "DridexLoader Payload"
 
     strings:
         $c2parse_1 = {57 0F 95 C0 89 35 [4] 88 46 04 33 FF 80 3D [4] 00 76 54 8B 04 FD [4] 8D 4D EC 83 65 F4 00 89 45 EC 66 8B 04 FD [4] 66 89 45 F0 8D 45 F8 50}
