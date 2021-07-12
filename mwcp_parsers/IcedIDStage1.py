@@ -23,10 +23,7 @@ import pefile
 import yara
 from Crypto.Cipher import ARC4
 from mwcp.parser import Parser
-from lib.cuckoo.common.constants import CUCKOO_ROOT
 
-yara_path = os.path.join(CUCKOO_ROOT, "data", "yara", "CAPE", "IcedIDStage1.yar")
-yara_rule = open(yara_path, "r").read()
 
 def yara_scan(raw_data):
     try:
