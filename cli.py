@@ -307,12 +307,10 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
             super_parser_list = [x for x in super_parser_list if x not in malware_to_parsers]
 
     super_parser_list = [i[0].upper() + i[1:] for i in super_parser_list]
-
     super_parser_list_set = set(super_parser_list)
     check_names(super_parser_list_set)
     super_parser_set_list = list(super_parser_list_set)
     return super_parser_set_list
-
 
 
 def compile(tags=None):
@@ -625,6 +623,7 @@ def parse_file(file_path, report):
     parsers = deduplicate(file_pars, tag_pars, file_path)
     outputs, reports = run(parsers, file_path)
     # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
+    # but can't run parsers until final list of parsers to run, from tag and file parsers is finished
     for report in reports:
         print(report.as_text())
 
@@ -646,7 +645,6 @@ def main(path, debug, verbose) -> None:
     elif verbose:
         logging.root.setLevel(logging.INFO)
     global report
-
     report = register()
 
     # Check if path given is a directory or a file
@@ -657,10 +655,6 @@ def main(path, debug, verbose) -> None:
         for root, dir, files in os.walk(path):
             for file in files:
                 parse_file(os.path.join(root, file), report)
-
-
-    # but can't run parsers until final list of parsers to run, from tag and file parsers is finished
-
 
 if __name__ == "__main__":
     main()
