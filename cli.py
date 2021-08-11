@@ -307,10 +307,12 @@ def deduplicate(file_pars, tag_pars, file_path, tags_dict=None) -> List[str]:
             super_parser_list = [x for x in super_parser_list if x not in malware_to_parsers]
 
     super_parser_list = [i[0].upper() + i[1:] for i in super_parser_list]
+
     super_parser_list_set = set(super_parser_list)
     check_names(super_parser_list_set)
     super_parser_set_list = list(super_parser_list_set)
     return super_parser_set_list
+
 
 
 def compile(tags=None):
@@ -615,16 +617,28 @@ def run_mwcfg(file_path, report):
             except KeyError:
                 report.add_metadata("other", {k: v})
 
+def parse_file(file_path, report):
+    run_ratdecoders(file_path, report)
+    run_mwcfg(file_path, report)
+    validate_parser_config()
+    file_pars, tag_pars = compile()
+    parsers = deduplicate(file_pars, tag_pars, file_path)
+    outputs, reports = run(parsers, file_path)
+    # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
+    for report in reports:
+        print(report.as_text())
+
+
 @click.option("-d", "--debug", is_flag=True, help="Enables DEBUG level logs.")
 @click.option("-v", "--verbose", is_flag=True, help="Enables INFO level logs.")
 @click.command()
-@click.argument('file_path', type=click.Path(exists=True))
-def main(file_path, debug, verbose) -> None:
+@click.argument('path', type=click.Path(exists=True))
+def main(path, debug, verbose) -> None:
     """
     Runs Malware parsers based on
     output of yara rules defined at and tags from AV hits
     Required args
-    file_path : relative or absolute path for file to be analyzed
+    path : relative or absolute path to be analyzed
     """
     # if running cli mode tags are not expected
     if debug:
@@ -632,16 +646,18 @@ def main(file_path, debug, verbose) -> None:
     elif verbose:
         logging.root.setLevel(logging.INFO)
     global report
+
     report = register()
-    run_ratdecoders(file_path, report)
-    run_mwcfg(file_path, report)
-    validate_parser_config()
-    file_pars, tag_pars = compile()
-    parsers = deduplicate(file_pars, tag_pars, file_path)
-    # for each parser entry check if match exists, if so run all parsers in parser_list for that entry
-    outputs, reports = run(parsers, file_path)
-    for report in reports:
-        print(report.as_text())
+
+    # Check if path given is a directory or a file
+    if os.path.isfile(path):
+        parse_file(path, report)
+    else:
+        # Iterate over directory
+        for root, dir, files in os.walk(path):
+            for file in files:
+                parse_file(os.path.join(root, file), report)
+
 
     # but can't run parsers until final list of parsers to run, from tag and file parsers is finished
 
