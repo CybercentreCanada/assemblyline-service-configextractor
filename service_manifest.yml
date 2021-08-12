@@ -25,7 +25,7 @@ is_external: false
 
 licence_count: 0
 
-# Service configuration block (dictionary of config variables) 
+# Service configuration block (dictionary of config variables)
 heuristics:
 
   - heur_id: 1
@@ -40,6 +40,12 @@ heuristics:
     filetype: '*'
     description: Category - Safe
 
+  - heur_id: 3
+    name: Network Address Extracted
+    score: 1000
+    filetype: '*'
+    description: Category - Malicious - Indicates a network address was extracted
+
 
 
 # Docker configuration block which defines:
@@ -49,5 +55,3 @@ docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-configextractor:$SERVICE_TAG
   cpu_cores: 1.0
   ram_mb: 1024
-
-

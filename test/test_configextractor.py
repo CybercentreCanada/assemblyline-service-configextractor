@@ -269,6 +269,8 @@ def create_correct_result_section_tree(fields, parsers=None, parser_type=None, p
                 body=json.dumps(body),
                 body_format=BODY_FORMAT.TABLE,
             )
+            if 'uri' in tag:
+                correct_subsection.set_heuristic(3)
             correct_parent_section.add_subsection(correct_subsection)
 
     # Other key section comes after all subsection builder
