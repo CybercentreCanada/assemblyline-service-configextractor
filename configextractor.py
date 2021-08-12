@@ -1,3 +1,4 @@
+import ast
 import cli
 import json
 import tempfile
@@ -188,10 +189,18 @@ def classification_checker(res_section, parser_name, file_parsers):
 
 def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
     for mwcp_field, mwcp_field_data in fields.items():
-        if mwcp_field in FIELD_TAG_MAP:
+        if mwcp_field in FIELD_TAG_MAP and mwcp_field_data != ['-']:
             tag = FIELD_TAG_MAP[mwcp_field]
             table_body = []
             table_section = ResultSection(f"Extracted {mwcp_field.capitalize()}")
+
+            # Make sure data isn't a string representation of a list
+            for index, data in enumerate(mwcp_field_data):
+                if isinstance(data, str) and all(symbol in data for symbol in ['[',']']):
+                    mwcp_field_data.remove(data)
+                    for x in ast.literal_eval(data):
+                        mwcp_field_data.append(x)
+
             if tag:
                 # Was a URL/URI tagged?
                 if 'uri' in tag:

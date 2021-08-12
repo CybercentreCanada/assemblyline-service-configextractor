@@ -41,10 +41,10 @@ heuristics:
     description: Category - Safe
 
   - heur_id: 3
-    name: URLs Extracted
+    name: Network Address Extracted
     score: 1000
     filetype: '*'
-    description: Category - Malicious - Indicates URLs was extracted
+    description: Category - Malicious - Indicates a network address was extracted
 
 
 
