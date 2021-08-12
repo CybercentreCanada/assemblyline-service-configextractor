@@ -193,6 +193,10 @@ def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
             table_body = []
             table_section = ResultSection(f"Extracted {mwcp_field.capitalize()}")
             if tag:
+                # Was a URL/URI tagged?
+                if 'uri' in tag:
+                    table_section.set_heuristic(3)
+
                 for x in mwcp_field_data:
                     table_section.add_tag(tag, x)
                 # Tag everything that we can
