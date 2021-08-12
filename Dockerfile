@@ -2,7 +2,7 @@ ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch AS base
 
 ENV SERVICE_PATH configextractor.ConfigExtractor
-
+ENV YARA_VERSION=4.1.0
 USER root
 RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 && rm -rf /var/lib/apt/lists/*
 # Create a temporary image to do our compiling in
@@ -11,9 +11,9 @@ FROM base AS build
 RUN apt-get update && apt-get install -y git libssl-dev libmagic-dev automake libtool make gcc wget libjansson-dev pkg-config && rm -rf /var/lib/apt/lists/*
 
 # Compile and install YARA
-RUN wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v4.1.0.tar.gz
+RUN wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v$YARA_VERSION.tar.gz
 RUN tar -zxf /tmp/yara.tar.gz -C /tmp
-WORKDIR /tmp/yara-4.1.0
+WORKDIR /tmp/yara-$YARA_VERSION
 RUN ./bootstrap.sh
 RUN ./configure --enable-cuckoo --enable-magic --enable-dotnet --with-crypto --prefix /tmp/yara_install
 RUN make
@@ -69,5 +69,3 @@ RUN sed -i -e "s/\$SERVICE_TAG/$version/g" service_manifest.yml
 # Switch to assemblyline user
 USER assemblyline
 RUN pip install --user pyparsing==2.3.0
-
-
