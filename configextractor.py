@@ -71,7 +71,7 @@ class ConfigExtractor(ServiceBase):
             }
         )
         file_parsers, tag_parsers = cli.compile(yara_externals)
-        self.log.info(f"loaded {file_parsers}")
+        self.log.info(f"loaded {list(file_parsers.keys())}")
         cli.validate_parser_config()
         self.file_parsers = file_parsers
         self.tag_parsers = tag_parsers
