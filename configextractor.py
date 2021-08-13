@@ -10,6 +10,7 @@ from assemblyline.odm.base import IP_ONLY_REGEX, DOMAIN_ONLY_REGEX
 from assemblyline.odm.models.tagging import Tagging
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT
+from typing import List
 from urllib3.util import parse_url
 
 cl_engine = forge.get_classification()
@@ -191,22 +192,6 @@ def classification_checker(res_section, parser_name, file_parsers):
 
 
 def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
-    def tag_network_ioc(section: ResultSection, dataset: List[str]) -> None:
-        section.set_heuristic(3)
-        for data in dataset:
-            main_tag = 'network.dynamic.ip' if re.match(IP_ONLY_REGEX, data) else 'network.dynamic.uri'
-            section.add_tag(main_tag, data)
-
-            # Deconstruct the raw data to additional tagging
-            parsed_uri = parse_url(data)
-            if parsed_uri.host:
-                # tag_reducer will de-dup IP being tagged twice
-                host_tag = 'network.dynamic.ip' if re.match(IP_ONLY_REGEX, data) else 'network.dynamic.domain'
-                section.add_tag(host_tag, data)
-            if parsed_uri.port: section.add_tag('network.port', parsed_uri.port)
-            if parsed_uri.path: section.add_tag('network.dynamic.uri_path', parsed_uri.path)
-                 
-
     for mwcp_field, mwcp_field_data in fields.items():
         if mwcp_field in FIELD_TAG_MAP and mwcp_field_data != ['-']:
             tag = FIELD_TAG_MAP[mwcp_field]
@@ -238,3 +223,25 @@ def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
             table_section.set_body(body_format=BODY_FORMAT.TABLE, body=json.dumps(table_body))
 
             parent_section.add_subsection(table_section)
+
+
+def tag_network_ioc(section: ResultSection, dataset: List[str]) -> None:
+    if not section.heuristic:
+        # Heuristic should only be applied once
+        section.set_heuristic(3)
+    for data in dataset:
+        # Tests indicated the possibilty of nested lists
+        if isinstance(data, list):
+            tag_network_ioc(section, data)
+        else:
+            main_tag = 'network.dynamic.ip' if re.match(IP_ONLY_REGEX, data) else 'network.dynamic.uri'
+            section.add_tag(main_tag, data)
+
+            # Deconstruct the raw data to additional tagging
+            parsed_uri = parse_url(data)
+            if parsed_uri.host:
+                # tag_reducer will de-dup IP being tagged twice
+                host_tag = 'network.dynamic.ip' if re.match(IP_ONLY_REGEX, parsed_uri.host) else 'network.dynamic.domain'
+                section.add_tag(host_tag, data)
+            if parsed_uri.port: section.add_tag('network.port', parsed_uri.port)
+            if parsed_uri.path: section.add_tag('network.dynamic.uri_path', parsed_uri.path)
