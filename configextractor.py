@@ -6,7 +6,7 @@ import os
 import re
 
 from assemblyline.common import forge
-from assemblyline.odm.base import IP_ONLY_REGEX, DOMAIN_ONLY_REGEX
+from assemblyline.odm.base import IP_ONLY_REGEX
 from assemblyline.odm.models.tagging import Tagging
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT
