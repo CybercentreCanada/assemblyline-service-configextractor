@@ -195,7 +195,7 @@ def check_reporter_equality(this, that) -> bool:
 
 
 def create_correct_result_section_tree(fields, parsers=None, parser_type=None, parser_name=None):
-    from configextractor import FIELD_TAG_MAP
+    from configextractor import FIELD_TAG_MAP, tag_network_ioc
     from assemblyline_v4_service.common.result import BODY_FORMAT
     from assemblyline.common import forge
     cl_engine = forge.get_classification()
@@ -252,10 +252,7 @@ def create_correct_result_section_tree(fields, parsers=None, parser_type=None, p
     # subsection section
     for key, value in fields.items():
         if key in FIELD_TAG_MAP:
-            tags = None
             tag = FIELD_TAG_MAP[key]
-            if tag:
-                tags = {tag: value}
             body = []
             for field in value:
                 if type(field) is str:
@@ -265,12 +262,14 @@ def create_correct_result_section_tree(fields, parsers=None, parser_type=None, p
 
             correct_subsection = ResultSection(
                 title_text=f"Extracted {key.capitalize()}",
-                tags=tags,
                 body=json.dumps(body),
                 body_format=BODY_FORMAT.TABLE,
             )
             if 'uri' in tag:
-                correct_subsection.set_heuristic(3)
+                tag_network_ioc(correct_subsection, value)
+            else:
+                for v in value:
+                    correct_subsection.add_tag(tag, value)
             correct_parent_section.add_subsection(correct_subsection)
 
     # Other key section comes after all subsection builder
