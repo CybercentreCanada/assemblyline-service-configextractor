@@ -8,3 +8,4 @@ javaobj-py3>=0.4.1
 pycryptodome==3.9.8
 androguard>=3.3.5
 mwcfg>=1.0.1
+flask~=1.1.0
