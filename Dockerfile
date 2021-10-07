@@ -22,7 +22,6 @@ RUN make install
 # Get MWCFG modules
 WORKDIR /tmp
 RUN git clone https://github.com/c3rb3ru5d3d53c/mwcfg-modules.git modules/
-RUN pip uninstall -y flask
 
 # Build the yara python plugins, install other dependencies
 USER assemblyline
@@ -55,7 +54,7 @@ COPY . .
 
 # Make sure we actually have the right version of pyparsing by uninstalling it as root
 # then later reinstalling an exact version as the user account
-RUN pip uninstall --yes pyparsing
+RUN pip uninstall --yes pyparsing flask
 
 # Cleanup
 RUN rm ./Dockerfile
@@ -69,4 +68,4 @@ RUN sed -i -e "s/\$SERVICE_TAG/$version/g" service_manifest.yml
 
 # Switch to assemblyline user
 USER assemblyline
-RUN pip install --user pyparsing==2.3.0
+RUN pip install --user pyparsing==2.3.0 flask~=1.1.0
