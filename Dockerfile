@@ -22,6 +22,7 @@ RUN make install
 # Get MWCFG modules
 WORKDIR /tmp
 RUN git clone https://github.com/c3rb3ru5d3d53c/mwcfg-modules.git modules/
+RUN pip uninstall -y flask
 
 # Build the yara python plugins, install other dependencies
 USER assemblyline
