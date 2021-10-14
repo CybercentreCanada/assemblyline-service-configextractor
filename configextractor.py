@@ -72,7 +72,7 @@ class ConfigExtractor(ServiceBase):
         yara_externals = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
         yara_externals.update(
             {
-                "al_file_rule_yara":""
+                "al_file_rule_yara": ""
             }
         )
         file_parsers, tag_parsers = cli.compile(yara_externals)
@@ -108,7 +108,6 @@ class ConfigExtractor(ServiceBase):
         cli.run_mwcfg(request.file_path, self.mwcp_report)
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
         output_fields, _ = cli.run(parsers, request.file_path)
-
 
         for parser, field_dict in output_fields.items():
             self.section_builder(parser, field_dict, result)
@@ -174,7 +173,7 @@ class ConfigExtractor(ServiceBase):
         other_key = "other"
         if other_key in field_dict:
             other_content = field_dict[other_key]
-            other_section = ResultSection(f"Other metadata found", body_format=BODY_FORMAT.KEY_VALUE,
+            other_section = ResultSection("Other metadata found", body_format=BODY_FORMAT.KEY_VALUE,
                                           body=json.dumps(other_content))
             parser_section.add_subsection(other_section)
 
@@ -200,7 +199,7 @@ def subsection_builder(parent_section: ResultSection = None, fields: dict = {}):
 
             # Make sure data isn't a string representation of a list
             for index, data in enumerate(mwcp_field_data):
-                if isinstance(data, str) and all(symbol in data for symbol in ['[',']']):
+                if isinstance(data, str) and all(symbol in data for symbol in ['[', ']']):
                     mwcp_field_data.remove(data)
                     for x in ast.literal_eval(data):
                         mwcp_field_data.append(x)
@@ -241,7 +240,10 @@ def tag_network_ioc(section: ResultSection, dataset: List[str]) -> None:
             parsed_uri = parse_url(data)
             if parsed_uri.host:
                 # tag_reducer will de-dup IP being tagged twice
-                host_tag = 'network.dynamic.ip' if re.match(IP_ONLY_REGEX, parsed_uri.host) else 'network.dynamic.domain'
+                host_tag = 'network.dynamic.ip' if re.match(
+                    IP_ONLY_REGEX, parsed_uri.host) else 'network.dynamic.domain'
                 section.add_tag(host_tag, parsed_uri.host)
-            if parsed_uri.port: section.add_tag('network.port', parsed_uri.port)
-            if parsed_uri.path: section.add_tag('network.dynamic.uri_path', parsed_uri.path)
+            if parsed_uri.port:
+                section.add_tag('network.port', parsed_uri.port)
+            if parsed_uri.path:
+                section.add_tag('network.dynamic.uri_path', parsed_uri.path)
