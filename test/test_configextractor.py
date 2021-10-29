@@ -59,7 +59,7 @@ def return_result_section_class():
 def class_instance():
     create_tmp_manifest()
     try:
-        from configextractor import ConfigExtractor
+        from configextractor_ import ConfigExtractor
         yield ConfigExtractor()
     finally:
         remove_tmp_manifest()
@@ -196,7 +196,7 @@ def check_reporter_equality(this, that) -> bool:
 
 
 def create_correct_result_section_tree(fields, parsers=None, parser_type=None, parser_name=None):
-    from configextractor import FIELD_TAG_MAP, tag_network_ioc
+    from configextractor_ import FIELD_TAG_MAP, tag_network_ioc
     from assemblyline_v4_service.common.result import BODY_FORMAT
     from assemblyline.common import forge
     cl_engine = forge.get_classification()
@@ -239,7 +239,7 @@ def create_correct_result_section_tree(fields, parsers=None, parser_type=None, p
         correct_parent_section.classification = correct_classification
 
     if fields and parser_type:
-        from configextractor import HEURISTICS_MAP
+        from configextractor_ import HEURISTICS_MAP
         correct_parent_section.set_body(json.dumps(parser_attributes), body_format=BODY_FORMAT.KEY_VALUE)
         correct_parent_section.set_heuristic(HEURISTICS_MAP.get(category, 1), attack_id=mitre_att)
         correct_parent_section.add_tag("source", parser_type)
@@ -391,7 +391,7 @@ class TestConfigExtractor:
                              get_classification_checker_inputs()
                              )
     def test_classification_checker(res_section, parser_name, parsers):
-        from configextractor import classification_checker
+        from configextractor_ import classification_checker
         from assemblyline.common import forge
         cl_engine = forge.get_classification()
 
