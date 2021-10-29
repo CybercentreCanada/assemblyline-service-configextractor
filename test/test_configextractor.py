@@ -208,7 +208,7 @@ def create_correct_result_section_tree(fields, parsers=None, parser_type=None, p
     category = 'malware'
     correct_file_parsers = {}
 
-    if not parser_type or parser_type not in [ratdecoder, mwcp] or not parser_name:
+    if parser_type not in [ratdecoder, mwcp] or not parser_name in parsers[0].keys():
         correct_parent_section = ResultSection("parent")
     else:
         correct_file_parsers = parsers[0]
