@@ -392,7 +392,7 @@ class TestConfigExtractor:
         from assemblyline.common import forge
         cl_engine = forge.get_classification()
 
-        correct_file_parsers = parsers[0]
+        correct_file_parsers = parsers[0] if parser_name in parsers[0].keys() else parsers[1]
         parser_classification = correct_file_parsers[parser_name].classification
         correct_classification = cl_engine.normalize_classification(parser_classification)
 
