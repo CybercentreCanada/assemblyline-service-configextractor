@@ -26,18 +26,18 @@ jobs:
           install_path=`pwd`
           sudo apt-get update
           sudo apt-get install -y libfuzzy-dev git libssl1.1 libmagic1 libssl-dev libmagic-dev automake libtool make gcc wget
-          git clone https://github.com/c3rb3ru5d3d53c/mwcfg-modules.git modules/
           sudo rm -rf /var/lib/apt/lists/*
-          wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v3.11.0.tar.gz
+          wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v4.10.0.tar.gz
           tar -zxf /tmp/yara.tar.gz -C /tmp
-          cd /tmp/yara-3.11.0
+          cd /tmp/yara-4.10.0
           ./bootstrap.sh
           ./configure --enable-magic --enable-dotnet --with-crypto --prefix /tmp/yara_install
           make
           make install
           sudo cp -r /tmp/yara_install /usr/local
           cd $install_path
-          sudo env "PATH=$PATH" python -m pip install -U --no-cache-dir assemblyline assemblyline_v4_service magic-yara-python gitpython plyara pyparsing==2.3.0 `pwd`/configextractor-py/RATDecoders/ `pwd`/configextractor-py/
+          ls -al
+          sudo env "PATH=$PATH" python -m pip install -U --no-cache-dir assemblyline assemblyline_v4_service magic-yara-python gitpython plyara pyparsing==2.3.0 configextractor-py/RATDecoders/ configextractor-py/
           sudo env "PATH=$PATH" python -m pip install -U -r `pwd`/test/requirements.txt
           sudo rm -rf /tmp/* /var/lib/apt/lists/* ~/.cache/pip
         displayName: Setup environment
