@@ -26,7 +26,7 @@ jobs:
           install_path=`pwd`
           YARA_VERSION=4.1.0
           sudo apt-get update
-          sudo apt-get install -y libfuzzy-dev git libssl1.1 libmagic1 libssl-dev libmagic-dev automake libtool make gcc wget
+          sudo apt-get install -y libfuzzy-dev git libssl1.1 libmagic1 libssl-dev libmagic-dev automake libtool make gcc wget git
           sudo rm -rf /var/lib/apt/lists/*
           wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v$YARA_VERSION.tar.gz
           tar -zxf /tmp/yara.tar.gz -C /tmp
@@ -37,11 +37,12 @@ jobs:
           make install
           sudo cp -r /tmp/yara_install /usr/local
           cd $install_path
-          sudo env "PATH=$PATH" python -m pip install -U --no-cache-dir assemblyline assemblyline_v4_service magic-yara-python gitpython plyara pyparsing==2.3.0 configextractor-py/RATDecoders/ configextractor-py/
+          sudo env "PATH=$PATH" python -m pip install -U --no-cache-dir assemblyline assemblyline_v4_service magic-yara-python gitpython plyara pyparsing==2.3.0
           sudo env "PATH=$PATH" python -m pip install -U -r `pwd`/test/requirements.txt
+          git clone --recurse-submodules https://github.com/CybercentreCanada/configextractor-py.git /tmp/configextractor-py
+          sudo env "PATH=$PATH" python -m pip install -U --no-cache-dir /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/
           sudo mkdir /opt/al_service/
-          sudo mv configextractor-py/dependencies /opt/al_service/dependencies
-          ls -al /opt/al_service/dependencies/
+          sudo mv /tmp/configextractor-py/dependencies /opt/al_service/dependencies
           sudo rm -rf /tmp/* /var/lib/apt/lists/* ~/.cache/pip
         displayName: Setup environment
       - script: python -m pytest --durations=10 -rsx -vv --cov-report=xml --cov=configextractor
