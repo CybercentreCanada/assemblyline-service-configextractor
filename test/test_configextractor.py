@@ -73,9 +73,10 @@ def parsers():
 
 def get_section_builder_inputs() -> list:
     possible_inputs_for_section_builder = []
-    parser_names = ['Azorult', 'BitPaymer', 'ChChes', 'DoppelPaymer', 'Emotet',
-                    'Enfal', 'EvilGrab', 'HttpBrowser', 'IcedID', 'RCSession',
-                    'RedLeaf', 'Redsip', 'Retefe', 'SmokeLoader', 'QakBot']
+    parser_names = [file.split('.py')[0] for file in os.listdir("/opt/al_service/dependencies/mwcp_parsers") if not file.startswith('_') and file.endswith('.py')]
+    # parser_names = ['Azorult', 'BitPaymer', 'ChChes', 'DoppelPaymer', 'Emotet',
+    #                 'Enfal', 'EvilGrab', 'HttpBrowser', 'IcedID', 'RCSession',
+    #                 'RedLeaf', 'Redsip', 'Retefe', 'SmokeLoader', 'QakBot']
     parser_types = ["MWCP", "RATDecoder"]
     field_dict = {
         "address": ['999'],
