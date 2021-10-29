@@ -46,7 +46,7 @@ jobs:
           sudo env "PATH=$PATH" python -m pip install -U --no-cache-dir /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/
           sudo mkdir /opt/al_service/
           sudo mv /tmp/configextractor-py/dependencies /opt/al_service/dependencies
-          sudo rm -rf /tmp/* /var/lib/apt/lists/* ~/.cache/pip
+          sudo rm -rf /tmp/* /var/lib/apt/lists/* ~/.cache/pip /tmp/configextractor-py/
         displayName: Setup environment
       - script: python -m pytest --durations=10 -rsx -vv --cov-report=xml --cov=configextractor
         displayName: Test

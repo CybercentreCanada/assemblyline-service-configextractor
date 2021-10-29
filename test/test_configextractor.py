@@ -68,15 +68,13 @@ def parsers():
     from assemblyline.odm.models.tagging import Tagging
     from configextractor.cli import compile
     correct_yara_externals = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
+    correct_yara_externals['al_file_rule_yara'] = ""
     return compile(correct_yara_externals)
 
 
 def get_section_builder_inputs() -> list:
     possible_inputs_for_section_builder = []
     parser_names = [file.split('.py')[0] for file in os.listdir("/opt/al_service/dependencies/mwcp_parsers") if not file.startswith('_') and file.endswith('.py')]
-    # parser_names = ['Azorult', 'BitPaymer', 'ChChes', 'DoppelPaymer', 'Emotet',
-    #                 'Enfal', 'EvilGrab', 'HttpBrowser', 'IcedID', 'RCSession',
-    #                 'RedLeaf', 'Redsip', 'Retefe', 'SmokeLoader', 'QakBot']
     parser_types = ["MWCP", "RATDecoder"]
     field_dict = {
         "address": ['999'],
@@ -493,8 +491,9 @@ def create_correct_parser_objs(tags=None):
 
 def get_tags():
     from assemblyline.odm.models.tagging import Tagging
-    return {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
-
+    tags = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
+    tags["al_file_rule_yara"] = ""
+    return tags
 
 def get_new_tags():
     request_task_tags = {"a": "b"}
