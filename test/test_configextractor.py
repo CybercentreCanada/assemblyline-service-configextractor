@@ -66,7 +66,7 @@ def class_instance():
 @pytest.fixture
 def parsers():
     from assemblyline.odm.models.tagging import Tagging
-    from cli import compile
+    from configextractor.cli import compile
     correct_yara_externals = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
     return compile(correct_yara_externals)
 
@@ -311,7 +311,7 @@ class TestConfigExtractor:
 
     @staticmethod
     def test_init(class_instance):
-        from cli import register
+        from configextractor.cli import register
         assert class_instance.file_parsers == {}
         assert class_instance.tag_parsers is None
         assert class_instance.parser_classification == []
@@ -416,7 +416,7 @@ class TestConfigExtractor:
 
 def get_parser_entries():
     import yaml
-    from cli import YARA_PARSER_PATH
+    from configextractor.cli import YARA_PARSER_PATH
     stream = open(YARA_PARSER_PATH, 'r')
     parser_entries = yaml.full_load(stream)
     return parser_entries
@@ -435,7 +435,7 @@ def get_validate_parser_inputs():
 
 def get_report():
     import mwcp
-    from cli import MWCP_PARSERS_DIR_PATH
+    from configextractor.cli import MWCP_PARSERS_DIR_PATH
     mwcp.register_entry_points()
     mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
     reporter = mwcp.Report()
@@ -452,7 +452,7 @@ def add_metadata(data, mwcp_key, correct_report=None):
 
 def create_correct_parser_objs(tags=None):
     import yara
-    from cli import check_paths, validate_parsers, Parser
+    from configextractor.cli import check_paths, validate_parsers, Parser
 
     parser_entries = get_parser_entries()
     parser_objs = {}
