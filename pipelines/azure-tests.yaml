@@ -24,14 +24,15 @@ jobs:
           versionSpec: "$(python.version)"
       - script: |
           install_path=`pwd`
+          YARA_VERSION=4.1.0
           sudo apt-get update
           sudo apt-get install -y libfuzzy-dev git libssl1.1 libmagic1 libssl-dev libmagic-dev automake libtool make gcc wget
           sudo rm -rf /var/lib/apt/lists/*
-          wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v4.10.0.tar.gz
+          wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v$YARA_VERSION.tar.gz
           tar -zxf /tmp/yara.tar.gz -C /tmp
-          cd /tmp/yara-4.10.0
+          cd /tmp/yara-$YARA_VERSION
           ./bootstrap.sh
-          ./configure --enable-magic --enable-dotnet --with-crypto --prefix /tmp/yara_install
+          ./configure --enable-cuckoo --enable-magic --enable-dotnet --with-crypto --prefix /tmp/yara_install
           make
           make install
           sudo cp -r /tmp/yara_install /usr/local
