@@ -37,9 +37,11 @@ jobs:
           make install
           sudo cp -r /tmp/yara_install /usr/local
           cd $install_path
-          ls -al
           sudo env "PATH=$PATH" python -m pip install -U --no-cache-dir assemblyline assemblyline_v4_service magic-yara-python gitpython plyara pyparsing==2.3.0 configextractor-py/RATDecoders/ configextractor-py/
           sudo env "PATH=$PATH" python -m pip install -U -r `pwd`/test/requirements.txt
+          sudo mkdir /opt/al_service/
+          sudo mv configextractor-py/dependencies /opt/al_service/dependencies
+          ls -al /opt/al_service/dependencies/
           sudo rm -rf /tmp/* /var/lib/apt/lists/* ~/.cache/pip
         displayName: Setup environment
       - script: python -m pytest --durations=10 -rsx -vv --cov-report=xml --cov=configextractor

@@ -3,8 +3,6 @@ import json
 import pytest
 import shutil
 
-from mwcp import metadata
-
 # Getting absolute paths, names and regexes
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(TEST_DIR)
@@ -410,7 +408,7 @@ class TestConfigExtractor:
                              get_subsection_builder_inputs()
                              )
     def test_subsection_builder(parent_section, fields):
-        from configextractor import subsection_builder
+        from configextractor_ import subsection_builder
         correct_parent_section = create_correct_result_section_tree(fields)
         subsection_builder(parent_section=parent_section, fields=fields)
         assert check_section_equality(parent_section, correct_parent_section)
