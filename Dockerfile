@@ -23,8 +23,7 @@ RUN make install
 USER assemblyline
 RUN touch /tmp/before-pip
 # Get ConfigExtractor library
-# RUN git clone --recurse-submodules https://github.com/CybercentreCanada/configextractor-py.git
-COPY configextractor-py/ /tmp/configextractor-py/
+RUN git clone --recurse-submodules https://github.com/CybercentreCanada/configextractor-py.git /tmp/configextractor-py
 RUN pip install --no-cache-dir --user magic-yara-python gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/ && rm -rf ~/.cache/pip
 
 # Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
