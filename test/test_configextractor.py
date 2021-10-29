@@ -208,10 +208,10 @@ def create_correct_result_section_tree(fields, parsers=None, parser_type=None, p
     category = 'malware'
     correct_file_parsers = {}
 
-    if parser_type not in [ratdecoder, mwcp] or not parser_name in parsers[0].keys():
+    if parser_type not in [ratdecoder, mwcp] or not parser_name:
         correct_parent_section = ResultSection("parent")
     else:
-        correct_file_parsers = parsers[0]
+        [correct_file_parsers.update(p) for p in parsers]
         correct_parent_section = ResultSection(f"{parser_type} : {parser_name}")
 
     parser_attributes = {}
@@ -376,9 +376,9 @@ class TestConfigExtractor:
     def test_section_builder(parser, field_dict, parsertype, class_instance, parsers):
         from assemblyline_v4_service.common.result import Result
         result = Result()
-        correct_tag_parsers = parsers[0]
+        correct_parsers = parsers[0] if parser in parsers[0].keys() else parsers[1]
         correct_sections = create_correct_result_section_tree(field_dict, parsers, parsertype, parser)
-        class_instance.file_parsers = correct_tag_parsers
+        class_instance.file_parsers = correct_parsers
         class_instance.section_builder(parser=parser, field_dict=field_dict, result=result, parsertype=parsertype)
 
         assert check_section_equality(result.sections[0], correct_sections)
