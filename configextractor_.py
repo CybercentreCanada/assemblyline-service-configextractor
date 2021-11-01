@@ -1,5 +1,5 @@
 import ast
-import cli
+from configextractor import cli
 import json
 import tempfile
 import os
@@ -67,6 +67,9 @@ class ConfigExtractor(ServiceBase):
         self.tag_parsers = None
         self.parser_classification = []  # default should be the classification set for the service.
         self.mwcp_report = None
+        cli.ROOT_DIR = '/opt/al_service/dependencies/'
+        cli.init_root_dependencies()
+        cli.load_parsers()
 
     def start(self):
         yara_externals = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
@@ -87,10 +90,10 @@ class ConfigExtractor(ServiceBase):
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, self.mwcp_report)
         if type(output) is str:
-            self.log.info(output)
+            self.log.debug(output)
             output = ""
         if type(output) is dict:
-            self.log.info(output)
+            self.log.debug(output)
             for parser, fields in output.items():
                 self.section_builder(parser, fields, result, "RATDecoder")
 

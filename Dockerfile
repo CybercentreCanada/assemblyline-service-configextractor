@@ -1,7 +1,7 @@
 ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch AS base
 
-ENV SERVICE_PATH configextractor.ConfigExtractor
+ENV SERVICE_PATH configextractor_.ConfigExtractor
 ENV YARA_VERSION=4.1.0
 USER root
 RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 && rm -rf /var/lib/apt/lists/*
@@ -19,15 +19,12 @@ RUN ./configure --enable-cuckoo --enable-magic --enable-dotnet --with-crypto --p
 RUN make
 RUN make install
 
-# Get MWCFG modules
-WORKDIR /tmp
-RUN git clone https://github.com/c3rb3ru5d3d53c/mwcfg-modules.git modules/
-
 # Build the yara python plugins, install other dependencies
 USER assemblyline
 RUN touch /tmp/before-pip
-COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir --user magic-yara-python gitpython plyara -r requirements.txt && rm -rf ~/.cache/pip
+# Get ConfigExtractor library
+RUN git clone --recurse-submodules https://github.com/CybercentreCanada/configextractor-py.git /tmp/configextractor-py
+RUN pip install --no-cache-dir --user magic-yara-python gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/ && rm -rf ~/.cache/pip
 
 # Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
 # files that already exist in the base image
@@ -41,7 +38,7 @@ RUN chown root:root -R /var/lib/assemblyline/.local
 FROM base
 
 COPY --from=build /tmp/yara_install /usr/local
-COPY --from=build /tmp/modules /opt/al_service
+COPY --from=build /tmp/configextractor-py/dependencies /opt/al_service/dependencies
 COPY --chown=assemblyline:assemblyline --from=build /var/lib/assemblyline/.local /var/lib/assemblyline/.local
 
 # Create directories
@@ -64,6 +61,7 @@ RUN chown -R assemblyline /opt/al_service
 
 # Patch version in manifest
 ARG version=4.0.0.dev1
+ENV PUBLIC_SERVICE_VERSION=$version
 RUN sed -i -e "s/\$SERVICE_TAG/$version/g" service_manifest.yml
 
 # Switch to assemblyline user
