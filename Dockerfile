@@ -61,7 +61,7 @@ RUN chown -R assemblyline /opt/al_service
 
 # Patch version in manifest
 ARG version=4.0.0.dev1
-ENV SERVICE_VERSION=$version
+ENV PUBLIC_SERVICE_VERSION=$version
 RUN sed -i -e "s/\$SERVICE_TAG/$version/g" service_manifest.yml
 
 # Switch to assemblyline user
