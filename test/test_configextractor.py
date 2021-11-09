@@ -14,10 +14,9 @@ ROOT_DIR = os.path.dirname(TEST_DIR)
 SERVICE_CONFIG_NAME = "service_manifest.yml"
 SERVICE_CONFIG_PATH = os.path.join(ROOT_DIR, SERVICE_CONFIG_NAME)
 TEMP_SERVICE_CONFIG_PATH = os.path.join("/tmp", SERVICE_CONFIG_NAME)
-PARSER_CLASSIFICATION_EXCLUDE_FILTER = os.environ.get('PARSER_CLASSIFICATION_EXCLUDE', 'NONE') # use ; as delimiter
 
 # Samples that we will be sending to the service
-samples = [ dict(
+samples = [dict(
     sid=1,
     metadata={},
     service_name='configextractor',
@@ -35,7 +34,7 @@ samples = [ dict(
     min_classification='TLP:WHITE',
     max_files=501,  # TODO: get the actual value
     ttl=3600,
-    ),
+),
 ]
 
 
@@ -79,14 +78,7 @@ def parsers():
 
 def get_section_builder_inputs() -> list:
     possible_inputs_for_section_builder = []
-    parser_names = []
-    yara_parser = yaml.safe_load(open("/opt/al_service/dependencies/yara_parser.yaml", 'r').read())
-    if PARSER_CLASSIFICATION_EXCLUDE_FILTER == 'NONE':
-        parser_names = yara_parser.keys()
-    else:
-        exclusion_list = PARSER_CLASSIFICATION_EXCLUDE_FILTER.split(';')
-        parser_names = [k for k, v in yara_parser.items() if v['classification'] not in exclusion_list]
-
+    parser_names = yaml.safe_load(open(cli.YARA_PARSER_PATH, 'r').read()).keys()
     parser_types = ["MWCP", "RATDecoder"]
     field_dict = {
         "address": ['999'],
@@ -131,24 +123,24 @@ def check_section_equality(this, that) -> bool:
     # Heuristics also need their own equality checks
     if this.heuristic and that.heuristic:
         heuristic_equality = this.heuristic.definition.attack_id == that.heuristic.definition.attack_id and \
-                             this.heuristic.definition.classification == that.heuristic.definition.classification and \
-                             this.heuristic.definition.description == that.heuristic.definition.description and \
-                             this.heuristic.definition.filetype == that.heuristic.definition.filetype and \
-                             this.heuristic.definition.heur_id == that.heuristic.definition.heur_id and \
-                             this.heuristic.definition.id == that.heuristic.definition.id and \
-                             this.heuristic.definition.max_score == that.heuristic.definition.max_score and \
-                             this.heuristic.definition.name == that.heuristic.definition.name and \
-                             this.heuristic.definition.score == that.heuristic.definition.score and \
-                             this.heuristic.definition.signature_score_map == \
-                             that.heuristic.definition.signature_score_map
+            this.heuristic.definition.classification == that.heuristic.definition.classification and \
+            this.heuristic.definition.description == that.heuristic.definition.description and \
+            this.heuristic.definition.filetype == that.heuristic.definition.filetype and \
+            this.heuristic.definition.heur_id == that.heuristic.definition.heur_id and \
+            this.heuristic.definition.id == that.heuristic.definition.id and \
+            this.heuristic.definition.max_score == that.heuristic.definition.max_score and \
+            this.heuristic.definition.name == that.heuristic.definition.name and \
+            this.heuristic.definition.score == that.heuristic.definition.score and \
+            this.heuristic.definition.signature_score_map == \
+            that.heuristic.definition.signature_score_map
 
         result_heuristic_equality = heuristic_equality and \
-                                    this.heuristic.attack_ids == that.heuristic.attack_ids and \
-                                    this.heuristic.frequency == that.heuristic.frequency and \
-                                    this.heuristic.heur_id == that.heuristic.heur_id and \
-                                    this.heuristic.score == that.heuristic.score and \
-                                    this.heuristic.score_map == that.heuristic.score_map and \
-                                    this.heuristic.signatures == that.heuristic.signatures
+            this.heuristic.attack_ids == that.heuristic.attack_ids and \
+            this.heuristic.frequency == that.heuristic.frequency and \
+            this.heuristic.heur_id == that.heuristic.heur_id and \
+            this.heuristic.score == that.heuristic.score and \
+            this.heuristic.score_map == that.heuristic.score_map and \
+            this.heuristic.signatures == that.heuristic.signatures
 
     elif not this.heuristic and not that.heuristic:
         result_heuristic_equality = True
@@ -157,12 +149,12 @@ def check_section_equality(this, that) -> bool:
 
     # Assuming we are given the "root section" at all times, it is safe to say that we don't need to confirm parent
     current_section_equality = result_heuristic_equality and \
-                               this.body == that.body and \
-                               this.body_format == that.body_format and \
-                               this.classification == that.classification and \
-                               this.depth == that.depth and \
-                               len(this.subsections) == len(that.subsections) and \
-                               this.title_text == that.title_text
+        this.body == that.body and \
+        this.body_format == that.body_format and \
+        this.classification == that.classification and \
+        this.depth == that.depth and \
+        len(this.subsections) == len(that.subsections) and \
+        this.title_text == that.title_text
 
     if not current_section_equality:
         return False
@@ -178,9 +170,9 @@ def check_section_equality(this, that) -> bool:
 def check_reporter_equality(this, that) -> bool:
     # Checks all mwcp.Report attributes except for managed_tempdir
     reporter_equality = this.errors == that.errors and this.finalized == that.finalized \
-                        and this.input_file == that.input_file \
-                        and {x: sorted(this.metadata[x]) for x in this.metadata.keys()} == that.metadata \
-                        and this.parser == that.parser
+        and this.input_file == that.input_file \
+        and {x: sorted(this.metadata[x]) for x in this.metadata.keys()} == that.metadata \
+        and this.parser == that.parser
     if not reporter_equality:
         return reporter_equality
 
@@ -338,8 +330,8 @@ class TestConfigExtractor:
 
     @staticmethod
     @pytest.mark.parametrize("sample",
-        samples
-    )
+                             samples
+                             )
     def test_execute(sample, class_instance):
         # Imports required to execute the sample
         from assemblyline_v4_service.common.task import Task
@@ -377,7 +369,6 @@ class TestConfigExtractor:
         correct_result_response["milestones"].pop("service_completed")
         correct_result_response.pop("supplementary")
         test_result_response.pop("supplementary")
-
 
         assert test_result_response == correct_result_response
 
@@ -427,8 +418,7 @@ class TestConfigExtractor:
 
 def get_parser_entries():
     import yaml
-    from configextractor.cli import YARA_PARSER_PATH
-    stream = open(YARA_PARSER_PATH, 'r')
+    stream = open(cli.YARA_PARSER_PATH, 'r')
     parser_entries = yaml.full_load(stream)
     return parser_entries
 
@@ -446,9 +436,8 @@ def get_validate_parser_inputs():
 
 def get_report():
     import mwcp
-    from configextractor.cli import MWCP_PARSERS_DIR_PATH
     mwcp.register_entry_points()
-    mwcp.register_parser_directory(MWCP_PARSERS_DIR_PATH)
+    mwcp.register_parser_directory(cli.MWCP_PARSERS_DIR_PATH)
     reporter = mwcp.Report()
     return reporter
 
@@ -506,6 +495,7 @@ def get_tags():
     tags = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
     tags["al_file_rule_yara"] = ""
     return tags
+
 
 def get_new_tags():
     request_task_tags = {"a": "b"}
