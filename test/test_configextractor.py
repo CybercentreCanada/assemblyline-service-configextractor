@@ -2,6 +2,11 @@ import os
 import json
 import pytest
 import shutil
+import yaml
+from configextractor import cli
+cli.ROOT_DIR = '/opt/al_service/dependencies'
+cli.init_root_dependencies()
+cli.load_parsers()
 
 # Getting absolute paths, names and regexes
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -9,6 +14,7 @@ ROOT_DIR = os.path.dirname(TEST_DIR)
 SERVICE_CONFIG_NAME = "service_manifest.yml"
 SERVICE_CONFIG_PATH = os.path.join(ROOT_DIR, SERVICE_CONFIG_NAME)
 TEMP_SERVICE_CONFIG_PATH = os.path.join("/tmp", SERVICE_CONFIG_NAME)
+PARSER_CLASSIFICATION_EXCLUDE_FILTER = os.environ.get('PARSER_CLASSIFICATION_EXCLUDE', 'NONE') # use ; as delimiter
 
 # Samples that we will be sending to the service
 samples = [ dict(
@@ -66,15 +72,21 @@ def class_instance():
 @pytest.fixture
 def parsers():
     from assemblyline.odm.models.tagging import Tagging
-    from configextractor.cli import compile
     correct_yara_externals = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
     correct_yara_externals['al_file_rule_yara'] = ""
-    return compile(correct_yara_externals)
+    return cli.compile(correct_yara_externals)
 
 
 def get_section_builder_inputs() -> list:
     possible_inputs_for_section_builder = []
-    parser_names = [file.split('.py')[0] for file in os.listdir("/opt/al_service/dependencies/mwcp_parsers") if not file.startswith('_') and file.endswith('.py')]
+    parser_names = []
+    yara_parser = yaml.safe_load(open("/opt/al_service/dependencies/yara_parser.yaml", 'r').read())
+    if PARSER_CLASSIFICATION_EXCLUDE_FILTER == 'NONE':
+        parser_names = yara_parser.keys()
+    else:
+        exclusion_list = PARSER_CLASSIFICATION_EXCLUDE_FILTER.split(';')
+        parser_names = [k for k, v in yara_parser.items() if v['classification'] not in exclusion_list]
+
     parser_types = ["MWCP", "RATDecoder"]
     field_dict = {
         "address": ['999'],
