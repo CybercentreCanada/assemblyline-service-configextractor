@@ -80,7 +80,7 @@ def parsers():
 def get_section_builder_inputs() -> list:
     possible_inputs_for_section_builder = []
     parser_names = []
-    yara_parser = yaml.load(open("/opt/al_service/dependencies/yara_parser.yaml", 'r').read())
+    yara_parser = yaml.safe_load(open("/opt/al_service/dependencies/yara_parser.yaml", 'r').read())
     if PARSER_CLASSIFICATION_EXCLUDE_FILTER == 'NONE':
         parser_names = yara_parser.keys()
     else:
