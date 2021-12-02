@@ -6,7 +6,7 @@ import os
 import re
 
 from assemblyline.common import forge
-from assemblyline.odm.base import IP_ONLY_REGEX
+from assemblyline.odm.base import IP_ONLY_REGEX, FULL_URI
 from assemblyline.odm.models.tagging import Tagging
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT
@@ -235,7 +235,7 @@ def tag_network_ioc(section: ResultSection, dataset: List[str]) -> None:
         # Tests indicated the possibilty of nested lists
         if isinstance(data, list):
             tag_network_ioc(section, data)
-        else:
+        elif re.compile(FULL_URI).match(data):
             main_tag = 'network.dynamic.ip' if re.match(IP_ONLY_REGEX, data) else 'network.dynamic.uri'
             section.add_tag(main_tag, data)
 

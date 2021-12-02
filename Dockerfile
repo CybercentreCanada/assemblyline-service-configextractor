@@ -2,7 +2,7 @@ ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch AS base
 
 ENV SERVICE_PATH configextractor_.ConfigExtractor
-ENV YARA_VERSION=4.1.0
+ENV YARA_VERSION=4.1.3
 USER root
 RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 && rm -rf /var/lib/apt/lists/*
 # Create a temporary image to do our compiling in
@@ -24,7 +24,8 @@ USER assemblyline
 RUN touch /tmp/before-pip
 # Get ConfigExtractor library
 RUN git clone --recurse-submodules https://github.com/CybercentreCanada/configextractor-py.git /tmp/configextractor-py
-RUN pip install --no-cache-dir --user magic-yara-python gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/ && rm -rf ~/.cache/pip
+RUN pip install  --global-option="build" --global-option="--enable-dotnet" --global-option="--enable-magic" yara-python==$YARA_VERSION
+RUN pip install --no-cache-dir --user gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/ && rm -rf ~/.cache/pip
 
 # Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
 # files that already exist in the base image
