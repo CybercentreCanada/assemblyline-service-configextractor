@@ -4,6 +4,7 @@ import json
 import tempfile
 import os
 import re
+from mwcp.metadata import File as file_meta_obj
 
 from assemblyline.common import forge
 from assemblyline.odm.base import IP_ONLY_REGEX, FULL_URI
@@ -66,7 +67,6 @@ class ConfigExtractor(ServiceBase):
         self.file_parsers = {}
         self.tag_parsers = None
         self.parser_classification = []  # default should be the classification set for the service.
-        self.mwcp_report = None
         cli.ROOT_DIR = '/opt/al_service/dependencies/'
         cli.init_root_dependencies()
         cli.load_parsers()
@@ -85,10 +85,10 @@ class ConfigExtractor(ServiceBase):
         self.tag_parsers = tag_parsers
 
     def execute(self, request):
-        self.mwcp_report = cli.register()
+        mwcp_report = cli.register()
         result = Result()
         # Run Ratdecoders
-        output = cli.run_ratdecoders(request.file_path, self.mwcp_report)
+        output = cli.run_ratdecoders(request.file_path, mwcp_report)
         if type(output) is str:
             self.log.debug(output)
             output = ""
@@ -108,22 +108,19 @@ class ConfigExtractor(ServiceBase):
             value = " | ".join(v)
             newtags[key] = value
         # get matches for both, dedup then run
-        cli.run_mwcfg(request.file_path, self.mwcp_report)
+        cli.run_mwcfg(request.file_path, mwcp_report)
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
-        output_fields, _ = cli.run(parsers, request.file_path)
-
+        output_fields, reports = cli.run(parsers, request.file_path)
         for parser, field_dict in output_fields.items():
             self.section_builder(parser, field_dict, result)
-            if "outputfile" in field_dict:
-                # outputfile value is a list of lists containing filename, description and md5 has of additional
-                # outputfiles
-                outputfiles = field_dict['outputfile']
-                for output_list in outputfiles:
-                    output_filename = output_list[0]
-                    output_description = output_list[1]
-                    output_md5 = output_list[2]
-                    output_fullpath = os.path.join(os.getcwd(), output_md5[:5] + '_' + output_filename)
-                    request.add_supplementary(output_fullpath, output_filename, output_description)
+        for report in reports:
+            for metadata_list in report._metadata.values():
+                for meta in metadata_list:
+                    if isinstance(meta, file_meta_obj):
+                        with tempfile.NamedTemporaryFile(dir=self.working_directory, delete=False) as tmp_file:
+                            tmp_file.write(meta.data)
+                            tmp_file.seek(0)
+                            request.add_supplementary(tmp_file.name, f"{meta.md5[:5]}_{meta.name}", meta.description)
         fd, temp_path = tempfile.mkstemp(dir=self.working_directory)
         if output or output_fields:
             with os.fdopen(fd, "w") as myfile:
