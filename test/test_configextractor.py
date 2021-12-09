@@ -318,7 +318,6 @@ class TestConfigExtractor:
         assert class_instance.file_parsers == {}
         assert class_instance.tag_parsers is None
         assert class_instance.parser_classification == []
-        assert class_instance.mwcp_report is None
 
     @staticmethod
     def test_start(class_instance, parsers):
