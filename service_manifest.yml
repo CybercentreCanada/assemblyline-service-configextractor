@@ -1,4 +1,3 @@
-
 name: ConfigExtractor
 version: $SERVICE_TAG
 description: >
@@ -18,35 +17,33 @@ timeout: 10
 
 disable_cache: false
 
-
 enabled: true
 
 is_external: false
 
 licence_count: 0
 
+uses_tags: true
+
 # Service configuration block (dictionary of config variables)
 heuristics:
-
   - heur_id: 1
     name: Extracted Malware Configuration
     score: 1000
-    filetype: '*'
+    filetype: "*"
     description: Category - Malware - Indicates configuration block was extracted
 
   - heur_id: 2
     name: Safe
     score: -1000
-    filetype: '*'
+    filetype: "*"
     description: Category - Safe
 
   - heur_id: 3
     name: De-obfuscated Network IOCs
     score: 1000
-    filetype: '*'
+    filetype: "*"
     description: Category - Malicious - Indicates a network IOC was extracted from malware configuration
-
-
 
 # Docker configuration block which defines:
 #  - the name of the docker container that will be created
