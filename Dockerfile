@@ -1,7 +1,7 @@
 ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch AS base
 
-ENV SERVICE_PATH configextractor_.ConfigExtractor
+ENV SERVICE_PATH configextractor_.configextractor_.ConfigExtractor
 ENV YARA_VERSION=4.1.3
 USER root
 RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 && rm -rf /var/lib/apt/lists/*

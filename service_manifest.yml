@@ -45,6 +45,25 @@ heuristics:
     filetype: "*"
     description: Category - Malicious - Indicates a network IOC was extracted from malware configuration
 
+dependencies:
+  updates:
+    container:
+      allow_internet_access: true
+      command: ["python", "-m", "configextractor_.update_server"]
+      image: ${REGISTRY}cccs/assemblyline-service-configextractor:$SERVICE_TAG
+      ports: ["5003"]
+      ram_mb: 4096
+      cpu_cores: 1.0
+    run_as_core: True
+
+update_config:
+  generates_signatures: false
+  sources:
+    - name: configextractor-py
+      pattern: .*\/dependencies\/$
+      uri: https://github.com/CybercentreCanada/configextractor-py
+  update_interval_seconds: 2592000 # Once a month
+
 # Docker configuration block which defines:
 #  - the name of the docker container that will be created
 #  - cpu and ram allocation by the container
