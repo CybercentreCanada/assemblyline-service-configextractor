@@ -25,7 +25,8 @@ RUN touch /tmp/before-pip
 # Get ConfigExtractor library
 RUN git clone --recurse-submodules https://github.com/CybercentreCanada/configextractor-py.git /tmp/configextractor-py
 RUN pip install  --global-option="build" --global-option="--enable-dotnet" --global-option="--enable-magic" yara-python==$YARA_VERSION
-RUN pip install --no-cache-dir --user gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/ && rm -rf ~/.cache/pip
+RUN pip install --no-cache-dir --user --use-deprecated=legacy-resolver \
+gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/ && rm -rf ~/.cache/pip
 
 # Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
 # files that already exist in the base image
