@@ -71,6 +71,12 @@ class ConfigExtractor(ServiceBase):
         cli.init_root_dependencies()
         cli.load_parsers()
 
+    def _load_rules(self) -> None:
+        # Register with library
+        cli.ROOT_DIR = self.rules_directory
+        cli.init_root_dependencies()
+        cli.load_parsers()
+
     def start(self):
         yara_externals = {f'al_{x.replace(".", "_")}': "" for x in Tagging.flat_fields().keys()}
         yara_externals.update(

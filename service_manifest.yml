@@ -54,6 +54,14 @@ dependencies:
       ports: ["5003"]
       ram_mb: 4096
       cpu_cores: 1.0
+      environment:
+        - name: UPDATER_DIR
+          value: /mnt/persistent_updates/
+    volumes:
+      updates:
+        mount_path: /mnt/persistent_updates/
+        capacity: 5242880
+        storage_class: default
     run_as_core: True
 
 update_config:
@@ -61,7 +69,7 @@ update_config:
   sources:
     - name: configextractor-py
       pattern: .*\/dependencies\/$
-      uri: https://github.com/CybercentreCanada/configextractor-py
+      uri: git@github.com:CybercentreCanada/configextractor-py.git
   update_interval_seconds: 2592000 # Once a month
 
 # Docker configuration block which defines:
