@@ -43,7 +43,7 @@ class ConfigXUpdateServer(ServiceUpdater):
         # Compile all dependencies together
         for folder in os.listdir(LATEST_UPDATES):
             # Analyze the yara_parser.yaml, look for duplications or potential 'toe-stepping' (ie. same name for a rule file)
-            yara_parser = yaml.safe_load(open(os.path.join(folder, 'yara_parser.yaml'), 'r').read())
+            yara_parser = yaml.safe_load(open(os.path.join(LATEST_UPDATES, folder, 'yara_parser.yaml'), 'r').read())
             for name, config in yara_parser.items():
                 if master_yara_parser.get(name):
                     # If there is duplication at the parser-level, we may need to rename the parser files and the configuration
