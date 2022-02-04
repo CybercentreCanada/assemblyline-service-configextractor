@@ -26,13 +26,7 @@ class ConfigXUpdateServer(ServiceUpdater):
             if item.startswith("time_keeper_") | item.startswith("signatures_"):
                 os.remove(item)
 
-    def do_local_update(self) -> None:
-        # We're pulling in updates that aren't signatures from a persistent disk
-        _, time_keeper = tempfile.mkstemp(prefix="time_keeper_", dir=UPDATER_DIR)
-        output_directory = self.prepare_output_dir()
-        self.serve_directory(output_directory, time_keeper)
-
-    def prepare_output_dir(self) -> str:
+    def prepare_output_directory(self) -> str:
         def rename_key(name, keys):
             i = 1
             while f'{name}_{i}' in keys:
@@ -80,20 +74,23 @@ class ConfigXUpdateServer(ServiceUpdater):
     def import_update(self, files_sha256, client, source, default_classification) -> None:
         # Expecting one folder per source
         folder = files_sha256[0][0]
-        yara_parser = yaml.safe_load(open(os.path.join(folder, 'yara_parser.yaml'), 'r').read())
+        yara_parser_path = os.path.join(folder, 'yara_parser.yaml')
+        yara_parser = yaml.safe_load(open(yara_parser_path, 'r').read())
         for name, config in yara_parser.items():
             if not config.get('classification'):
                 # If classification is missing from a parser config, use default_classification
                 yara_parser[name]['classification'] = default_classification
 
         # Save modified contents back to disk
-        open(os.path.join(os.path.join(folder, 'yara_parser.yaml'), 'yara_parser.yaml'), 'w').write(yaml.dump(yara_parser))
+        open(yara_parser_path, 'w').write(yaml.dump(yara_parser))
 
         # Delete everything formerly downloaded by the source
-        shutil.rmtree(os.path.join(LATEST_UPDATES, source))
+        dest_dir = os.path.join(LATEST_UPDATES, source)
+        if os.path.exists(dest_dir):
+            shutil.rmtree(dest_dir)
 
         # Move to latest updates directory
-        shutil.move(folder, os.path.join(LATEST_UPDATES, source))
+        shutil.move(folder, dest_dir)
 
     def is_valid(self, file_path) -> bool:
         # Make sure structure of unpacked archive matches expected directory structure
