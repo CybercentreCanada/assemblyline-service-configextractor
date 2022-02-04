@@ -67,7 +67,7 @@ class ConfigXUpdateServer(ServiceUpdater):
             master_yara_parser[name] = config
 
             # Once we're satisified, copy the potentially modified structure to our compile_dir directory
-            shutil.copytree(dependency, compile_dir)
+            shutil.copytree(dependency, compile_dir, dirs_exist_ok=True)
 
         # Once we iterate over all dependencies, save the contents of yara_parser into yara_parser.yaml at the root
         open(os.path.join(compile_dir, 'yara_parser.yaml'), 'w').write(yaml.dump(master_yara_parser))
