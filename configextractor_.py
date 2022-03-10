@@ -90,7 +90,10 @@ class ConfigExtractor(ServiceBase):
         # Run Ratdecoders
         output = cli.run_ratdecoders(request.file_path, mwcp_report)
         if type(output) is str:
-            self.log.debug(output)
+            if "error" in output:
+                self.log.warning(output)
+            else:
+                self.log.debug(output)
             output = ""
         if type(output) is dict:
             self.log.debug(output)
