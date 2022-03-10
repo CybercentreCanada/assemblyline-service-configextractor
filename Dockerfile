@@ -24,23 +24,28 @@ USER assemblyline
 RUN touch /tmp/before-pip
 # Get ConfigExtractor library
 RUN git clone --recurse-submodules https://github.com/CybercentreCanada/configextractor-py.git /tmp/configextractor-py
-RUN pip install  --global-option="build" --global-option="--enable-dotnet" --global-option="--enable-magic" yara-python==$YARA_VERSION
+RUN pip install --global-option="build" --global-option="--enable-dotnet" --global-option="--enable-magic" yara-python==$YARA_VERSION
 RUN pip install --no-cache-dir --user --use-deprecated=legacy-resolver \
  gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/ && rm -rf ~/.cache/pip
 
-# Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
-# files that already exist in the base image
-RUN find /var/lib/assemblyline/.local -type f ! -newer /tmp/before-pip -delete
+RUN git clone https://github.com/kevoreilly/CAPEv2.git /tmp/CAPEv2
+RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/*.py_disabled
+RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/test_cape.py
 
-# Switch back to root and change the ownership of the files to be copied due to bitbucket pipeline uid nonsense
-USER root
-RUN chown root:root -R /var/lib/assemblyline/.local
+# # Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
+# # files that already exist in the base image
+# RUN find /var/lib/assemblyline/.local -type f ! -newer /tmp/before-pip -delete
+
+# # Switch back to root and change the ownership of the files to be copied due to bitbucket pipeline uid nonsense
+# USER root
+# RUN chown root:root -R /var/lib/assemblyline/.local
 
 # Revert back to before the compile
 FROM base
 
 COPY --from=build /tmp/yara_install /usr/local
 COPY --from=build /tmp/configextractor-py/dependencies /opt/al_service/dependencies
+COPY --from=build /tmp/CAPEv2/ /opt/al_service/CAPEv2
 COPY --chown=assemblyline:assemblyline --from=build /var/lib/assemblyline/.local /var/lib/assemblyline/.local
 
 # Create directories
@@ -64,6 +69,8 @@ RUN chown -R assemblyline /opt/al_service
 # Patch version in manifest
 ARG version=4.0.0.dev1
 ENV PUBLIC_SERVICE_VERSION=$version
+ENV CAPE_PARSERS_DIR=/opt/al_service/CAPEv2/modules/processing/parsers/CAPE/
+ENV PYTHONPATH=$PYTHONPATH:/opt/al_service/CAPEv2/
 RUN sed -i -e "s/\$SERVICE_TAG/$version/g" service_manifest.yml
 
 # Switch to assemblyline user

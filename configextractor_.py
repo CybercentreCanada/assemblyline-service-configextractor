@@ -112,6 +112,24 @@ class ConfigExtractor(ServiceBase):
             newtags[key] = value
         # get matches for both, dedup then run
         cli.run_mwcfg(request.file_path, mwcp_report)
+        cli.run_cape(request.file_path, mwcp_report)
+
+        # Handle metadata from mwcp_report, generate section
+        metadata = mwcp_report.metadata
+        metadata.pop('debug', [])  # Dumped as separate file
+        metadata.pop('other', [])  # Another section displays 'other' data
+        if metadata:
+            meta_section = ResultSection('MWCP Metadata', body=json.dumps(
+                metadata), body_format=BODY_FORMAT.JSON)
+            tags = dict()
+            for field, data in metadata.items():
+                if FIELD_TAG_MAP.get(field):
+                    if FIELD_TAG_MAP[field].startswith('network'):
+                        tag_network_ioc(meta_section, data)
+                    else:
+                        [meta_section.add_tag(FIELD_TAG_MAP[field], d) for d in data]
+            result.add_section(meta_section)
+
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
         output_fields, reports = cli.run(parsers, request.file_path)
         for parser, field_dict in output_fields.items():
