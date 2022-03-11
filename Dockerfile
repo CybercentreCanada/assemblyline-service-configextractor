@@ -31,6 +31,7 @@ RUN pip install --no-cache-dir --user --use-deprecated=legacy-resolver \
 RUN git clone https://github.com/kevoreilly/CAPEv2.git /tmp/CAPEv2
 RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/*.py_disabled
 RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/test_cape.py
+RUN rm -rf /tmp/CAPEv2/tests
 
 # # Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
 # # files that already exist in the base image

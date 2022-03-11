@@ -49,6 +49,7 @@ jobs:
           git clone https://github.com/kevoreilly/CAPEv2.git /opt/al_service/CAPEv2
           sudo rm -f /opt/al_service/CAPEv2/modules/processing/parsers/CAPE/*.py_disabled
           sudo rm -f /opt/al_service/CAPEv2/modules/processing/parsers/CAPE/test_cape.py
+          sudo rm -rf /opt/al_service/CAPEv2/tests
           CAPE_PARSERS_DIR=/opt/al_service/CAPEv2/modules/processing/parsers/CAPE/
           PYTHONPATH=$PYTHONPATH:/opt/al_service/CAPEv2/
           sudo mv /tmp/configextractor-py/dependencies /opt/al_service/dependencies
