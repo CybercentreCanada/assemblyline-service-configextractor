@@ -31,6 +31,12 @@ RUN pip install --no-cache-dir --user --use-deprecated=legacy-resolver \
 RUN git clone https://github.com/kevoreilly/CAPEv2.git /tmp/CAPEv2
 RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/*.py_disabled
 RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/test_cape.py
+RUN mkdir -p /tmp/al_service/CAPEv2/modules/processing/parsers/CAPE/
+RUN cp -r /tmp/CAPEv2/modules/processing/parsers/CAPE/* /tmp/al_service/CAPEv2/modules/processing/parsers/CAPE/
+RUN mkdir -p /tmp/al_service/CAPEv2/lib
+RUN cp -r /tmp/CAPEv2/lib/* /tmp/al_service/CAPEv2/lib/
+
+RUN rm -rf /tmp/CAPEv2
 
 # # Remove files that existed before the pip install so that our copy command below doesn't take a snapshot of
 # # files that already exist in the base image
@@ -45,7 +51,7 @@ FROM base
 
 COPY --from=build /tmp/yara_install /usr/local
 COPY --from=build /tmp/configextractor-py/dependencies /opt/al_service/dependencies
-COPY --from=build /tmp/CAPEv2/ /opt/al_service/CAPEv2
+COPY --from=build /tmp/al_service/CAPEv2/ /opt/al_service/CAPEv2
 COPY --chown=assemblyline:assemblyline --from=build /var/lib/assemblyline/.local /var/lib/assemblyline/.local
 
 # Create directories
