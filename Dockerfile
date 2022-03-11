@@ -2,7 +2,7 @@ ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch AS base
 
 ENV SERVICE_PATH configextractor_.ConfigExtractor
-ENV YARA_VERSION=4.1.3
+ENV YARA_VERSION=4.2.0
 USER root
 RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 && rm -rf /var/lib/apt/lists/*
 # Create a temporary image to do our compiling in
@@ -29,8 +29,15 @@ RUN pip install --no-cache-dir --user --use-deprecated=legacy-resolver \
  gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/ && rm -rf ~/.cache/pip
 
 RUN git clone https://github.com/kevoreilly/CAPEv2.git /tmp/CAPEv2
+
+# Remove disabled/test parsers
 RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/*.py_disabled
 RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/test_cape.py
+
+# Remove 'bad' parsers
+RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/LokiBot.py
+RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/GuLoader.py
+
 RUN mkdir -p /tmp/al_service/CAPEv2/modules/processing/parsers/CAPE/
 RUN cp -r /tmp/CAPEv2/modules/processing/parsers/CAPE/* /tmp/al_service/CAPEv2/modules/processing/parsers/CAPE/
 RUN mkdir -p /tmp/al_service/CAPEv2/lib
