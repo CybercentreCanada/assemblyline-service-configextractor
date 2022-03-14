@@ -26,9 +26,13 @@ RUN touch /tmp/before-pip
 RUN git clone --recurse-submodules https://github.com/CybercentreCanada/configextractor-py.git /tmp/configextractor-py
 RUN pip install --global-option="build" --global-option="--enable-dotnet" --global-option="--enable-magic" yara-python==$YARA_VERSION
 RUN pip install --no-cache-dir --user --use-deprecated=legacy-resolver \
- gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/ && rm -rf ~/.cache/pip
+ gitpython plyara /tmp/configextractor-py/RATDecoders/ /tmp/configextractor-py/
 
 RUN git clone https://github.com/kevoreilly/CAPEv2.git /tmp/CAPEv2
+
+# Install packages required for CAPE's cuckoo library
+RUN pip install chardet pyzipper \
+ && rm -rf ~/.cache/pip
 
 # Remove disabled/test parsers
 RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/*.py_disabled
