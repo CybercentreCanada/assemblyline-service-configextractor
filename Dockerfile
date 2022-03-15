@@ -41,6 +41,7 @@ RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/test_cape.py
 # Remove 'bad' parsers
 RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/LokiBot.py
 RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/GuLoader.py
+RUN rm -f /tmp/CAPEv2/modules/processing/parsers/CAPE/SquirrelWaffle.py
 
 RUN mkdir -p /tmp/al_service/CAPEv2/modules/processing/parsers/CAPE/
 RUN cp -r /tmp/CAPEv2/modules/processing/parsers/CAPE/* /tmp/al_service/CAPEv2/modules/processing/parsers/CAPE/
