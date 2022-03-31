@@ -128,7 +128,9 @@ class ConfigExtractor(ServiceBase):
                         tag_network_ioc(meta_section, data)
                     else:
                         [meta_section.add_tag(FIELD_TAG_MAP[field], d) for d in data]
-            result.add_section(meta_section)
+
+            if meta_section.tags:
+                result.add_section(meta_section)
 
         parsers = cli.deduplicate(self.file_parsers, self.tag_parsers, request.file_path, newtags)
         output_fields, reports = cli.run(parsers, request.file_path)
