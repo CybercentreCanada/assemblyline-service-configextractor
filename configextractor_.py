@@ -112,7 +112,8 @@ class ConfigExtractor(ServiceBase):
             newtags[key] = value
         # get matches for both, dedup then run
         cli.run_mwcfg(request.file_path, mwcp_report)
-        cli.run_cape(request.file_path, mwcp_report)
+        if request.get_param('use_cape'):
+            cli.run_cape(request.file_path, mwcp_report)
 
         # Handle metadata from mwcp_report, generate section
         metadata = mwcp_report.metadata
