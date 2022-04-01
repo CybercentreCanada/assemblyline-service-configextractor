@@ -25,6 +25,13 @@ licence_count: 0
 
 uses_tags: true
 
+submission_params:
+  # Use CAPE parsers
+  - name: use_cape
+    type: bool
+    value: false
+    default: false
+
 # Service configuration block (dictionary of config variables)
 heuristics:
   - heur_id: 1
