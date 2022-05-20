@@ -3,6 +3,10 @@ FROM cccs/assemblyline-v4-service-base:$branch AS base
 
 ENV SERVICE_PATH configextractor_.ConfigExtractor
 ENV YARA_VERSION=4.2.0
+
+USER assemblyline
+RUN pip uninstall -y yara-python
+
 USER root
 RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 && rm -rf /var/lib/apt/lists/*
 # Create a temporary image to do our compiling in
