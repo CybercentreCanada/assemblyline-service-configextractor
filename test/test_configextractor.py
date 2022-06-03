@@ -334,9 +334,6 @@ class TestConfigExtractor:
         # task.service_config = {<put service config here>}
         class_instance.execute(service_request)
 
-        # Get the result of execute() from the test method
-        test_result = task.get_service_result()
-
     @staticmethod
     @pytest.mark.parametrize("parser,field_dict,parsertype",
                              get_section_builder_inputs()
