@@ -167,7 +167,7 @@ class ConfigExtractor(ServiceBase):
             for name, obj in self.file_parsers.items():
                 if parser in obj.parser_list:
                     malware_name = obj.malware
-                    malware_types = obj.malware_types
+                    malware_types = obj.malware_types if isinstance(obj.malware_types, list) else [obj.malware_types]
                     mitre_att = obj.mitre_att
                     mitre_group = obj.mitre_group
                     category = obj.category
