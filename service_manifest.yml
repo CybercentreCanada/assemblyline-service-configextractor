@@ -79,7 +79,7 @@ update_config:
     - name: CAPE
       pattern: .*/modules/processing/parsers/CAPE/$
       uri: https://github.com/kevoreilly/CAPEv2.git
-      classification: TLP:W
+      default_classification: TLP:W
   update_interval_seconds: 21600 # Quarter-day (every 6 hours)
   wait_for_update: true
   signature_delimiter: file
