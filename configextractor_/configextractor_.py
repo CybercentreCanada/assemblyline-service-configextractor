@@ -43,7 +43,7 @@ class ConfigExtractor(ServiceBase):
             blocklist_location = os.path.join(self.rules_directory, 'blocked_parsers')
             if os.path.exists(blocklist_location):
                 for line in open(blocklist_location, 'r').readlines():
-                    _, source, _, parser_name = line.split('_')
+                    _, source, _, parser_name = line.split('_', 3)
                     blocklist.append(rf"*{parser_name}$")
             self.log.info(f'Blocking the following parsers matching these patterns: {blocklist}')
             self.cx = CX(parsers_dirs=self.rules_list, logger=self.log, parser_blocklist=blocklist)
