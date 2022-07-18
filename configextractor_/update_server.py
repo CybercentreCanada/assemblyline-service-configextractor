@@ -39,7 +39,7 @@ class CXUpdateServer(ServiceUpdater):
             # Remove cached duplicates
             dir = dir[:-1]
             self.log.info(dir)
-            cx = ConfigExtractor(parsers_dir=dir, logger=self.log, check_extension=True)
+            cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log, check_extension=True)
             resp = import_parsers(cx)
             self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
             self.log.debug(resp)
