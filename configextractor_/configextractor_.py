@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Any
 
 from assemblyline.common import forge
 from assemblyline.odm.base import IP_ONLY_REGEX, FULL_URI, DOMAIN_ONLY_REGEX
@@ -55,21 +56,28 @@ class ConfigExtractor(ServiceBase):
             raise Exception(
                 f"Unable to start ConfigExtractor because can't find parsers in given directory: {self.rules_directory}")
 
-    def tag_output(self, output: dict, tags: dict = {}):
-        for value in output.values():
-            if isinstance(value, dict):
-                self.tag_output(value, tags)
-            elif isinstance(value, list):
-                for v in value:
-                    self.tag_output(value, tags)
+    # Temporary tagging method until CAPE is switched over to MACO modelling
+    def tag_output(self, output: Any, tags: dict = {}):
+        def tag_string(value):
+            if regex.search(IP_ONLY_REGEX, value):
+                tags['network.static.ip'].append(value)
+            elif regex.search(DOMAIN_ONLY_REGEX, value):
+                tags['network.static.domain'].append(value)
+            elif regex.search(FULL_URI, value):
+                tags['network.static.uri'].append(value)
 
-            if isinstance(value, str):
-                if regex.search(IP_ONLY_REGEX, value):
-                    tags['network.static.ip'].append(value)
-                elif regex.search(DOMAIN_ONLY_REGEX, value):
-                    tags['network.static.domain'].append(value)
-                elif regex.search(FULL_URI, value):
-                    tags['network.static.uri'].append(value)
+        if isinstance(output, dict):
+            # Iterate over valuse of dictionary
+            for value in output.values():
+                if isinstance(value, dict):
+                    self.tag_output(value, tags)
+                elif isinstance(value, list):
+                    [self.tag_output(v, tags) for v in value]
+                elif isinstance(value, str):
+                    tag_string(value)
+
+        elif isinstance(value, str):
+            tag_string(value)
 
     def execute(self, request):
         result = Result()
