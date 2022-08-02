@@ -76,8 +76,8 @@ class ConfigExtractor(ServiceBase):
                 elif isinstance(value, str):
                     tag_string(value)
 
-        elif isinstance(value, str):
-            tag_string(value)
+        elif isinstance(output, str):
+            tag_string(output)
 
     def execute(self, request):
         result = Result()
