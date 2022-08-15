@@ -21,6 +21,7 @@ class CXUpdateServer(ServiceUpdater):
         def import_parsers(cx: ConfigExtractor):
             upload_list = list()
             parser_paths = cx.parsers.keys()
+            self.log.debug(f"Importing following parsers: {parser_paths}")
             for parser_path in parser_paths:
                 parser_details = cx.get_details(parser_path)
                 if parser_details:
@@ -39,18 +40,24 @@ class CXUpdateServer(ServiceUpdater):
             # Remove cached duplicates
             dir = dir[:-1]
             self.log.info(dir)
-            cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log, check_extension=True)
-            resp = import_parsers(cx)
-            self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
-            self.log.debug(resp)
+            cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
+            if cx.parsers:
+                self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
+                resp = import_parsers(cx)
+                self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
+                self.log.debug(resp)
 
-            # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
-            try:
-                shutil.move(dir, os.path.join(self.latest_updates_dir, source_name))
-            except shutil.Error as e:
-                if 'already exists' in str(e):
-                    continue
-                raise e
+                # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
+                try:
+                    destination = os.path.join(self.latest_updates_dir, source_name)
+                    # Removing old version of directory if exists
+                    if os.path.exists(destination):
+                        shutil.rmtree(destination)
+                    shutil.move(dir, destination)
+                except shutil.Error as e:
+                    if 'already exists' in str(e):
+                        continue
+                    raise e
 
     def do_local_update(self) -> None:
         old_update_time = self.get_local_update_time()
