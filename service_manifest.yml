@@ -33,18 +33,22 @@ heuristics:
     score: 1000
     filetype: "*"
     description: Category - Malware - Indicates configuration block was extracted
-
   - heur_id: 2
-    name: Safe
-    score: -1000
-    filetype: "*"
-    description: Category - Safe
-
-  - heur_id: 3
     name: De-obfuscated Network IOCs
-    score: 1000
+    score: 50
     filetype: "*"
-    description: Category - Malicious - Indicates a network IOC was extracted from malware configuration
+    signature_score_map:
+      # Connection usage may be indicative of maliciousness
+      c2: 1000
+      upload: 1000
+      download: 1000
+      propagate: 1000
+      tunnel: 1000
+      ransom: 1000
+      decoy: 10 # Used to mask actual malicious connection but the connections themselves aren't malicious
+      other: 10
+
+    description: Indicates a network IOC was extracted from malware configuration
 
 # Docker configuration block which defines:
 #  - the name of the docker container that will be created
