@@ -5,17 +5,20 @@ from assemblyline.common import forge
 from assemblyline.odm.base import IP_ONLY_REGEX, FULL_URI, DOMAIN_ONLY_REGEX
 from assemblyline.odm.models.tagging import Tagging
 from assemblyline_v4_service.common.base import ServiceBase
-from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT
+from assemblyline_v4_service.common.result import Result, ResultSection, ResultTableSection, BODY_FORMAT, TableRow, Heuristic
 
 import json
 import hashlib
 import os
 import regex
+import tempfile
 
 from configextractor.main import ConfigExtractor as CX
-
+from maco.model import ExtractorModel, ConnUsageEnum
 
 cl_engine = forge.get_classification()
+
+CONNECTION_USAGE = [k.name for k in ConnUsageEnum]
 
 
 class ConfigExtractor(ServiceBase):
@@ -79,11 +82,55 @@ class ConfigExtractor(ServiceBase):
         elif isinstance(output, str):
             tag_string(output)
 
+    def network_ioc_section(self, config) -> ResultSection:
+        network_section = ResultSection("Network IOCs")
+
+        network_fields = {
+            'ftp': ExtractorModel.FTP,
+            'smtp': ExtractorModel.SMTP,
+            'http': ExtractorModel.Http,
+            'ssh': ExtractorModel.SSH,
+            'proxy': ExtractorModel.Proxy,
+            'dns': ExtractorModel.DNS,
+            'tcp': ExtractorModel.Connection,
+            'udp': ExtractorModel.Connection
+        }
+        for field, model in network_fields.items():
+            sorted_network_config = {}
+            for network_config in config.get(field, []):
+                sorted_network_config.setdefault(network_config.get('usage', 'other'), []).append(network_config)
+
+            if sorted_network_config:
+                connection_section = ResultSection(field.upper(), parent=network_section)
+                for usage, connections in sorted_network_config.items():
+                    tags = list()
+                    self.tag_output(connections, tags)
+                    table_section = ResultTableSection(title_text=f"Usage: {usage.upper()} x{len(connections)}", parent=connection_section, heuristic=Heuristic(2, signature=usage), tags=tags)
+                    [table_section.add_row(TableRow(**model(**c).dict())) for c in connections]
+
+        if network_section.subsections:
+            return network_section
+
     def execute(self, request):
         result = Result()
         config_result = self.cx.run_parsers(request.file_path)
-        tags = defaultdict(list)
-        self.tag_output(config_result, tags)
-        result.add_section(ResultSection('Output', body=json.dumps(config_result),
-                                         body_format=BODY_FORMAT.JSON, tags=tags))
+        if not config_result:
+            request.result = result
+            return
+
+        a = tempfile.NamedTemporaryFile(delete=False)
+        a.write(json.dumps(config_result).encode())
+        a.seek(0)
+        request.add_supplementary(a.name, f"{request.sha256}_malware_config.json", "Raw output from configextractor-py")
+        for parser_framework, parser_results in config_result.items():
+            framework_section = ResultSection(parser_framework, parent=result, auto_collapse=True)
+            for parser_name, parser_output in parser_results.items():
+                config = parser_output.pop('config')
+                parser_output['family'] = config.pop('family')
+                parser_section = ResultSection(title_text=parser_name, body=json.dumps(parser_output), parent=framework_section, body_format=BODY_FORMAT.KEY_VALUE)
+                network_section = self.network_ioc_section(config)
+                if network_section:
+                    parser_section.add_subsection(network_section)
+
+
         request.result = result
