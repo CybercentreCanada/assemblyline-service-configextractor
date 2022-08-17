@@ -1,11 +1,16 @@
-from collections import defaultdict
 from typing import Any
 
 from assemblyline.common import forge
 from assemblyline.odm.base import IP_ONLY_REGEX, FULL_URI, DOMAIN_ONLY_REGEX
-from assemblyline.odm.models.tagging import Tagging
 from assemblyline_v4_service.common.base import ServiceBase
-from assemblyline_v4_service.common.result import Result, ResultSection, ResultTableSection, BODY_FORMAT, TableRow, Heuristic
+from assemblyline_v4_service.common.result import (
+    Result,
+    ResultSection,
+    ResultTableSection,
+    BODY_FORMAT,
+    TableRow,
+    Heuristic,
+)
 
 import json
 import hashlib
@@ -40,41 +45,54 @@ class ConfigExtractor(ServiceBase):
         if len(all_sha256s) == 1:
             return all_sha256s[0][:7]
 
-        return hashlib.sha256(' '.join(sorted(all_sha256s)).encode('utf-8')).hexdigest()[:7]
+        return hashlib.sha256(
+            " ".join(sorted(all_sha256s)).encode("utf-8")
+        ).hexdigest()[:7]
 
     def _load_rules(self) -> None:
         if self.rules_list:
             self.log.debug(self.rules_list)
             blocklist = []
-            blocklist_location = os.path.join(self.rules_directory, 'blocked_parsers')
-            self.source_map = json.loads(open(os.path.join(self.rules_directory, 'source_mapping.json')).read())
-            python_packages_dir = os.path.join(self.rules_directory, 'python_packages')
+            blocklist_location = os.path.join(self.rules_directory, "blocked_parsers")
+            self.source_map = json.loads(
+                open(os.path.join(self.rules_directory, "source_mapping.json")).read()
+            )
+            python_packages_dir = os.path.join(self.rules_directory, "python_packages")
             if python_packages_dir not in sys.path:
                 sys.path.append(python_packages_dir)
 
             if os.path.exists(blocklist_location):
-                for line in open(blocklist_location, 'r').readlines():
-                    _, source, _, parser_name = line.split('_', 3)
+                for line in open(blocklist_location, "r").readlines():
+                    _, source, _, parser_name = line.split("_", 3)
                     blocklist.append(rf".*{parser_name}$")
-            self.log.info(f'Blocking the following parsers matching these patterns: {blocklist}')
-            self.cx = CX(parsers_dirs=self.rules_list, logger=self.log, parser_blocklist=blocklist)
+            self.log.info(
+                f"Blocking the following parsers matching these patterns: {blocklist}"
+            )
+            self.cx = CX(
+                parsers_dirs=self.rules_list,
+                logger=self.log,
+                parser_blocklist=blocklist,
+            )
 
         if not self.cx:
-            raise Exception("Unable to start ConfigExtractor because can't find directory containing parsers")
+            raise Exception(
+                "Unable to start ConfigExtractor because can't find directory containing parsers"
+            )
 
         if not self.cx.parsers:
             raise Exception(
-                f"Unable to start ConfigExtractor because can't find parsers in given directory: {self.rules_directory}")
+                f"Unable to start ConfigExtractor because can't find parsers in given directory: {self.rules_directory}"
+            )
 
     # Temporary tagging method until CAPE is switched over to MACO modelling
     def tag_output(self, output: Any, tags: dict = {}):
         def tag_string(value):
             if regex.search(IP_ONLY_REGEX, value):
-                tags['network.static.ip'].append(value)
+                tags["network.static.ip"].append(value)
             elif regex.search(DOMAIN_ONLY_REGEX, value):
-                tags['network.static.domain'].append(value)
+                tags["network.static.domain"].append(value)
             elif regex.search(FULL_URI, value):
-                tags['network.static.uri'].append(value)
+                tags["network.static.uri"].append(value)
 
         if isinstance(output, dict):
             # Iterate over valuse of dictionary
@@ -93,27 +111,40 @@ class ConfigExtractor(ServiceBase):
         network_section = ResultSection("Network IOCs")
 
         network_fields = {
-            'ftp': ExtractorModel.FTP,
-            'smtp': ExtractorModel.SMTP,
-            'http': ExtractorModel.Http,
-            'ssh': ExtractorModel.SSH,
-            'proxy': ExtractorModel.Proxy,
-            'dns': ExtractorModel.DNS,
-            'tcp': ExtractorModel.Connection,
-            'udp': ExtractorModel.Connection
+            "ftp": ExtractorModel.FTP,
+            "smtp": ExtractorModel.SMTP,
+            "http": ExtractorModel.Http,
+            "ssh": ExtractorModel.SSH,
+            "proxy": ExtractorModel.Proxy,
+            "dns": ExtractorModel.DNS,
+            "tcp": ExtractorModel.Connection,
+            "udp": ExtractorModel.Connection,
         }
         for field, model in network_fields.items():
             sorted_network_config = {}
-            for network_config in config.get(field, []):
-                sorted_network_config.setdefault(network_config.get('usage', 'other'), []).append(network_config)
+            for network_config in config.pop(field, []):
+                sorted_network_config.setdefault(
+                    network_config.get("usage", "other"), []
+                ).append(network_config)
 
             if sorted_network_config:
-                connection_section = ResultSection(field.upper(), parent=network_section)
+                connection_section = ResultSection(
+                    field.upper(), parent=network_section
+                )
                 for usage, connections in sorted_network_config.items():
                     tags = list()
-                    self.tag_output(connections, tags)
-                    table_section = ResultTableSection(title_text=f"Usage: {usage.upper()} x{len(connections)}", parent=connection_section, heuristic=Heuristic(2, signature=usage), tags=tags)
-                    [table_section.add_row(TableRow(**model(**c).dict())) for c in connections]
+                    if usage not in ["decoy"]:
+                        self.tag_output(connections, tags)
+                        heuristic = Heuristic(2, signature=usage)
+                        table_section = ResultTableSection(
+                            title_text=f"Usage: {usage.upper()} x{len(connections)}",
+                            parent=connection_section,
+                            heuristic=heuristic,
+                            tags=tags,
+                        )
+                        for c in connections:
+                            c.pop("usage")
+                            table_section.add_row(TableRow(**model(**c).dict()))
 
         if network_section.subsections:
             return network_section
@@ -128,20 +159,62 @@ class ConfigExtractor(ServiceBase):
         a = tempfile.NamedTemporaryFile(delete=False)
         a.write(json.dumps(config_result).encode())
         a.seek(0)
-        request.add_supplementary(a.name, f"{request.sha256}_malware_config.json", "Raw output from configextractor-py")
+        request.add_supplementary(
+            a.name,
+            f"{request.sha256}_malware_config.json",
+            "Raw output from configextractor-py",
+        )
         for parser_framework, parser_results in config_result.items():
-            framework_section = ResultSection(parser_framework, parent=result, auto_collapse=True)
+            framework_section = ResultSection(
+                parser_framework, parent=result, auto_collapse=True
+            )
             for parser_name, parser_output in parser_results.items():
-                config = parser_output.pop('config')
-                parser_output['family'] = config.pop('family')
-                id = f'{parser_framework}_{parser_name}'
-                id_details = self.source_map[id]
-                parser_section = ResultSection(title_text=parser_name, body=json.dumps(parser_output),
-                parent=framework_section, body_format=BODY_FORMAT.KEY_VALUE,
-                tags={'file.rule.configextractor': f"{id_details['source_name']}.{parser_name}"}, classification=id_details['classification'])
+                # Get AL-specific details about the parser
+                id = f"{parser_framework}_{parser_name}"
+                classification = self.source_map[id]["classification"]
+                source_name = self.source_map[id]["source_name"]
+
+                config = parser_output.pop("config")
+
+                parser_output["family"] = config.pop("family")
+                parser_output["version"] = config.pop("version")
+
+                tags = {
+                    "file.rule.configextractor": [f"{source_name}.{parser_name}"],
+                    "attribution.family": [parser_output["family"]],
+                }
+                attack_ids = config.pop("attack", [])
+                if config.get("category"):
+                    category = config.pop("category")
+                    parser_output["category"] = category
+
+                if config.get("password"):
+                    password = config.pop("password", [])
+                    parser_output["password"] = password
+                    tags.update({"info.password": password})
+
+                if config.get("campaign_id"):
+                    campaign_id = config.pop("campaign_id", [])
+                    parser_output["Campaigh ID"] = campaign_id
+                    tags.update({"attribution.campaign": campaign_id})
+
+                parser_section = ResultSection(
+                    title_text=parser_name,
+                    body=json.dumps(parser_output),
+                    parent=framework_section,
+                    body_format=BODY_FORMAT.KEY_VALUE,
+                    tags=tags,
+                    heuristic=Heuristic(1, attack_ids=attack_ids),
+                    classification=classification,
+                )
                 network_section = self.network_ioc_section(config)
                 if network_section:
                     parser_section.add_subsection(network_section)
-
+                ResultSection(
+                    "Other data",
+                    body=json.dumps(config),
+                    body_format=BODY_FORMAT.JSON,
+                    parent=parser_section,
+                )
 
         request.result = result
