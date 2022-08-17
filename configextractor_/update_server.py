@@ -1,4 +1,5 @@
 import os
+import json
 import shutil
 import tempfile
 
@@ -12,7 +13,6 @@ from configextractor.main import ConfigExtractor
 
 classification = forge.get_classification()
 
-
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -22,19 +22,23 @@ class CXUpdateServer(ServiceUpdater):
             upload_list = list()
             parser_paths = cx.parsers.keys()
             self.log.debug(f"Importing following parsers: {parser_paths}")
+            source_map = {}
             for parser_path in parser_paths:
                 parser_details = cx.get_details(parser_path)
                 if parser_details:
+                    id = f"{parser_details['framework']}_{parser_details['name']}"
+                    classification = parser_details['classification'] or default_classification
+                    source_map[id] = dict(classification=classification, source_name=source_name)
                     upload_list.append(Signature(dict(
-                        classification=parser_details['classification'] or default_classification,
+                        classification=classification,
                         data=open(parser_path, 'r').read(),
                         name=parser_details['name'],
-                        signature_id=f"{parser_details['framework']}_{os.path.basename(parser_path)}",
+                        signature_id=id,
                         source=source_name,
                         type='configextractor',
                         status="DEPLOYED",
                     )).as_primitives())
-            return client.signature.add_update_many(source_name, 'configextractor', upload_list, dedup_name=False)
+            return client.signature.add_update_many(source_name, 'configextractor', upload_list, dedup_name=False), source_map
 
         for dir, _ in files_sha256:
             # Remove cached duplicates
@@ -43,17 +47,25 @@ class CXUpdateServer(ServiceUpdater):
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
-                resp = import_parsers(cx)
+                resp, source_map = import_parsers(cx)
                 self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
                 self.log.debug(resp)
+                self.log.debug(source_map)
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 try:
                     destination = os.path.join(self.latest_updates_dir, source_name)
+                    source_mapping_file = os.path.join(self.latest_updates_dir, 'source_mapping.json')
                     # Removing old version of directory if exists
                     if os.path.exists(destination):
                         shutil.rmtree(destination)
                     shutil.move(dir, destination)
+                    if os.path.exists(source_mapping_file):
+                        _tmp = json.loads(open(source_mapping_file, 'r').read())
+                        _tmp.update(source_map)
+                        source_map = _tmp
+
+                    open(source_mapping_file, 'w').write(json.dumps(source_map))
                 except shutil.Error as e:
                     if 'already exists' in str(e):
                         continue
@@ -64,7 +76,6 @@ class CXUpdateServer(ServiceUpdater):
         if not os.path.exists(UPDATER_DIR):
             os.makedirs(UPDATER_DIR)
 
-        _, time_keeper = tempfile.mkstemp(prefix="time_keeper_", dir=UPDATER_DIR)
         self.log.info("Setup service account.")
         username = self.ensure_service_account()
         self.log.info("Create temporary API key.")
@@ -76,6 +87,7 @@ class CXUpdateServer(ServiceUpdater):
             self.log.info("Check for new signatures.")
             if al_client.signature.update_available(since=epoch_to_iso(old_update_time) or '',
                                                     sig_type=self.updater_type)['update_available']:
+                _, time_keeper = tempfile.mkstemp(prefix="time_keeper_", dir=UPDATER_DIR)
                 self.log.info("An update is available for download from the datastore")
                 self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
