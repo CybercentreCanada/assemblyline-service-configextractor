@@ -25,6 +25,7 @@ class ConfigExtractor(ServiceBase):
     def __init__(self, config=None):
         super(ConfigExtractor, self).__init__(config)
         self.cx = None
+        self.source_map = None
 
     # Generate the rules_hash and init rules_list based on the raw files in the rules_directory from updater
     def _gen_rules_hash(self) -> str:
@@ -45,6 +46,7 @@ class ConfigExtractor(ServiceBase):
             self.log.debug(self.rules_list)
             blocklist = []
             blocklist_location = os.path.join(self.rules_directory, 'blocked_parsers')
+            self.source_map = json.loads(open(os.path.join(self.rules_directory, 'source_mapping.json')).read())
             if os.path.exists(blocklist_location):
                 for line in open(blocklist_location, 'r').readlines():
                     _, source, _, parser_name = line.split('_', 3)
@@ -127,7 +129,11 @@ class ConfigExtractor(ServiceBase):
             for parser_name, parser_output in parser_results.items():
                 config = parser_output.pop('config')
                 parser_output['family'] = config.pop('family')
-                parser_section = ResultSection(title_text=parser_name, body=json.dumps(parser_output), parent=framework_section, body_format=BODY_FORMAT.KEY_VALUE)
+                id = f'{parser_framework}_{parser_name}'
+                id_details = self.source_map[id]
+                parser_section = ResultSection(title_text=parser_name, body=json.dumps(parser_output),
+                parent=framework_section, body_format=BODY_FORMAT.KEY_VALUE,
+                tags={'file.rule.configextractor': f"{id_details['source_name']}.{parser_name}"}, classification=id_details['classification'])
                 network_section = self.network_ioc_section(config)
                 if network_section:
                     parser_section.add_subsection(network_section)

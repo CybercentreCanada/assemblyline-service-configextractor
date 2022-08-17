@@ -5,7 +5,7 @@ ENV SERVICE_PATH configextractor_.configextractor_.ConfigExtractor
 ENV YARA_VERSION=4.2.3
 
 USER assemblyline
-RUN pip uninstall -y yara-python
+#RUN pip uninstall -y yara-python
 
 USER root
 RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 upx-ucl mono-complete && rm -rf /var/lib/apt/lists/*
@@ -47,6 +47,8 @@ COPY --chown=assemblyline:assemblyline --from=build /var/lib/assemblyline/.local
 # Create directories
 RUN mkdir -p /mount/updates
 RUN mkdir -p /opt/al_service
+RUN mkdir -p /updates
+RUN chown -R assemblyline:assemblyline /updates
 
 # Copy service code
 WORKDIR /opt/al_service
