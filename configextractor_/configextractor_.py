@@ -184,9 +184,9 @@ class ConfigExtractor(ServiceBase):
                     "attribution.family": [parser_output["family"]],
                 }
                 attack_ids = config.pop("attack", [])
-                if config.get("category"):
-                    category = config.pop("category")
-                    parser_output["category"] = category
+                for field in ["category", "version"]:
+                    if config.get(field):
+                        parser_output[field] = config.pop(field)
 
                 if config.get("password"):
                     password = config.pop("password", [])
