@@ -11,6 +11,7 @@ import json
 import hashlib
 import os
 import regex
+import sys
 import tempfile
 
 from configextractor.main import ConfigExtractor as CX
@@ -47,6 +48,10 @@ class ConfigExtractor(ServiceBase):
             blocklist = []
             blocklist_location = os.path.join(self.rules_directory, 'blocked_parsers')
             self.source_map = json.loads(open(os.path.join(self.rules_directory, 'source_mapping.json')).read())
+            python_packages_dir = os.path.join(self.rules_directory, 'python_packages')
+            if python_packages_dir not in sys.path:
+                sys.path.append(python_packages_dir)
+
             if os.path.exists(blocklist_location):
                 for line in open(blocklist_location, 'r').readlines():
                     _, source, _, parser_name = line.split('_', 3)

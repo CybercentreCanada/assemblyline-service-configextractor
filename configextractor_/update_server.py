@@ -1,7 +1,9 @@
 import os
 import json
 import shutil
+import subprocess
 import tempfile
+
 
 from assemblyline.common import forge
 from assemblyline.common.isotime import epoch_to_iso
@@ -51,6 +53,17 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
                 self.log.debug(resp)
                 self.log.debug(source_map)
+
+                # Find any requirement files and pip install to a specific directory that will get transferred to services
+                for root, _, files in os.walk(dir):
+                    for file in files:
+                        if file == "requirements.txt":
+                            err = subprocess.run(['pip', 'install',
+                            '-r', os.path.join(root, file),
+                            '-t', os.path.join(self.latest_updates_dir, 'python_packages')]).stderr
+                            if err:
+                                self.log.error(err)
+
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 try:
