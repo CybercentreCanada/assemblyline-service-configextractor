@@ -143,7 +143,7 @@ class ConfigExtractor(ServiceBase):
                             tags=tags,
                         )
                         for c in connections:
-                            c.pop("usage")
+                            c.pop("usage", None)
                             table_section.add_row(TableRow(**model(**c).dict()))
 
         if network_section.subsections:
@@ -165,9 +165,6 @@ class ConfigExtractor(ServiceBase):
             "Raw output from configextractor-py",
         )
         for parser_framework, parser_results in config_result.items():
-            framework_section = ResultSection(
-                parser_framework, parent=result, auto_collapse=True
-            )
             for parser_name, parser_output in parser_results.items():
                 # Get AL-specific details about the parser
                 id = f"{parser_framework}_{parser_name}"
@@ -177,7 +174,7 @@ class ConfigExtractor(ServiceBase):
                 config = parser_output.pop("config")
 
                 parser_output["family"] = config.pop("family")
-                parser_output["version"] = config.pop("version")
+                parser_output["Framework"] = parser_framework
 
                 tags = {
                     "file.rule.configextractor": [f"{source_name}.{parser_name}"],
@@ -201,7 +198,7 @@ class ConfigExtractor(ServiceBase):
                 parser_section = ResultSection(
                     title_text=parser_name,
                     body=json.dumps(parser_output),
-                    parent=framework_section,
+                    parent=result,
                     body_format=BODY_FORMAT.KEY_VALUE,
                     tags=tags,
                     heuristic=Heuristic(1, attack_ids=attack_ids),
