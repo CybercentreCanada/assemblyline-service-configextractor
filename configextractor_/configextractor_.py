@@ -20,6 +20,7 @@ import sys
 import tempfile
 
 from configextractor.main import ConfigExtractor as CX
+from configextractor_.maco_tags import extract_connection_tags, extract_DNS_tags, extract_FTP_tags, extract_HTTP_tags, extract_proxy_tags, extract_SMTP_tags, extract_SSH_tags
 from maco.model import ExtractorModel, ConnUsageEnum
 
 cl_engine = forge.get_classification()
@@ -111,16 +112,16 @@ class ConfigExtractor(ServiceBase):
         network_section = ResultSection("Network IOCs")
 
         network_fields = {
-            "ftp": ExtractorModel.FTP,
-            "smtp": ExtractorModel.SMTP,
-            "http": ExtractorModel.Http,
-            "ssh": ExtractorModel.SSH,
-            "proxy": ExtractorModel.Proxy,
-            "dns": ExtractorModel.DNS,
-            "tcp": ExtractorModel.Connection,
-            "udp": ExtractorModel.Connection,
+            "ftp": (ExtractorModel.FTP, extract_FTP_tags),
+            "smtp": (ExtractorModel.SMTP, extract_SMTP_tags),
+            "http": (ExtractorModel.Http, extract_HTTP_tags),
+            "ssh": (ExtractorModel.SSH, extract_SSH_tags),
+            "proxy": (ExtractorModel.Proxy, extract_proxy_tags),
+            "dns": (ExtractorModel.DNS, extract_DNS_tags),
+            "tcp": (ExtractorModel.Connection, extract_connection_tags),
+            "udp": (ExtractorModel.Connection, extract_connection_tags),
         }
-        for field, model in network_fields.items():
+        for field, model_tuple in network_fields.items():
             sorted_network_config = {}
             for network_config in config.pop(field, []):
                 sorted_network_config.setdefault(
@@ -132,9 +133,9 @@ class ConfigExtractor(ServiceBase):
                     field.upper(), parent=network_section
                 )
                 for usage, connections in sorted_network_config.items():
-                    tags = list()
+                    model, tag_extractor = model_tuple
                     if usage not in ["decoy"]:
-                        self.tag_output(connections, tags)
+                        tags = tag_extractor(connections)
                         heuristic = Heuristic(2, signature=usage)
                         table_section = ResultTableSection(
                             title_text=f"Usage: {usage.upper()} x{len(connections)}",
@@ -207,11 +208,14 @@ class ConfigExtractor(ServiceBase):
                 network_section = self.network_ioc_section(config)
                 if network_section:
                     parser_section.add_subsection(network_section)
+                other_tags = {}
+                self.tag_output(config, other_tags)
                 ResultSection(
                     "Other data",
                     body=json.dumps(config),
                     body_format=BODY_FORMAT.JSON,
                     parent=parser_section,
+                    tags=other_tags
                 )
 
         request.result = result
