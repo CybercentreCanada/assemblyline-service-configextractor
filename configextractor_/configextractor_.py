@@ -62,7 +62,7 @@ class ConfigExtractor(ServiceBase):
                 sys.path.append(python_packages_dir)
 
             if os.path.exists(blocklist_location):
-                for line in open(blocklist_location, "r").readlines():
+                for line in open(blocklist_location, "r").read().splitlines():
                     _, source, _, parser_name = line.split("_", 3)
                     blocklist.append(rf".*{parser_name}$")
             self.log.info(
