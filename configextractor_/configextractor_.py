@@ -89,11 +89,11 @@ class ConfigExtractor(ServiceBase):
     def tag_output(self, output: Any, tags: dict = {}):
         def tag_string(value):
             if regex.search(IP_ONLY_REGEX, value):
-                tags["network.static.ip"].append(value)
+                tags.setdefault("network.static.ip", []).append(value)
             elif regex.search(DOMAIN_ONLY_REGEX, value):
-                tags["network.static.domain"].append(value)
+                tags.setdefault("network.static.domain", []).append(value)
             elif regex.search(FULL_URI, value):
-                tags["network.static.uri"].append(value)
+                tags.setdefault("network.static.uri", []).append(value)
 
         if isinstance(output, dict):
             # Iterate over valuse of dictionary
