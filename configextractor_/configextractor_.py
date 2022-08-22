@@ -134,7 +134,7 @@ class ConfigExtractor(ServiceBase):
                 )
                 for usage, connections in sorted_network_config.items():
                     model, tag_extractor = model_tuple
-                    if usage not in ["decoy"]:
+                    if usage not in ["decoy", "other"]:
                         tags = tag_extractor(connections)
                         heuristic = Heuristic(2, signature=usage)
                         table_section = ResultTableSection(

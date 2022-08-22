@@ -9,12 +9,8 @@ from assemblyline.common import forge
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_client import get_client
-from assemblyline_v4_service.updater.updater import (
-    ServiceUpdater,
-    temporary_api_key,
-    UPDATER_DIR,
-    UI_SERVER,
-)
+from assemblyline_v4_service.updater.updater import ServiceUpdater, temporary_api_key, UPDATER_DIR, UI_SERVER
+
 from configextractor.main import ConfigExtractor
 
 
@@ -41,12 +37,8 @@ class CXUpdateServer(ServiceUpdater):
                 parser_details = cx.get_details(parser_path)
                 if parser_details:
                     id = f"{parser_details['framework']}_{parser_details['name']}"
-                    classification = (
-                        parser_details["classification"] or default_classification
-                    )
-                    source_map[id] = dict(
-                        classification=classification, source_name=source_name
-                    )
+                    classification = parser_details["classification"] or default_classification
+                    source_map[id] = dict(classification=classification, source_name=source_name)
                     upload_list.append(
                         Signature(
                             dict(
@@ -61,9 +53,7 @@ class CXUpdateServer(ServiceUpdater):
                         ).as_primitives()
                     )
             return (
-                client.signature.add_update_many(
-                    source_name, "configextractor", upload_list, dedup_name=False
-                ),
+                client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False),
                 source_map,
             )
 
@@ -75,9 +65,7 @@ class CXUpdateServer(ServiceUpdater):
             if cx.parsers:
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
                 resp, source_map = import_parsers(cx)
-                self.log.info(
-                    f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline."
-                )
+                self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
                 self.log.debug(resp)
                 self.log.debug(source_map)
 
@@ -87,14 +75,9 @@ class CXUpdateServer(ServiceUpdater):
                         if file == "requirements.txt":
                             err = subprocess.run(
                                 [
-                                    "pip",
-                                    "install",
-                                    "-r",
-                                    os.path.join(root, file),
-                                    "-t",
-                                    os.path.join(
-                                        self.latest_updates_dir, "python_packages"
-                                    ),
+                                    "pip", "install",
+                                    "-r", os.path.join(root, file),
+                                    "-t", os.path.join(self.latest_updates_dir, "python_packages"),
                                 ],
                                 capture_output=True,
                             ).stderr
@@ -104,9 +87,7 @@ class CXUpdateServer(ServiceUpdater):
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 try:
                     destination = os.path.join(self.latest_updates_dir, source_name)
-                    source_mapping_file = os.path.join(
-                        self.latest_updates_dir, "source_mapping.json"
-                    )
+                    source_mapping_file = os.path.join(self.latest_updates_dir, "source_mapping.json")
                     # Removing old version of directory if exists
                     if os.path.exists(destination):
                         shutil.rmtree(destination)
@@ -136,9 +117,8 @@ class CXUpdateServer(ServiceUpdater):
 
             # Check if new signatures have been added
             self.log.info("Check for new signatures.")
-            if al_client.signature.update_available(
-                since=epoch_to_iso(old_update_time) or "", sig_type=self.updater_type
-            )["update_available"]:
+            if al_client.signature.update_available(since=epoch_to_iso(old_update_time) or "",
+                                                    sig_type=self.updater_type)["update_available"]:
                 _, time_keeper = tempfile.mkstemp(
                     prefix="time_keeper_", dir=UPDATER_DIR
                 )
@@ -148,17 +128,11 @@ class CXUpdateServer(ServiceUpdater):
                 )
 
                 blocklisted_parsers = list()
-                [
-                    blocklisted_parsers.extend(list(item.values()))
-                    for item in al_client.search.signature(
-                        f"type:{self.updater_type} AND status:DISABLED", fl="id"
-                    )["items"]
-                ]
+                [blocklisted_parsers.extend(list(item.values())) for item in
+                 al_client.search.signature(f"type:{self.updater_type} AND status:DISABLED", fl="id")["items"]]
                 self.log.debug(f"Blocking the following parsers: {blocklisted_parsers}")
                 output_directory = self.prepare_output_directory()
-                open(os.path.join(output_directory, "blocked_parsers"), "w").write(
-                    "\n".join(blocklisted_parsers)
-                )
+                open(os.path.join(output_directory, "blocked_parsers"), "w").write("\n".join(blocklisted_parsers))
                 self.serve_directory(output_directory, time_keeper)
 
 
