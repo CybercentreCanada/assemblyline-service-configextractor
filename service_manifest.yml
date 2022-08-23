@@ -17,20 +17,14 @@ timeout: 10
 
 disable_cache: false
 
-enabled: true
+# Disabled at first to Administrator can assign appropriate storage class
+enabled: false
 
 is_external: false
 
 licence_count: 0
 
-uses_tags: true
-
-submission_params:
-  # Use CAPE parsers
-  - name: use_cape
-    type: bool
-    value: false
-    default: false
+uses_tags: false
 
 # Service configuration block (dictionary of config variables)
 heuristics:
@@ -39,18 +33,22 @@ heuristics:
     score: 1000
     filetype: "*"
     description: Category - Malware - Indicates configuration block was extracted
-
   - heur_id: 2
-    name: Safe
-    score: -1000
-    filetype: "*"
-    description: Category - Safe
-
-  - heur_id: 3
     name: De-obfuscated Network IOCs
-    score: 1000
+    score: 50
     filetype: "*"
-    description: Category - Malicious - Indicates a network IOC was extracted from malware configuration
+    signature_score_map:
+      # Connection usage may be indicative of maliciousness
+      c2: 1000
+      upload: 1000
+      download: 1000
+      propagate: 1000
+      tunnel: 1000
+      ransom: 1000
+      decoy: 10 # Used to mask actual malicious connection but the connections themselves aren't malicious
+      other: 10
+
+    description: Indicates a network IOC was extracted from malware configuration
 
 # Docker configuration block which defines:
 #  - the name of the docker container that will be created
@@ -59,3 +57,33 @@ docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-configextractor:$SERVICE_TAG
   cpu_cores: 1.0
   ram_mb: 1024
+
+dependencies:
+  updates:
+    container:
+      allow_internet_access: true
+      command: ["python", "-m", "configextractor_.update_server"]
+      image: ${REGISTRY}cccs/assemblyline-service-configextractor:$SERVICE_TAG
+      ports: ["5003"]
+      environment:
+        - name: UPDATER_DIR
+          value: /mnt/updates
+
+    run_as_core: True
+    volumes:
+      updates:
+        mount_path: /mnt/updates
+        capacity: 1048576 #1Gi
+        storage_class: default
+
+update_config:
+  generates_signatures: true
+  sources:
+    # Pending: https://github.com/kevoreilly/CAPEv2/pull/1037
+    - name: CAPE
+      pattern: .*/modules/processing/parsers/CAPE/$
+      uri: https://github.com/cccs-rs/CAPEv2.git
+      default_classification: TLP:W
+  update_interval_seconds: 21600 # Quarter-day (every 6 hours)
+  wait_for_update: true
+  signature_delimiter: file
