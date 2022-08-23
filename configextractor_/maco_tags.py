@@ -51,9 +51,9 @@ def extract_HTTP_tags(data: List[Dict]) -> Dict:
             tags.setdefault('network.port', []).append(d['hostname'])
 
         if d.get('uri'):
-            tags.setdefault('network.static.uri', []).extend(d['uri'])
+            tags.setdefault('network.static.uri', []).append(d['uri'])
         if d.get('path'):
-            tags.setdefault('network.static.uri_path', []).extend(d['path'])
+            tags.setdefault('network.static.uri_path', []).append(d['path'])
         if d.get('user_agent'):
             tags.setdefault('network.user_agent', []).append(d['user_agent'])
 

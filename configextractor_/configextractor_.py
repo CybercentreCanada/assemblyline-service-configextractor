@@ -1,7 +1,8 @@
 from typing import Any
 
-from assemblyline.common import forge
+from assemblyline.common import forge, attack_map
 from assemblyline.odm.base import IP_ONLY_REGEX, FULL_URI, DOMAIN_ONLY_REGEX
+from assemblyline.odm.models.ontology.results import MalwareConfig
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import (
     Result,
@@ -150,6 +151,20 @@ class ConfigExtractor(ServiceBase):
         if network_section.subsections:
             return network_section
 
+    def attach_ontology(self, config: dict):
+        def strip_null(d: dict):
+            clean_config = {}
+            for k, v in d.items():
+                if v:
+                    if isinstance(v, dict):
+                        clean_config[k] = strip_null(v)
+                    elif isinstance(v, list) and isinstance(v[0], dict):
+                        clean_config[k] = [strip_null(vi) for vi in v]
+                    else:
+                        clean_config[k] = v
+            return clean_config
+        self.ontology.add_result_part(MalwareConfig, strip_null(config))
+
     def execute(self, request):
         result = Result()
         config_result = self.cx.run_parsers(request.file_path)
@@ -171,8 +186,13 @@ class ConfigExtractor(ServiceBase):
                 id = f"{parser_framework}_{parser_name}"
                 classification = self.source_map[id]["classification"]
                 source_name = self.source_map[id]["source_name"]
-
                 config = parser_output.pop("config")
+
+                # Correct revoked ATT&CK IDs
+                for i, v in enumerate(config.get('attack', [])):
+                    config['attack'][i] = attack_map.revoke_map.get(v, v)
+
+                self.attach_ontology(config)
 
                 parser_output["family"] = config.pop("family")
                 parser_output["Framework"] = parser_framework
