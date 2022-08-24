@@ -140,13 +140,15 @@ class ConfigExtractor(ServiceBase):
                         heuristic = Heuristic(2, signature=usage)
                         table_section = ResultTableSection(
                             title_text=f"Usage: {usage.upper()} x{len(connections)}",
-                            parent=connection_section,
                             heuristic=heuristic,
                             tags=tags,
                         )
                         for c in connections:
                             c.pop("usage", None)
                             table_section.add_row(TableRow(**model(**c).dict()))
+
+                        if table_section.body:
+                            connection_section.add_subsection(table_section)
 
         if network_section.subsections:
             return network_section
@@ -228,14 +230,16 @@ class ConfigExtractor(ServiceBase):
                 network_section = self.network_ioc_section(config)
                 if network_section:
                     parser_section.add_subsection(network_section)
-                other_tags = {}
-                self.tag_output(config, other_tags)
-                ResultSection(
-                    "Other data",
-                    body=json.dumps(config),
-                    body_format=BODY_FORMAT.JSON,
-                    parent=parser_section,
-                    tags=other_tags
-                )
+
+                if config:
+                    other_tags = {}
+                    self.tag_output(config, other_tags)
+                    ResultSection(
+                        "Other data",
+                        body=json.dumps(config),
+                        body_format=BODY_FORMAT.JSON,
+                        parent=parser_section,
+                        tags=other_tags
+                    )
 
         request.result = result
