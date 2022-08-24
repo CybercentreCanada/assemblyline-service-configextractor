@@ -130,9 +130,7 @@ class ConfigExtractor(ServiceBase):
                 ).append(network_config)
 
             if sorted_network_config:
-                connection_section = ResultSection(
-                    field.upper(), parent=network_section
-                )
+                connection_section = ResultSection(field.upper())
                 for usage, connections in sorted_network_config.items():
                     model, tag_extractor = model_tuple
                     if usage not in ["decoy", "other"]:
@@ -149,6 +147,9 @@ class ConfigExtractor(ServiceBase):
 
                         if table_section.body:
                             connection_section.add_subsection(table_section)
+
+                if connection_section.subsections:
+                    network_section.add_subsection(connection_section)
 
         if network_section.subsections:
             return network_section
