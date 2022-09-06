@@ -17,7 +17,7 @@ timeout: 10
 
 disable_cache: false
 
-# Disabled at first to Administrator can assign appropriate storage class
+# Disabled at first so Administrator can assign appropriate storage class
 enabled: false
 
 is_external: false
@@ -79,10 +79,9 @@ dependencies:
 update_config:
   generates_signatures: true
   sources:
-    # Pending: https://github.com/kevoreilly/CAPEv2/pull/1037
     - name: CAPE
       pattern: .*/modules/processing/parsers/CAPE/$
-      uri: https://github.com/cccs-rs/CAPEv2.git
+      uri: https://github.com/kevoreilly/CAPEv2.git
       default_classification: TLP:W
   update_interval_seconds: 21600 # Quarter-day (every 6 hours)
   wait_for_update: true
