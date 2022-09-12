@@ -21,7 +21,7 @@ class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def import_update(self, files_sha256, client,  source_name, default_classification=classification.UNRESTRICTED):
+    def import_update(self, files_sha256, client, source_name, default_classification=classification.UNRESTRICTED):
         def import_parsers(cx: ConfigExtractor):
             upload_list = list()
             parser_paths = cx.parsers.keys()
