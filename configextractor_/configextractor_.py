@@ -133,20 +133,25 @@ class ConfigExtractor(ServiceBase):
                 connection_section = ResultSection(field.upper())
                 for usage, connections in sorted_network_config.items():
                     model, tag_extractor = model_tuple
-                    if usage not in ["decoy", "other"]:
-                        tags = tag_extractor(connections)
-                        heuristic = Heuristic(2, signature=usage)
-                        table_section = ResultTableSection(
-                            title_text=f"Usage: {usage.upper()} x{len(connections)}",
-                            heuristic=heuristic,
-                            tags=tags,
-                        )
-                        for c in connections:
-                            c.pop("usage", None)
-                            table_section.add_row(TableRow(**model(**c).dict()))
+                    tags = tag_extractor(connections)
+                    heuristic = Heuristic(2, signature=usage)
+                    auto_collapse = False
+                    if usage in ["decoy", "other"]:
+                        # Display connections, but don't tag/score
+                        tags, heuristic, auto_collapse = {}, None, True
 
-                        if table_section.body:
-                            connection_section.add_subsection(table_section)
+                    table_section = ResultTableSection(
+                        title_text=f"Usage: {usage.upper()} x{len(connections)}",
+                        heuristic=heuristic,
+                        tags=tags,
+                        auto_collapse=auto_collapse
+                    )
+                    for c in connections:
+                        c.pop("usage", None)
+                        table_section.add_row(TableRow(**model(**c).dict()))
+
+                    if table_section.body:
+                        connection_section.add_subsection(table_section)
 
                 if connection_section.subsections:
                     network_section.add_subsection(connection_section)
