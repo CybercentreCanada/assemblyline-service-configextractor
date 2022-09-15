@@ -208,6 +208,7 @@ class ConfigExtractor(ServiceBase):
                 tags = {
                     "file.rule.configextractor": [f"{source_name}.{parser_name}"],
                     "attribution.family": [parser_output["family"]],
+                    "attribution.implant": [parser_output["family"]],
                 }
                 attack_ids = config.pop("attack", [])
                 for field in ["category", "version"]:
