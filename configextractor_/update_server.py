@@ -20,8 +20,10 @@ classification = forge.get_classification()
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.python_packages_dir = os.path.join(self.latest_updates_dir, "python_packages")
+        os.environ['PYTHONPATH'] += f":{self.python_packages_dir}"
 
-    def import_update(self, files_sha256, client,  source_name, default_classification=classification.UNRESTRICTED):
+    def import_update(self, files_sha256, client, source_name, default_classification=classification.UNRESTRICTED):
         def import_parsers(cx: ConfigExtractor):
             upload_list = list()
             parser_paths = cx.parsers.keys()
@@ -55,6 +57,22 @@ class CXUpdateServer(ServiceUpdater):
             # Remove cached duplicates
             dir = dir[:-1]
             self.log.info(dir)
+
+            # Find any requirement files and pip install to a specific directory that will get transferred to services
+            for root, _, files in os.walk(dir):
+                for file in files:
+                    if file == "requirements.txt":
+                        err = subprocess.run(
+                            [
+                                "pip", "install",
+                                "-r", os.path.join(root, file),
+                                "-t", self.python_packages_dir,
+                            ],
+                            capture_output=True,
+                        ).stderr
+                        if err:
+                            self.log.error(err)
+
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
@@ -62,21 +80,6 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
                 self.log.debug(resp)
                 self.log.debug(source_map)
-
-                # Find any requirement files and pip install to a specific directory that will get transferred to services
-                for root, _, files in os.walk(dir):
-                    for file in files:
-                        if file == "requirements.txt":
-                            err = subprocess.run(
-                                [
-                                    "pip", "install",
-                                    "-r", os.path.join(root, file),
-                                    "-t", os.path.join(self.latest_updates_dir, "python_packages"),
-                                ],
-                                capture_output=True,
-                            ).stderr
-                            if err:
-                                self.log.error(err)
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 try:
