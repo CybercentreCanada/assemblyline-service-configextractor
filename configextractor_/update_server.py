@@ -20,8 +20,6 @@ classification = forge.get_classification()
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.python_packages_dir = os.path.join(self.latest_updates_dir, "python_packages")
-        os.environ['PYTHONPATH'] += f":{self.python_packages_dir}"
 
     def import_update(self, files_sha256, client, source_name, default_classification=classification.UNRESTRICTED):
         def import_parsers(cx: ConfigExtractor):
@@ -66,11 +64,17 @@ class CXUpdateServer(ServiceUpdater):
                             [
                                 "pip", "install",
                                 "-r", os.path.join(root, file),
-                                "-t", self.python_packages_dir,
+                                "-t", os.path.join(self.latest_updates_dir, "python_packages"),
+                                "-t", "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
+                                "--disable-pip-version-check",
+                                "--quiet",
+                                "--upgrade",
                             ],
                             capture_output=True,
                         ).stderr
                         if err:
+                            if b'yara-python' in err:
+                                continue
                             self.log.error(err)
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
