@@ -55,6 +55,28 @@ class CXUpdateServer(ServiceUpdater):
             # Remove cached duplicates
             dir = dir[:-1]
             self.log.info(dir)
+
+            # Find any requirement files and pip install to a specific directory that will get transferred to services
+            for root, _, files in os.walk(dir):
+                for file in files:
+                    if file == "requirements.txt":
+                        err = subprocess.run(
+                            [
+                                "pip", "install",
+                                "-r", os.path.join(root, file),
+                                "-t", os.path.join(self.latest_updates_dir, "python_packages"),
+                                "-t", "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
+                                "--disable-pip-version-check",
+                                "--quiet",
+                                "--upgrade",
+                            ],
+                            capture_output=True,
+                        ).stderr
+                        if err:
+                            if b'yara-python' in err:
+                                continue
+                            self.log.error(err)
+
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
@@ -62,21 +84,6 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
                 self.log.debug(resp)
                 self.log.debug(source_map)
-
-                # Find any requirement files and pip install to a specific directory that will get transferred to services
-                for root, _, files in os.walk(dir):
-                    for file in files:
-                        if file == "requirements.txt":
-                            err = subprocess.run(
-                                [
-                                    "pip", "install",
-                                    "-r", os.path.join(root, file),
-                                    "-t", os.path.join(self.latest_updates_dir, "python_packages"),
-                                ],
-                                capture_output=True,
-                            ).stderr
-                            if err:
-                                self.log.error(err)
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 try:
