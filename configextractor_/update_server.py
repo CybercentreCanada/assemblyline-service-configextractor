@@ -60,18 +60,20 @@ class CXUpdateServer(ServiceUpdater):
             for root, _, files in os.walk(dir):
                 for file in files:
                     if file == "requirements.txt":
-                        err = subprocess.run(
-                            [
-                                "pip", "install",
-                                "-r", os.path.join(root, file),
-                                "-t", os.path.join(self.latest_updates_dir, "python_packages"),
-                                "-t", "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
-                                "--disable-pip-version-check",
-                                "--quiet",
-                                "--upgrade",
-                            ],
-                            capture_output=True,
-                        ).stderr
+                        cmd = [
+                            "pip", "install",
+                            "-r", os.path.join(root, file),
+                            "-t", os.path.join(self.latest_updates_dir, "python_packages"),
+                            "-t", "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
+                            "--disable-pip-version-check",
+                            "--quiet",
+                            "--upgrade",
+                        ]
+
+                        if os.environ.get('PIP_PROXY'):
+                            # Proxy is required to package installation
+                            cmd.extend(['--proxy', os.environ['PIP_PROXY']])
+                        err = subprocess.run(cmd, capture_output=True).stderr
                         if err:
                             if b'yara-python' in err:
                                 continue
@@ -127,9 +129,7 @@ class CXUpdateServer(ServiceUpdater):
                     prefix="time_keeper_", dir=UPDATER_DIR
                 )
                 self.log.info("An update is available for download from the datastore")
-                self.log.debug(
-                    f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}"
-                )
+                self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
                 blocklisted_parsers = list()
                 [blocklisted_parsers.extend(list(item.values())) for item in
