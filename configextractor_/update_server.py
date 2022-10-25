@@ -60,24 +60,21 @@ class CXUpdateServer(ServiceUpdater):
             for root, _, files in os.walk(dir):
                 for file in files:
                     if file == "requirements.txt":
-                        cmd = [
-                            "pip", "install",
-                            "-r", os.path.join(root, file),
-                            "-t", os.path.join(self.latest_updates_dir, "python_packages"),
-                            "-t", "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
-                            "--disable-pip-version-check",
-                            "--quiet",
-                            "--upgrade",
-                        ]
+                        cmd = ["pip", "install", "-r", os.path.join(root, file),
+                               "--disable-pip-version-check",
+                               "--quiet",
+                               "--upgrade",
+                               ]
 
                         if os.environ.get('PIP_PROXY'):
                             # Proxy is required to package installation
                             cmd.extend(['--proxy', os.environ['PIP_PROXY']])
                         err = subprocess.run(cmd, capture_output=True).stderr
                         if err:
-                            if b'yara-python' in err:
-                                continue
                             self.log.error(err)
+
+                        shutil.copytree("/var/lib/assemblyline/.local/lib/python3.9/site-packages",
+                                        os.path.join(self.latest_updates_dir, "python_packages"))
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
