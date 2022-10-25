@@ -60,24 +60,28 @@ class CXUpdateServer(ServiceUpdater):
             for root, _, files in os.walk(dir):
                 for file in files:
                     if file == "requirements.txt":
-                        cmd = [
-                            "pip", "install",
-                            "-r", os.path.join(root, file),
-                            "-t", os.path.join(self.latest_updates_dir, "python_packages"),
-                            "-t", "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
-                            "--disable-pip-version-check",
-                            "--quiet",
-                            "--upgrade",
-                        ]
+                        with tempfile.NamedTemporaryFile('a') as temp:
+                            # Don't recompile yara-python
+                            temp.write('\n'.join([line for line in open(os.path.join(root, file)).readlines()
+                                                  if 'yara-python' not in line]))
+                            temp.seek(0)
+                            cmd = [
+                                "pip", "install",
+                                "-r", temp.name,
+                                "-t", os.path.join(self.latest_updates_dir, "python_packages"),
+                                "-t", "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
+                                "--disable-pip-version-check",
+                                "--quiet",
+                                "--upgrade",
+                                "--no-deps"
+                            ]
 
-                        if os.environ.get('PIP_PROXY'):
-                            # Proxy is required to package installation
-                            cmd.extend(['--proxy', os.environ['PIP_PROXY']])
-                        err = subprocess.run(cmd, capture_output=True).stderr
-                        if err:
-                            if b'yara-python' in err:
-                                continue
-                            self.log.error(err)
+                            if os.environ.get('PIP_PROXY'):
+                                # Proxy is required to package installation
+                                cmd.extend(['--proxy', os.environ['PIP_PROXY']])
+                            err = subprocess.run(cmd, capture_output=True).stderr
+                            if err:
+                                self.log.error(err)
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
