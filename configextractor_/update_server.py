@@ -13,7 +13,6 @@ from assemblyline_v4_service.updater.updater import ServiceUpdater, temporary_ap
 
 from configextractor.main import ConfigExtractor
 
-
 classification = forge.get_classification()
 
 
@@ -56,32 +55,29 @@ class CXUpdateServer(ServiceUpdater):
             dir = dir[:-1]
             self.log.info(dir)
 
+            PYTHON_PACKAGE_EXCL = ['yara-python', 'maco', 'pefile']
+
             # Find any requirement files and pip install to a specific directory that will get transferred to services
             for root, _, files in os.walk(dir):
                 for file in files:
                     if file == "requirements.txt":
-                        with tempfile.NamedTemporaryFile('a') as temp:
-                            # Don't recompile yara-python
-                            temp.write('\n'.join([line for line in open(os.path.join(root, file)).readlines()
-                                                  if 'yara-python' not in line]))
-                            temp.seek(0)
-                            cmd = [
-                                "pip", "install",
-                                "-r", temp.name,
-                                "-t", os.path.join(self.latest_updates_dir, "python_packages"),
-                                "-t", "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
-                                "--disable-pip-version-check",
-                                "--quiet",
-                                "--upgrade",
-                                "--no-deps"
-                            ]
-
+                        # Install each package separately
+                        for pkg in open(os.path.join(root, file)).read().split():
+                            self.log.info(f'Installing {pkg}')
+                            cmd = "pip,install,{pkg},-t,{pkg_dest},--disable-pip-version-check,--upgrade"
                             if os.environ.get('PIP_PROXY'):
                                 # Proxy is required to package installation
                                 cmd.extend(['--proxy', os.environ['PIP_PROXY']])
-                            err = subprocess.run(cmd, capture_output=True).stderr
-                            if err:
-                                self.log.error(err)
+                            for pkg_dest in [
+                                    os.path.join(self.latest_updates_dir, "python_packages"),
+                                    "/var/lib/assemblyline/.local/lib/python3.9/site-packages"]:
+
+                                proc = subprocess.run(cmd.format(pkg=pkg, pkg_dest=pkg_dest).split(','),
+                                                      capture_output=True)
+                                self.log.debug(proc.stdout)
+                                if proc.stderr and not any(p in proc.stderr.decode() for p in PYTHON_PACKAGE_EXCL):
+                                    if b'dependency conflicts' not in proc.stderr:
+                                        self.log.error(proc.stderr)
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
