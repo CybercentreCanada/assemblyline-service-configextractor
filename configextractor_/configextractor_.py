@@ -109,7 +109,7 @@ class ConfigExtractor(ServiceBase):
         elif isinstance(output, str):
             tag_string(output)
 
-    def network_ioc_section(self, config) -> ResultSection:
+    def network_ioc_section(self, config, request) -> ResultSection:
         network_section = ResultSection("Network IOCs")
 
         network_fields = {
@@ -122,12 +122,16 @@ class ConfigExtractor(ServiceBase):
             "tcp": (ExtractorModel.Connection, extract_connection_tags),
             "udp": (ExtractorModel.Connection, extract_connection_tags),
         }
+        request.temp_submission_data.setdefault('url_headers', {})
         for field, model_tuple in network_fields.items():
             sorted_network_config = {}
             for network_config in config.pop(field, []):
-                sorted_network_config.setdefault(
-                    network_config.get("usage", "other"), []
-                ).append(network_config)
+                if field == 'http' and network_config.get('uri'):
+                    headers = network_config.get('headers', {})
+                    if network_config.get('user_agent'):
+                        headers.update({'User-Agent': network_config['user_agent']})
+                    request.temp_submission_data['url_headers'].update({network_config['uri']: headers})
+                sorted_network_config.setdefault(network_config.get("usage", "other"), []).append(network_config)
 
             if sorted_network_config:
                 connection_section = ResultSection(field.upper())
@@ -234,7 +238,7 @@ class ConfigExtractor(ServiceBase):
                     heuristic=Heuristic(1, attack_ids=attack_ids),
                     classification=classification,
                 )
-                network_section = self.network_ioc_section(config)
+                network_section = self.network_ioc_section(config, request)
                 if network_section:
                     parser_section.add_subsection(network_section)
 
