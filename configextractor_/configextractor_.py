@@ -202,6 +202,13 @@ class ConfigExtractor(ServiceBase):
 
                 self.attach_ontology(config)
 
+                if not config.get('family'):
+                    # Family isn't included in the output which is required!
+                    # Move onto next result, but log which parser needs correcting.
+                    self.log.warning(f"[{parser_framework}] {parser_name} is missing 'family' in it's output "
+                                     "which is mandatory to the MaCo spec. Moving onto next result...")
+                    continue
+
                 parser_output["family"] = config.pop("family")
                 parser_output["Framework"] = parser_framework
 
