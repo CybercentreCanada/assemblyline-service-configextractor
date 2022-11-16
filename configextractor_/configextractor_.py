@@ -194,6 +194,10 @@ class ConfigExtractor(ServiceBase):
                 id = f"{parser_framework}_{parser_name}"
                 classification = self.source_map[id]["classification"]
                 source_name = self.source_map[id]["source_name"]
+                if not parser_output.get('config'):
+                    # No configuration therefore skip
+                    continue
+
                 config = parser_output.pop("config")
 
                 # Correct revoked ATT&CK IDs
