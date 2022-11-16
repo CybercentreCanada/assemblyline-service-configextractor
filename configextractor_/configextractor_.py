@@ -40,7 +40,7 @@ class ConfigExtractor(ServiceBase):
         self.rules_list = []
         for obj in os.listdir(self.rules_directory):
             obj_path = os.path.join(self.rules_directory, obj)
-            if os.path.isdir(obj_path):
+            if os.path.isdir(obj_path) and 'python_packages' not in obj_path:
                 self.rules_list.append(obj_path)
         all_sha256s = [f for f in self.rules_list]
 
