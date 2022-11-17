@@ -93,8 +93,10 @@ class CXUpdateServer(ServiceUpdater):
                     source_mapping_file = os.path.join(self.latest_updates_dir, "source_mapping.json")
                     # Removing old version of directory if exists
                     if os.path.exists(destination):
+                        self.log.debug(f'Removing directory: {destination}')
                         shutil.rmtree(destination)
                     shutil.move(dir, destination)
+                    self.log.debug(f"{dir} -> {destination}")
                     if os.path.exists(source_mapping_file):
                         _tmp = json.loads(open(source_mapping_file, "r").read())
                         _tmp.update(source_map)
