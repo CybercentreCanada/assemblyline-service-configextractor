@@ -67,7 +67,7 @@ class CXUpdateServer(ServiceUpdater):
                             cmd = "pip,install,{pkg},-t,{pkg_dest},--disable-pip-version-check,--upgrade"
                             if os.environ.get('PIP_PROXY'):
                                 # Proxy is required to package installation
-                                cmd.extend(['--proxy', os.environ['PIP_PROXY']])
+                                cmd += f",--proxy,{os.environ['PIP_PROXY']}"
                             for pkg_dest in [
                                     os.path.join(self.latest_updates_dir, "python_packages"),
                                     "/var/lib/assemblyline/.local/lib/python3.9/site-packages"]:
