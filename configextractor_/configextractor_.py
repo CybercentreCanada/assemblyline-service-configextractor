@@ -51,6 +51,10 @@ class ConfigExtractor(ServiceBase):
             " ".join(sorted(all_sha256s)).encode("utf-8")
         ).hexdigest()[:7]
 
+    def _clear_rules(self) -> None:
+        if self.cx:
+            del self.cx
+
     def _load_rules(self) -> None:
         if self.rules_list:
             self.log.debug(self.rules_list)
