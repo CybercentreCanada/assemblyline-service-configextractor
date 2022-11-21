@@ -52,8 +52,10 @@ class ConfigExtractor(ServiceBase):
         ).hexdigest()[:7]
 
     def _clear_rules(self) -> None:
-        if self.cx:
-            del self.cx
+        for dir in self.rules_list:
+            # Cleanup old modules
+            for parser_module in [module for module in sys.modules.keys() if module.startswith(os.path.split(dir)[1])]:
+                sys.modules.pop(parser_module)
 
     def _load_rules(self) -> None:
         if self.rules_list:
