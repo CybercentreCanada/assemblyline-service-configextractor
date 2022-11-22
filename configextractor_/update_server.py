@@ -2,6 +2,7 @@ import os
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
@@ -19,7 +20,6 @@ classification = forge.get_classification()
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.terminate_server = False  # Used to terminate server to run 'brand new'
 
     def import_update(self, files_sha256, client, source_name, default_classification=classification.UNRESTRICTED):
         def import_parsers(cx: ConfigExtractor):
@@ -108,17 +108,16 @@ class CXUpdateServer(ServiceUpdater):
                     if "already exists" in str(e):
                         continue
                     raise e
+
+                # Cleanup modules generated from source
+                for parser_module in [module for module in sys.modules.keys()
+                                      if module.startswith(os.path.split(dir)[1])]:
+                    sys.modules.pop(parser_module)
             else:
-                self.terminate_server = True
-                raise Exception('No parsers found. Terminating server to try again..')
+                raise Exception('No parser(s) found! Review source and try again later.')
 
     def is_valid(self, file_path) -> bool:
         return os.path.isdir(file_path)
-
-    def do_source_update(self, service, specific_sources=[]) -> None:
-        super().do_source_update(service, specific_sources)
-        if self.terminate_server:
-            self.stop()
 
     def do_local_update(self) -> None:
         old_update_time = self.get_local_update_time()
