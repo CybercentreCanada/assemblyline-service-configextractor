@@ -210,6 +210,10 @@ class ConfigExtractor(ServiceBase):
                 for i, v in enumerate(config.get('attack', [])):
                     config['attack'][i] = attack_map.revoke_map.get(v, v)
 
+                # Account for the possibility of 'family' field to be a string (Output of MACO <= 1.0.2)
+                if isinstance(parser_output['family'], str):
+                    parser_output['family'] = [parser_output['family']]
+
                 self.attach_ontology(config)
 
                 parser_output["family"] = config.pop("family")
@@ -217,8 +221,8 @@ class ConfigExtractor(ServiceBase):
 
                 tags = {
                     "file.rule.configextractor": [f"{source_name}.{parser_name}"],
-                    "attribution.family": [parser_output["family"]],
-                    "attribution.implant": [parser_output["family"]],
+                    "attribution.family": [f for f in parser_output["family"]],
+                    "attribution.implant": [f for f in parser_output["family"]],
                 }
                 attack_ids = config.pop("attack", [])
                 for field in ["category", "version"]:
