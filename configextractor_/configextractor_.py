@@ -215,8 +215,8 @@ class ConfigExtractor(ServiceBase):
                     config['attack'][i] = attack_map.revoke_map.get(v, v)
 
                 # Account for the possibility of 'family' field to be a string (Output of MACO <= 1.0.2)
-                if isinstance(parser_output['family'], str):
-                    parser_output['family'] = [parser_output['family']]
+                if isinstance(config['family'], str):
+                    config['family'] = [config['family']]
 
                 self.attach_ontology(config)
 
