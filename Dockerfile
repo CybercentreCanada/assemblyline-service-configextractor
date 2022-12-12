@@ -38,6 +38,9 @@ RUN pip install --no-cache-dir --user gitpython plyara markupsafe==2.0.1
 # Public libraries that can be used by parsers
 RUN pip install --no-cache-dir --user netstruct beautifulsoup4 pyOpenSSL
 
+# Remove uses of pycrypto
+RUN pip uninstall -y -q pycrypto
+
 # Revert back to before the compile
 FROM base
 
