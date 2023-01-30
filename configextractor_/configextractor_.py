@@ -240,7 +240,7 @@ class ConfigExtractor(ServiceBase):
 
                 if config.get("campaign_id"):
                     campaign_id = config.pop("campaign_id", [])
-                    parser_output["Campaigh ID"] = campaign_id
+                    parser_output["Campaign ID"] = campaign_id
                     tags.update({"attribution.campaign": campaign_id})
 
                 parser_section = ResultSection(
