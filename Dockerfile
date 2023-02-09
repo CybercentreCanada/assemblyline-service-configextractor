@@ -8,7 +8,7 @@ USER assemblyline
 RUN pip uninstall -y yara-python
 
 USER root
-RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 upx-ucl mono-complete && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 upx-ucl mono-complete gcc && rm -rf /var/lib/apt/lists/*
 # Create a temporary image to do our compiling in
 FROM base AS build
 
@@ -37,6 +37,9 @@ RUN pip install --no-cache-dir --user gitpython plyara markupsafe==2.0.1
 
 # Public libraries that can be used by parsers
 RUN pip install --no-cache-dir --user netstruct beautifulsoup4 pyOpenSSL
+
+# Remove uses of pycrypto
+RUN pip uninstall -y -q pycrypto
 
 # Revert back to before the compile
 FROM base

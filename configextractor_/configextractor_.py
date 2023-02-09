@@ -40,7 +40,7 @@ class ConfigExtractor(ServiceBase):
         self.rules_list = []
         for obj in os.listdir(self.rules_directory):
             obj_path = os.path.join(self.rules_directory, obj)
-            if os.path.isdir(obj_path):
+            if os.path.isdir(obj_path) and 'python_packages' not in obj_path:
                 self.rules_list.append(obj_path)
         all_sha256s = [f for f in self.rules_list]
 
@@ -50,6 +50,12 @@ class ConfigExtractor(ServiceBase):
         return hashlib.sha256(
             " ".join(sorted(all_sha256s)).encode("utf-8")
         ).hexdigest()[:7]
+
+    def _clear_rules(self) -> None:
+        for dir in self.rules_list:
+            # Cleanup old modules
+            for parser_module in [module for module in sys.modules.keys() if module.startswith(os.path.split(dir)[1])]:
+                sys.modules.pop(parser_module)
 
     def _load_rules(self) -> None:
         if self.rules_list:
@@ -109,7 +115,7 @@ class ConfigExtractor(ServiceBase):
         elif isinstance(output, str):
             tag_string(output)
 
-    def network_ioc_section(self, config) -> ResultSection:
+    def network_ioc_section(self, config, request) -> ResultSection:
         network_section = ResultSection("Network IOCs")
 
         network_fields = {
@@ -122,31 +128,40 @@ class ConfigExtractor(ServiceBase):
             "tcp": (ExtractorModel.Connection, extract_connection_tags),
             "udp": (ExtractorModel.Connection, extract_connection_tags),
         }
+        request.temp_submission_data.setdefault('url_headers', {})
         for field, model_tuple in network_fields.items():
             sorted_network_config = {}
             for network_config in config.pop(field, []):
-                sorted_network_config.setdefault(
-                    network_config.get("usage", "other"), []
-                ).append(network_config)
+                if field == 'http' and network_config.get('uri'):
+                    headers = network_config.get('headers', {})
+                    if network_config.get('user_agent'):
+                        headers.update({'User-Agent': network_config['user_agent']})
+                    request.temp_submission_data['url_headers'].update({network_config['uri']: headers})
+                sorted_network_config.setdefault(network_config.get("usage", "other"), []).append(network_config)
 
             if sorted_network_config:
                 connection_section = ResultSection(field.upper())
                 for usage, connections in sorted_network_config.items():
                     model, tag_extractor = model_tuple
-                    if usage not in ["decoy", "other"]:
-                        tags = tag_extractor(connections)
-                        heuristic = Heuristic(2, signature=usage)
-                        table_section = ResultTableSection(
-                            title_text=f"Usage: {usage.upper()} x{len(connections)}",
-                            heuristic=heuristic,
-                            tags=tags,
-                        )
-                        for c in connections:
-                            c.pop("usage", None)
-                            table_section.add_row(TableRow(**model(**c).dict()))
+                    tags = tag_extractor(connections)
+                    heuristic = Heuristic(2, signature=usage)
+                    auto_collapse = False
+                    if usage in ["decoy", "other"]:
+                        # Display connections, but don't tag/score
+                        tags, heuristic, auto_collapse = {}, None, True
 
-                        if table_section.body:
-                            connection_section.add_subsection(table_section)
+                    table_section = ResultTableSection(
+                        title_text=f"Usage: {usage.upper()} x{len(connections)}",
+                        heuristic=heuristic,
+                        tags=tags,
+                        auto_collapse=auto_collapse
+                    )
+                    for c in connections:
+                        c.pop("usage", None)
+                        table_section.add_row(TableRow(**model(**c).dict()))
+
+                    if table_section.body:
+                        connection_section.add_subsection(table_section)
 
                 if connection_section.subsections:
                     network_section.add_subsection(connection_section)
@@ -189,20 +204,36 @@ class ConfigExtractor(ServiceBase):
                 id = f"{parser_framework}_{parser_name}"
                 classification = self.source_map[id]["classification"]
                 source_name = self.source_map[id]["source_name"]
+                if not parser_output.get('config'):
+                    # No configuration therefore skip
+                    continue
+
                 config = parser_output.pop("config")
 
                 # Correct revoked ATT&CK IDs
                 for i, v in enumerate(config.get('attack', [])):
                     config['attack'][i] = attack_map.revoke_map.get(v, v)
 
+                # Account for the possibility of 'family' field to be a string (Output of MACO <= 1.0.2)
+                if isinstance(config['family'], str):
+                    config['family'] = [config['family']]
+
                 self.attach_ontology(config)
+
+                if not config.get('family'):
+                    # Family isn't included in the output which is required!
+                    # Move onto next result, but log which parser needs correcting.
+                    self.log.warning(f"[{parser_framework}] {parser_name} is missing 'family' in it's output "
+                                     "which is mandatory to the MaCo spec. Moving onto next result...")
+                    continue
 
                 parser_output["family"] = config.pop("family")
                 parser_output["Framework"] = parser_framework
 
                 tags = {
                     "file.rule.configextractor": [f"{source_name}.{parser_name}"],
-                    "attribution.family": [parser_output["family"]],
+                    "attribution.family": [f for f in parser_output["family"]],
+                    "attribution.implant": [f for f in parser_output["family"]],
                 }
                 attack_ids = config.pop("attack", [])
                 for field in ["category", "version"]:
@@ -216,7 +247,7 @@ class ConfigExtractor(ServiceBase):
 
                 if config.get("campaign_id"):
                     campaign_id = config.pop("campaign_id", [])
-                    parser_output["Campaigh ID"] = campaign_id
+                    parser_output["Campaign ID"] = campaign_id
                     tags.update({"attribution.campaign": campaign_id})
 
                 parser_section = ResultSection(
@@ -228,7 +259,7 @@ class ConfigExtractor(ServiceBase):
                     heuristic=Heuristic(1, attack_ids=attack_ids),
                     classification=classification,
                 )
-                network_section = self.network_ioc_section(config)
+                network_section = self.network_ioc_section(config, request)
                 if network_section:
                     parser_section.add_subsection(network_section)
 

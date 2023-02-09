@@ -25,6 +25,7 @@ is_external: false
 licence_count: 0
 
 uses_tags: false
+uses_temp_submission_data: true
 
 # Service configuration block (dictionary of config variables)
 heuristics:
