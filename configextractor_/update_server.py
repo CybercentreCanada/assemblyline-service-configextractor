@@ -130,7 +130,7 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.info("An update is available for download from the datastore")
                 self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
-                blocklisted_parsers, source_map = list(), dict()
+                blocklisted_parsers, source_map = [], {}
                 for item in al_client.search.stream.signature(
                         query=f"type:{self.updater_type}", fl="id,classification,source,status,signature_id"):
                     # Map parsers to their classification & source defined in Assemblyline
