@@ -26,13 +26,11 @@ class CXUpdateServer(ServiceUpdater):
             upload_list = list()
             parser_paths = cx.parsers.keys()
             self.log.debug(f"Importing following parsers: {parser_paths}")
-            source_map = {}
             for parser_path in parser_paths:
                 parser_details = cx.get_details(parser_path)
                 if parser_details:
                     id = f"{parser_details['framework']}_{parser_details['name']}"
                     classification = parser_details["classification"] or default_classification
-                    source_map[id] = dict(classification=classification, source_name=source_name)
                     upload_list.append(
                         Signature(
                             dict(
@@ -47,8 +45,7 @@ class CXUpdateServer(ServiceUpdater):
                         ).as_primitives()
                     )
             return (
-                client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False),
-                source_map,
+                client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
             )
 
         for dir, _ in files_sha256:
@@ -83,27 +80,19 @@ class CXUpdateServer(ServiceUpdater):
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
-                resp, source_map = import_parsers(cx)
+                resp = import_parsers(cx)
                 self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
                 self.log.debug(resp)
-                self.log.debug(source_map)
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 try:
                     destination = os.path.join(self.latest_updates_dir, source_name)
-                    source_mapping_file = os.path.join(self.latest_updates_dir, "source_mapping.json")
                     # Removing old version of directory if exists
                     if os.path.exists(destination):
                         self.log.debug(f'Removing directory: {destination}')
                         shutil.rmtree(destination)
                     shutil.move(dir, destination)
                     self.log.debug(f"{dir} -> {destination}")
-                    if os.path.exists(source_mapping_file):
-                        _tmp = json.loads(open(source_mapping_file, "r").read())
-                        _tmp.update(source_map)
-                        source_map = _tmp
-
-                    open(source_mapping_file, "w").write(json.dumps(source_map))
                 except shutil.Error as e:
                     if "already exists" in str(e):
                         continue
@@ -141,12 +130,20 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.info("An update is available for download from the datastore")
                 self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
-                blocklisted_parsers = list()
-                [blocklisted_parsers.extend(list(item.values())) for item in
-                 al_client.search.signature(f"type:{self.updater_type} AND status:DISABLED", fl="id")["items"]]
+                blocklisted_parsers, source_map = list(), dict()
+                for item in al_client.search.stream.signature(
+                        query=f"type:{self.updater_type}", fl="id,classification,source,status,signature_id"):
+                    # Map parsers to their classification & source defined in Assemblyline
+                    source_map[item['signature_id']] = dict(classification=item['classification'],
+                                                            source_name=item['source'])
+                    if item['status'] == 'DISABLED':
+                        # If any parsers are disabled, add them to the blocklist
+                        blocklisted_parsers.append(item['id'])
                 self.log.debug(f"Blocking the following parsers: {blocklisted_parsers}")
                 output_directory = self.prepare_output_directory()
+                open(os.path.join(output_directory, "source_mapping.json"), "w").write(json.dumps(source_map, indent=2))
                 open(os.path.join(output_directory, "blocked_parsers"), "w").write("\n".join(blocklisted_parsers))
+
                 self.serve_directory(output_directory, time_keeper)
 
 
