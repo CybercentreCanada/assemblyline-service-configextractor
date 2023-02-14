@@ -66,16 +66,28 @@ class CXUpdateServer(ServiceUpdater):
                             if os.environ.get('PIP_PROXY'):
                                 # Proxy is required to package installation
                                 cmd += f",--proxy,{os.environ['PIP_PROXY']}"
-                            for pkg_dest in [
-                                    os.path.join(self.latest_updates_dir, "python_packages"),
-                                    "/var/lib/assemblyline/.local/lib/python3.9/site-packages"]:
-
+                            # Install to temporary directory
+                            with tempfile.TemporaryDirectory() as pkg_dest:
                                 proc = subprocess.run(cmd.format(pkg=pkg, pkg_dest=pkg_dest).split(','),
                                                       capture_output=True)
                                 self.log.debug(proc.stdout)
                                 if proc.stderr and not any(p in proc.stderr.decode() for p in PYTHON_PACKAGE_EXCL):
                                     if b'dependency conflicts' not in proc.stderr:
                                         self.log.error(proc.stderr)
+
+                                # Copy off into local packages and source-specific directory
+                                source_packages_dest = os.path.join(self.latest_updates_dir,
+                                                                    f"{source_name}_python_packages")
+                                # Purge to ensure the latest versions of the packages required
+                                # Also, remove instances of the old directory if it still exists
+                                shutil.rmtree(source_packages_dest, ignore_errors=True)
+                                shutil.rmtree(os.path.join(self.latest_updates_dir, 'python_packages'),
+                                              ignore_errors=True)
+
+                                shutil.copytree(pkg_dest, source_packages_dest)
+                                shutil.copytree(pkg_dest,
+                                                "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
+                                                dirs_exist_ok=True)
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
@@ -130,9 +142,9 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.info("An update is available for download from the datastore")
                 self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
-                blocklisted_parsers, source_map = list(), dict()
-                for item in al_client.search.stream.signature(
-                        query=f"type:{self.updater_type}", fl="id,classification,source,status,signature_id"):
+                blocklisted_parsers, source_map = [], {}
+                for item in al_client.search.stream.signature(query=f"type:{self.updater_type}",
+                                                              fl="id,classification,source,status,signature_id"):
                     # Map parsers to their classification & source defined in Assemblyline
                     source_map[item['signature_id']] = dict(classification=item['classification'],
                                                             source_name=item['source'])
@@ -143,6 +155,12 @@ class CXUpdateServer(ServiceUpdater):
                 output_directory = self.prepare_output_directory()
                 open(os.path.join(output_directory, "source_mapping.json"), "w").write(json.dumps(source_map, indent=2))
                 open(os.path.join(output_directory, "blocked_parsers"), "w").write("\n".join(blocklisted_parsers))
+
+                # Merge Python packages into output directory
+                output_python_dir = os.path.join(output_directory, 'python_packages')
+                [(shutil.copytree(os.path.join(output_directory, pkg_dir), output_python_dir, dirs_exist_ok=True),
+                  shutil.rmtree(os.path.join(output_directory, pkg_dir)))
+                 for pkg_dir in os.listdir(output_directory) if pkg_dir.endswith('_python_packages')]
 
                 self.serve_directory(output_directory, time_keeper)
 
