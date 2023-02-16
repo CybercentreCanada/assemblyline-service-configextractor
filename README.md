@@ -16,7 +16,7 @@ The updater assumes that you have attached a storage volume to store your collec
 
 ### Python Packages
 
-The updater is able to scan through the directory containing parsers and look for `requirements.txt` files and install Python packages to a directory that should get passed onto service instances.
+The updater is able to scan through the root directory containing parsers and look for a `requirements.txt` file and install Python packages to a directory that should get passed onto service instances.
 
 If you require a proxy connection for package installation, add environment variable `PIP_PROXY` to the container configuration.
 
