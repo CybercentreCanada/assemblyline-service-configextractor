@@ -58,32 +58,33 @@ class CXUpdateServer(ServiceUpdater):
             # Find any requirement files and pip install to a specific directory that will get transferred to services
             # Limit search for requirements.txt to root of folder containing parsers
             if "requirements.txt" in os.listdir(dir):
-                # Install each package separately
-                for pkg in open(os.path.join(dir, "requirements.txt")).read().split():
-                    self.log.info(f'Installing {pkg}')
-                    cmd = "pip,install,{pkg},-t,{pkg_dest},--disable-pip-version-check,--upgrade"
-                    if os.environ.get('PIP_PROXY'):
-                        # Proxy is required to package installation
-                        cmd += f",--proxy,{os.environ['PIP_PROXY']}"
-                    # Install to temporary directory
-                    with tempfile.TemporaryDirectory() as pkg_dest:
-                        proc = subprocess.run(cmd.format(pkg=pkg, pkg_dest=pkg_dest).split(','), capture_output=True)
-                        self.log.debug(proc.stdout)
-                        if proc.stderr and not any(p in proc.stderr.decode() for p in PYTHON_PACKAGE_EXCL):
-                            if b'dependency conflicts' not in proc.stderr:
-                                self.log.error(proc.stderr)
+                # Install to temporary directory
+                with tempfile.TemporaryDirectory() as pkg_dest:
+                    # Install each package separately
+                    for pkg in open(os.path.join(dir, "requirements.txt")).read().split():
+                        self.log.info(f'Installing {pkg}')
+                        cmd = "pip,install,{pkg},-t,{pkg_dest},--disable-pip-version-check,--upgrade"
+                        if os.environ.get('PIP_PROXY'):
+                            # Proxy is required to package installation
+                            cmd += f",--proxy,{os.environ['PIP_PROXY']}"
+                            proc = subprocess.run(
+                                cmd.format(pkg=pkg, pkg_dest=pkg_dest).split(','),
+                                capture_output=True)
+                            self.log.debug(proc.stdout)
+                            if proc.stderr and not any(p in proc.stderr.decode() for p in PYTHON_PACKAGE_EXCL):
+                                if b'dependency conflicts' not in proc.stderr:
+                                    self.log.error(proc.stderr)
 
-                        # Copy off into local packages and source-specific directory
-                        source_packages_dest = os.path.join(self.latest_updates_dir,
-                                                            f"{source_name}_python_packages")
-                        # Purge to ensure the latest versions of the packages required
-                        # Also, remove instances of the old directory if it still exists
-                        shutil.rmtree(source_packages_dest, ignore_errors=True)
-                        shutil.rmtree(os.path.join(self.latest_updates_dir, 'python_packages'), ignore_errors=True)
+                    # Copy off into local packages and source-specific directory
+                    source_packages_dest = os.path.join(self.latest_updates_dir, f"{source_name}_python_packages")
+                    # Purge to ensure the latest versions of the packages required
+                    # Also, remove instances of the old directory if it still exists
+                    shutil.rmtree(source_packages_dest, ignore_errors=True)
+                    shutil.rmtree(os.path.join(self.latest_updates_dir, 'python_packages'), ignore_errors=True)
 
-                        shutil.copytree(pkg_dest, source_packages_dest)
-                        shutil.copytree(pkg_dest, "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
-                                        dirs_exist_ok=True)
+                    shutil.copytree(pkg_dest, source_packages_dest)
+                    shutil.copytree(pkg_dest, "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
+                                    dirs_exist_ok=True)
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
