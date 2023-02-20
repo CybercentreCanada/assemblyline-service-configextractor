@@ -59,21 +59,20 @@ class CXUpdateServer(ServiceUpdater):
             # Limit search for requirements.txt to root of folder containing parsers
             if "requirements.txt" in os.listdir(dir):
                 # Install to temporary directory
+                cmd = "pip,install,{pkg},-t,{pkg_dest},--disable-pip-version-check,--no-cache-dir"
+                if os.environ.get('PIP_PROXY'):
+                    # Proxy is required to package installation
+                    cmd += f",--proxy,{os.environ['PIP_PROXY']}"
                 with tempfile.TemporaryDirectory() as pkg_dest:
                     # Install each package separately
-                    for pkg in open(os.path.join(dir, "requirements.txt")).read().split():
+                    for pkg in sorted(open(os.path.join(dir, "requirements.txt")).read().split()):
                         self.log.info(f'Installing {pkg}')
-                        cmd = "pip,install,{pkg},-t,{pkg_dest},--disable-pip-version-check,--upgrade"
-                        if os.environ.get('PIP_PROXY'):
-                            # Proxy is required to package installation
-                            cmd += f",--proxy,{os.environ['PIP_PROXY']}"
-                            proc = subprocess.run(
-                                cmd.format(pkg=pkg, pkg_dest=pkg_dest).split(','),
-                                capture_output=True)
-                            self.log.debug(proc.stdout)
-                            if proc.stderr and not any(p in proc.stderr.decode() for p in PYTHON_PACKAGE_EXCL):
-                                if b'dependency conflicts' not in proc.stderr:
-                                    self.log.error(proc.stderr)
+                        proc = subprocess.run(cmd.format(pkg=pkg, pkg_dest=pkg_dest).split(','),
+                                              capture_output=True)
+                        self.log.debug(proc.stdout)
+                        if proc.stderr and not any(p in proc.stderr.decode() for p in PYTHON_PACKAGE_EXCL):
+                            if b'dependency conflicts' not in proc.stderr:
+                                self.log.error(proc.stderr)
 
                     # Copy off into local packages and source-specific directory
                     source_packages_dest = os.path.join(self.latest_updates_dir, f"{source_name}_python_packages")
