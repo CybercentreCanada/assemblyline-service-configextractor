@@ -115,7 +115,7 @@ class ConfigExtractor(ServiceBase):
         elif isinstance(output, str):
             tag_string(output)
 
-    def network_ioc_section(self, config, request) -> ResultSection:
+    def network_ioc_section(self, config, request, extra_tags) -> ResultSection:
         network_section = ResultSection("Network IOCs")
 
         network_fields = {
@@ -150,6 +150,8 @@ class ConfigExtractor(ServiceBase):
                         # Display connections, but don't tag/score
                         tags, heuristic, auto_collapse = {}, None, True
 
+                    # Propagate extra tags to section
+                    tags.update(extra_tags)
                     table_section = ResultTableSection(
                         title_text=f"Usage: {usage.upper()} x{len(connections)}",
                         heuristic=heuristic,
@@ -252,7 +254,8 @@ class ConfigExtractor(ServiceBase):
                     heuristic=Heuristic(1, attack_ids=attack_ids),
                     classification=classification,
                 )
-                network_section = self.network_ioc_section(config, request)
+                extra_tags = {"file.rule.configextractor": [f"{source_name}.{parser_name}"]}
+                network_section = self.network_ioc_section(config, request, extra_tags=extra_tags)
                 if network_section:
                     parser_section.add_subsection(network_section)
 
