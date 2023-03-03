@@ -59,7 +59,7 @@ class CXUpdateServer(ServiceUpdater):
             # Limit search for requirements.txt to root of folder containing parsers
             if "requirements.txt" in os.listdir(dir):
                 # Install to temporary directory
-                cmd = "pip,install,{pkg},-t,{pkg_dest},--disable-pip-version-check,--no-cache-dir"
+                cmd = "pip,install,{pkg},-t,{pkg_dest},--disable-pip-version-check,--no-cache-dir,--upgrade"
                 if os.environ.get('PIP_PROXY'):
                     # Proxy is required to package installation
                     cmd += f",--proxy,{os.environ['PIP_PROXY']}"
