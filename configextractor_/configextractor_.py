@@ -1,4 +1,5 @@
 from typing import Any
+from base64 import b64encode
 
 from assemblyline.common import forge, attack_map
 from assemblyline.odm.base import IP_ONLY_REGEX, FULL_URI, DOMAIN_ONLY_REGEX
@@ -27,6 +28,13 @@ from maco.model import ExtractorModel, ConnUsageEnum
 cl_engine = forge.get_classification()
 
 CONNECTION_USAGE = [k.name for k in ConnUsageEnum]
+
+
+class Base64Encoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, bytes):
+            return b64encode(o).decode()
+        return json.JSONEncoder.default(self, o)
 
 
 class ConfigExtractor(ServiceBase):
@@ -193,7 +201,7 @@ class ConfigExtractor(ServiceBase):
             return
 
         a = tempfile.NamedTemporaryFile(delete=False)
-        a.write(json.dumps(config_result).encode())
+        a.write(json.dumps(config_result, cls=Base64Encoder).encode())
         a.seek(0)
         request.add_supplementary(
             a.name,
@@ -265,6 +273,23 @@ class ConfigExtractor(ServiceBase):
                 network_section = self.network_ioc_section(config, request, extra_tags=extra_tags)
                 if network_section:
                     parser_section.add_subsection(network_section)
+
+                for binary in config.get('binaries', []):
+                    # Append binary data to submission for analysis
+                    datatype = binary.get('datatype', 'other')
+                    data = binary.get('data')
+                    if datatype in ['other', 'payload'] and data:
+                        if isinstance(data, str):
+                            data = data.encode()
+                        sha256 = hashlib.sha256(data).hexdigest()
+                        a = tempfile.NamedTemporaryFile(delete=False)
+                        a.write(data)
+                        a.seek(0)
+                        request.add_extracted(
+                            a.name,
+                            f"binary_{datatype}_{sha256}",
+                            "Extracted binary file",
+                        )
 
                 if config:
                     other_tags = {}
