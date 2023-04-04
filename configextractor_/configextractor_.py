@@ -296,7 +296,7 @@ class ConfigExtractor(ServiceBase):
                     self.tag_output(config, other_tags)
                     ResultSection(
                         "Other data",
-                        body=json.dumps(config),
+                        body=json.dumps(config, cls=Base64Encoder),
                         body_format=BODY_FORMAT.JSON,
                         parent=parser_section,
                         tags=other_tags
