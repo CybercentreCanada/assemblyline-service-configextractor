@@ -30,6 +30,16 @@ cl_engine = forge.get_classification()
 CONNECTION_USAGE = [k.name for k in ConnUsageEnum]
 
 
+class Base64TruncatedEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, bytes):
+            ret = b64encode(o).decode()
+            if len(ret) > 1000:
+                ret = ret[:1000] + '...'
+            return ret
+        return json.JSONEncoder.default(self, o)
+
+
 class Base64Encoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, bytes):
@@ -277,7 +287,7 @@ class ConfigExtractor(ServiceBase):
                         sha256 = hashlib.sha256(data).hexdigest()
                         a = tempfile.NamedTemporaryFile(delete=False)
                         a.write(data)
-                        a.seek(0)
+                        a.close()
                         request.add_extracted(
                             a.name,
                             f"binary_{datatype}_{sha256}",
@@ -289,7 +299,7 @@ class ConfigExtractor(ServiceBase):
                     self.tag_output(config, other_tags)
                     ResultSection(
                         "Other data",
-                        body=json.dumps(config, cls=Base64Encoder),
+                        body=json.dumps(config, cls=Base64TruncatedEncoder),
                         body_format=BODY_FORMAT.JSON,
                         parent=parser_section,
                         tags=other_tags
