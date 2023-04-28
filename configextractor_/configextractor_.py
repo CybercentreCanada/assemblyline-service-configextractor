@@ -238,8 +238,10 @@ class ConfigExtractor(ServiceBase):
                 if isinstance(config['family'], str):
                     config['family'] = [config['family']]
 
+                # Include extractor's name for ontology output only
                 config['config_extractor'] = config.get('config_extractor', f"{source_name}.{parser_name}")
                 self.attach_ontology(config)
+                config.pop('config_extractor')
 
                 if not config.get('family'):
                     # Family isn't included in the output which is required!
