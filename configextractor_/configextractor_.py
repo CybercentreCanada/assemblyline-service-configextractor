@@ -1,29 +1,35 @@
-from typing import Any
+import hashlib
+import json
+import os
+import sys
+import tempfile
 from base64 import b64encode
+from typing import Any
 
-from assemblyline.common import forge, attack_map
-from assemblyline.odm.base import IP_ONLY_REGEX, FULL_URI, DOMAIN_ONLY_REGEX
+import regex
+from assemblyline.common import attack_map, forge
+from assemblyline.odm.base import DOMAIN_ONLY_REGEX, FULL_URI, IP_ONLY_REGEX
 from assemblyline.odm.models.ontology.results import MalwareConfig
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import (
+    BODY_FORMAT,
+    Heuristic,
     Result,
     ResultSection,
     ResultTableSection,
-    BODY_FORMAT,
     TableRow,
-    Heuristic,
 )
-
-import json
-import hashlib
-import os
-import regex
-import sys
-import tempfile
-
 from configextractor.main import ConfigExtractor as CX
-from configextractor_.maco_tags import extract_connection_tags, extract_DNS_tags, extract_FTP_tags, extract_HTTP_tags, extract_proxy_tags, extract_SMTP_tags, extract_SSH_tags
-from maco.model import ExtractorModel, ConnUsageEnum
+from configextractor_.maco_tags import (
+    extract_connection_tags,
+    extract_DNS_tags,
+    extract_FTP_tags,
+    extract_HTTP_tags,
+    extract_proxy_tags,
+    extract_SMTP_tags,
+    extract_SSH_tags,
+)
+from maco.model import ConnUsageEnum, ExtractorModel
 
 cl_engine = forge.get_classification()
 
