@@ -1,17 +1,15 @@
-import os
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 
-
 from assemblyline.common import forge
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_client import get_client
-from assemblyline_v4_service.updater.updater import ServiceUpdater, temporary_api_key, UPDATER_DIR, UI_SERVER
-
+from assemblyline_v4_service.updater.updater import UI_SERVER, UPDATER_DIR, ServiceUpdater, temporary_api_key
 from configextractor.main import ConfigExtractor
 
 classification = forge.get_classification()
