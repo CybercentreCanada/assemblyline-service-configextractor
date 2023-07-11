@@ -6,20 +6,21 @@ import sys
 import tempfile
 
 from assemblyline.common import forge
+from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_client import get_client
 from assemblyline_v4_service.updater.updater import UI_SERVER, UPDATER_DIR, ServiceUpdater, temporary_api_key
 from configextractor.main import ConfigExtractor
 
-classification = forge.get_classification()
+Classification = forge.get_classification()
 
 
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def import_update(self, files_sha256, client, source_name, default_classification=classification.UNRESTRICTED):
+    def import_update(self, files_sha256, client, source_name, default_classification=Classification.UNRESTRICTED):
         def import_parsers(cx: ConfigExtractor):
             upload_list = list()
             parser_paths = cx.parsers.keys()
@@ -28,7 +29,18 @@ class CXUpdateServer(ServiceUpdater):
                 parser_details = cx.get_details(parser_path)
                 if parser_details:
                     id = f"{parser_details['framework']}_{parser_details['name']}"
-                    classification = parser_details["classification"] or default_classification
+                    try:
+                        classification = parser_details["classification"]
+                        if classification:
+                            # Classification found, validate against engine configuration
+                            Classification.normalize_classification(classification)
+                        else:
+                            # No classification string extracted, use default
+                            classification = default_classification
+                    except InvalidClassification:
+                        self.log.warning(f'{id}: Classification "{classification}" not recognized. Defaulting to {default_classification}..')
+                        classification = default_classification
+
                     upload_list.append(
                         Signature(
                             dict(
