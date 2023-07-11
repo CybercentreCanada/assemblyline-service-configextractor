@@ -34,7 +34,7 @@ class CXUpdateServer(ServiceUpdater):
                         if classification:
                             Classification.normalize_classification(classification)
                     except InvalidClassification:
-                        self.log.warning(f'Classification "{classification}" not recognized. Defaulting to {default_classification}..')
+                        self.log.warning(f'{id}: Classification "{classification}" not recognized. Defaulting to {default_classification}..')
                         classification = default_classification
 
                     upload_list.append(
