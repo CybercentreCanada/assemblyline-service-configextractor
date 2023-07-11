@@ -30,9 +30,13 @@ class CXUpdateServer(ServiceUpdater):
                 if parser_details:
                     id = f"{parser_details['framework']}_{parser_details['name']}"
                     try:
-                        classification = parser_details["classification"] or default_classification
+                        classification = parser_details["classification"]
                         if classification:
+                            # Classification found, validate against engine configuration
                             Classification.normalize_classification(classification)
+                        else:
+                            # No classification string extracted, use default
+                            classification = default_classification
                     except InvalidClassification:
                         self.log.warning(f'{id}: Classification "{classification}" not recognized. Defaulting to {default_classification}..')
                         classification = default_classification
