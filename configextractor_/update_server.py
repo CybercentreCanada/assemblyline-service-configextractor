@@ -160,5 +160,5 @@ class CXUpdateServer(ServiceUpdater):
 
 
 if __name__ == "__main__":
-    with CXUpdateServer() as server:
+    with CXUpdateServer(downloadable_signature_statuses=['DEPLOYED', 'DISABLED']) as server:
         server.serve_forever()
