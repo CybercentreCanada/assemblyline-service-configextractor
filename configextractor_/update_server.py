@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import subprocess
@@ -10,7 +9,8 @@ from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_client import get_client
-from assemblyline_v4_service.updater.updater import UI_SERVER, UPDATER_DIR, ServiceUpdater, temporary_api_key
+from assemblyline_v4_service.updater.updater import ServiceUpdater, temporary_api_key, UPDATER_DIR, UI_SERVER
+
 from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
@@ -30,9 +30,13 @@ class CXUpdateServer(ServiceUpdater):
                 if parser_details:
                     id = f"{parser_details['framework']}_{parser_details['name']}"
                     try:
-                        classification = parser_details["classification"] or default_classification
+                        classification = parser_details["classification"]
                         if classification:
+                            # Classification found, validate against engine configuration
                             Classification.normalize_classification(classification)
+                        else:
+                            # No classification string extracted, use default
+                            classification = default_classification
                     except InvalidClassification:
                         self.log.warning(f'{id}: Classification "{classification}" not recognized. Defaulting to {default_classification}..')
                         classification = default_classification
@@ -144,19 +148,7 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.info("An update is available for download from the datastore")
                 self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
-                blocklisted_parsers, source_map = [], {}
-                for item in al_client.search.stream.signature(query=f"type:{self.updater_type}",
-                                                              fl="id,classification,source,status,signature_id"):
-                    # Map parsers to their classification & source defined in Assemblyline
-                    source_map[item['signature_id']] = dict(classification=item['classification'],
-                                                            source_name=item['source'])
-                    if item['status'] == 'DISABLED':
-                        # If any parsers are disabled, add them to the blocklist
-                        blocklisted_parsers.append(item['id'])
-                self.log.debug(f"Blocking the following parsers: {blocklisted_parsers}")
                 output_directory = self.prepare_output_directory()
-                open(os.path.join(output_directory, "source_mapping.json"), "w").write(json.dumps(source_map, indent=2))
-                open(os.path.join(output_directory, "blocked_parsers"), "w").write("\n".join(blocklisted_parsers))
 
                 # Merge Python packages into output directory
                 output_python_dir = os.path.join(output_directory, 'python_packages')
@@ -164,9 +156,9 @@ class CXUpdateServer(ServiceUpdater):
                   shutil.rmtree(os.path.join(output_directory, pkg_dir)))
                  for pkg_dir in os.listdir(output_directory) if pkg_dir.endswith('_python_packages')]
 
-                self.serve_directory(output_directory, time_keeper)
+                self.serve_directory(output_directory, time_keeper, al_client)
 
 
 if __name__ == "__main__":
-    with CXUpdateServer() as server:
+    with CXUpdateServer(downloadable_signature_statuses=['DEPLOYED', 'DISABLED']) as server:
         server.serve_forever()
