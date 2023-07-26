@@ -8,7 +8,7 @@ from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
-from assemblyline_client import get_client
+from assemblyline_v4_service.updater.client import UpdaterALClient
 from assemblyline_v4_service.updater.updater import ServiceUpdater, temporary_api_key, UPDATER_DIR, UI_SERVER
 
 from configextractor.main import ConfigExtractor
@@ -136,7 +136,7 @@ class CXUpdateServer(ServiceUpdater):
         self.log.info("Create temporary API key.")
         with temporary_api_key(self.datastore, username) as api_key:
             self.log.info(f"Connecting to Assemblyline API: {UI_SERVER}")
-            al_client = get_client(UI_SERVER, apikey=(username, api_key), verify=False)
+            al_client = UpdaterALClient.get_client(UI_SERVER, apikey=(username, api_key), verify=False)
 
             # Check if new signatures have been added
             self.log.info("Check for new signatures.")
