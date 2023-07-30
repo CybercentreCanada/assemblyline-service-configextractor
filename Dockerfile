@@ -2,7 +2,7 @@ ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch AS base
 
 ENV SERVICE_PATH configextractor_.configextractor_.ConfigExtractor
-ENV YARA_VERSION=4.2.3
+ENV YARA_VERSION=4.3.2
 
 USER assemblyline
 RUN pip uninstall -y yara-python
@@ -33,7 +33,7 @@ RUN pip install -U git+https://github.com/CybercentreCanada/configextractor-py
 RUN pip install -U git+https://github.com/CybercentreCanada/maco
 
 RUN pip install --no-cache-dir --user --global-option="build" --global-option="--enable-dotnet" --global-option="--enable-magic" git+https://github.com/VirusTotal/yara-python.git@d29ca083f4cb25ea52988314b844bb7cf8594b5b
-RUN pip install --no-cache-dir --user gitpython plyara markupsafe==2.0.1
+RUN pip install --no-cache-dir --user gitpython plyara markupsafe==2.0.1 johnnydep
 
 # Public libraries that can be used by parsers
 RUN pip install --no-cache-dir --user netstruct beautifulsoup4 pyOpenSSL
