@@ -8,10 +8,13 @@ from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
-from assemblyline_client import get_client
-from assemblyline_v4_service.updater.updater import ServiceUpdater, temporary_api_key, UPDATER_DIR, UI_SERVER
-
+from assemblyline_v4_service.updater.client import get_client
+from assemblyline_v4_service.updater.updater import UI_SERVER, UPDATER_DIR, ServiceUpdater, temporary_api_key
 from configextractor.main import ConfigExtractor
+from johnnydep.lib import JohnnyDist
+from johnnydep.logs import configure_logging
+
+configure_logging()  # Set logging to WARNING level
 
 Classification = forge.get_classification()
 
@@ -38,7 +41,10 @@ class CXUpdateServer(ServiceUpdater):
                             # No classification string extracted, use default
                             classification = default_classification
                     except InvalidClassification:
-                        self.log.warning(f'{id}: Classification "{classification}" not recognized. Defaulting to {default_classification}..')
+                        self.log.warning(
+                            f'{id}: Classification "{classification}" not recognized. '
+                            f"Defaulting to {default_classification}.."
+                        )
                         classification = default_classification
 
                     upload_list.append(
@@ -54,46 +60,66 @@ class CXUpdateServer(ServiceUpdater):
                             )
                         ).as_primitives()
                     )
-            return (
-                client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
-            )
+            return client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
 
         for dir, _ in files_sha256:
             # Remove cached duplicates
             dir = dir[:-1]
             self.log.info(dir)
 
-            PYTHON_PACKAGE_EXCL = ['yara-python', 'maco', 'pefile']
+            PYTHON_PACKAGE_EXCL = ["yara-python", "maco"]
 
             # Find any requirement files and pip install to a specific directory that will get transferred to services
             # Limit search for requirements.txt to root of folder containing parsers
             if "requirements.txt" in os.listdir(dir):
+                req_path = os.path.join(dir, "requirements.txt")
+                mod_req_path = os.path.join(dir, "modified_requirements.txt")
+                with open(req_path, "r") as req_fp:
+                    req = [
+                        r.strip() for r in req_fp.readlines() if not any([r.startswith(x) for x in PYTHON_PACKAGE_EXCL])
+                    ]
+                    req_pkgs = [r.split("==")[0] for r in req]
+                    # Get the package dependencies for each required dependency
+                    deps = []
+                    for r in req:
+                        dist = JohnnyDist(r, ignore_errors=True)
+                        [
+                            (deps.append(d), req_pkgs.append(d.split("==")[0]))
+                            for d in dist.serialise(format="pinned").split("\n")
+                            if d.split("==")[0] not in req_pkgs  # Prevent package version conflicts with requirements
+                            and not d.split("==")[0] in PYTHON_PACKAGE_EXCL  # Prevent package conflicts with container
+                            and d not in deps  # Prevent package version conflicts in the dependency list
+                        ]
+                    # The new requirements list is a combination of the original list with their dependencies
+                    mod_req = req + deps
+                    with open(mod_req_path, "w") as mod_fp:
+                        mod_fp.write("\n".join(mod_req))
+
                 # Install to temporary directory
-                cmd = "pip,install,{pkg},-t,{pkg_dest},--disable-pip-version-check,--no-cache-dir,--upgrade"
-                if os.environ.get('PIP_PROXY'):
+                cmd = "pip,install,-r,{req_path},-t,{pkg_dest},--disable-pip-version-check,--no-cache-dir,--upgrade,--no-deps"
+                if os.environ.get("PIP_PROXY"):
                     # Proxy is required to package installation
                     cmd += f",--proxy,{os.environ['PIP_PROXY']}"
                 with tempfile.TemporaryDirectory() as pkg_dest:
-                    # Install each package separately
-                    for pkg in sorted(open(os.path.join(dir, "requirements.txt")).read().split()):
-                        self.log.info(f'Installing {pkg}')
-                        proc = subprocess.run(cmd.format(pkg=pkg, pkg_dest=pkg_dest).split(','),
-                                              capture_output=True)
-                        self.log.debug(proc.stdout)
-                        if proc.stderr and not any(p in proc.stderr.decode() for p in PYTHON_PACKAGE_EXCL):
-                            if b'dependency conflicts' not in proc.stderr:
-                                self.log.error(proc.stderr)
+                    proc = subprocess.run(
+                        cmd.format(req_path=mod_req_path, pkg_dest=pkg_dest).split(","), capture_output=True
+                    )
+                    self.log.debug(proc.stdout)
+                    if proc.stderr and not any(p in proc.stderr.decode() for p in PYTHON_PACKAGE_EXCL):
+                        if b"dependency conflicts" not in proc.stderr:
+                            self.log.error(proc.stderr)
 
                     # Copy off into local packages and source-specific directory
                     source_packages_dest = os.path.join(self.latest_updates_dir, f"{source_name}_python_packages")
                     # Purge to ensure the latest versions of the packages required
                     # Also, remove instances of the old directory if it still exists
                     shutil.rmtree(source_packages_dest, ignore_errors=True)
-                    shutil.rmtree(os.path.join(self.latest_updates_dir, 'python_packages'), ignore_errors=True)
+                    shutil.rmtree(os.path.join(self.latest_updates_dir, "python_packages"), ignore_errors=True)
 
                     shutil.copytree(pkg_dest, source_packages_dest)
-                    shutil.copytree(pkg_dest, "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
-                                    dirs_exist_ok=True)
+                    shutil.copytree(
+                        pkg_dest, "/var/lib/assemblyline/.local/lib/python3.9/site-packages", dirs_exist_ok=True
+                    )
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
@@ -107,7 +133,7 @@ class CXUpdateServer(ServiceUpdater):
                     destination = os.path.join(self.latest_updates_dir, source_name)
                     # Removing old version of directory if exists
                     if os.path.exists(destination):
-                        self.log.debug(f'Removing directory: {destination}')
+                        self.log.debug(f"Removing directory: {destination}")
                         shutil.rmtree(destination)
                     shutil.move(dir, destination)
                     self.log.debug(f"{dir} -> {destination}")
@@ -117,11 +143,12 @@ class CXUpdateServer(ServiceUpdater):
                     raise e
 
                 # Cleanup modules generated from source
-                for parser_module in [module for module in sys.modules.keys()
-                                      if module.startswith(os.path.split(dir)[1])]:
+                for parser_module in [
+                    module for module in sys.modules.keys() if module.startswith(os.path.split(dir)[1])
+                ]:
                     sys.modules.pop(parser_module)
             else:
-                raise Exception('No parser(s) found! Review source and try again later.')
+                raise Exception("No parser(s) found! Review source and try again later.")
 
     def is_valid(self, file_path) -> bool:
         return os.path.isdir(file_path)
@@ -136,29 +163,33 @@ class CXUpdateServer(ServiceUpdater):
         self.log.info("Create temporary API key.")
         with temporary_api_key(self.datastore, username) as api_key:
             self.log.info(f"Connecting to Assemblyline API: {UI_SERVER}")
-            al_client = get_client(UI_SERVER, apikey=(username, api_key), verify=False)
+            al_client = get_client(UI_SERVER, apikey=(username, api_key), verify=False, datastore=self.datastore)
 
             # Check if new signatures have been added
             self.log.info("Check for new signatures.")
-            if al_client.signature.update_available(since=epoch_to_iso(old_update_time) or "",
-                                                    sig_type=self.updater_type)["update_available"]:
-                _, time_keeper = tempfile.mkstemp(
-                    prefix="time_keeper_", dir=UPDATER_DIR
-                )
+            if al_client.signature.update_available(
+                since=epoch_to_iso(old_update_time) or "", sig_type=self.updater_type
+            )["update_available"]:
+                _, time_keeper = tempfile.mkstemp(prefix="time_keeper_", dir=UPDATER_DIR)
                 self.log.info("An update is available for download from the datastore")
                 self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
                 output_directory = self.prepare_output_directory()
 
                 # Merge Python packages into output directory
-                output_python_dir = os.path.join(output_directory, 'python_packages')
-                [(shutil.copytree(os.path.join(output_directory, pkg_dir), output_python_dir, dirs_exist_ok=True),
-                  shutil.rmtree(os.path.join(output_directory, pkg_dir)))
-                 for pkg_dir in os.listdir(output_directory) if pkg_dir.endswith('_python_packages')]
+                output_python_dir = os.path.join(output_directory, "python_packages")
+                [
+                    (
+                        shutil.copytree(os.path.join(output_directory, pkg_dir), output_python_dir, dirs_exist_ok=True),
+                        shutil.rmtree(os.path.join(output_directory, pkg_dir)),
+                    )
+                    for pkg_dir in os.listdir(output_directory)
+                    if pkg_dir.endswith("_python_packages")
+                ]
 
                 self.serve_directory(output_directory, time_keeper, al_client)
 
 
 if __name__ == "__main__":
-    with CXUpdateServer(downloadable_signature_statuses=['DEPLOYED', 'DISABLED']) as server:
+    with CXUpdateServer(downloadable_signature_statuses=["DEPLOYED", "DISABLED"]) as server:
         server.serve_forever()
