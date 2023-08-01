@@ -82,7 +82,7 @@ class CXUpdateServer(ServiceUpdater):
                     # Get the package dependencies for each required dependency
                     deps = []
                     for r in req:
-                        dist = JohnnyDist(r, ignore_errors=True, env={'proxy': os.environ.get("PIP_PROXY")})
+                        dist = JohnnyDist(r, ignore_errors=True, env=(('proxy', os.environ.get("PIP_PROXY")), ('blah', 'blah')))
                         [
                             (deps.append(d), req_pkgs.append(d.split("==")[0]))
                             for d in dist.serialise(format="pinned").split("\n")
