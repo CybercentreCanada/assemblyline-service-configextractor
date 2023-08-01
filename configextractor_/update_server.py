@@ -88,7 +88,6 @@ class CXUpdateServer(ServiceUpdater):
                             for d in dist.serialise(format="pinned").split("\n")
                             if d.split("==")[0] not in req_pkgs  # Prevent package version conflicts with requirements
                             and not d.split("==")[0] in PYTHON_PACKAGE_EXCL  # Prevent package conflicts with container
-                            and d not in deps  # Prevent package version conflicts in the dependency list
                         ]
                     # The new requirements list is a combination of the original list with their dependencies
                     mod_req = req + deps
