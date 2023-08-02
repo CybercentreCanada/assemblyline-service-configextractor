@@ -11,6 +11,10 @@ from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.client import get_client
 from assemblyline_v4_service.updater.updater import UI_SERVER, UPDATER_DIR, ServiceUpdater, temporary_api_key
 from configextractor.main import ConfigExtractor
+from johnnydep.lib import JohnnyDist
+from johnnydep.logs import configure_logging
+
+configure_logging()  # Set logging to WARNING level
 
 Classification = forge.get_classification()
 
@@ -18,6 +22,9 @@ Classification = forge.get_classification()
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if os.environ.get('PIP_PROXY'):
+            # Configure global proxy for pip
+            subprocess.run(['pip', 'config', 'set', 'global.proxy', os.environ['PIP_PROXY']])
 
     def import_update(self, files_sha256, client, source_name, default_classification=Classification.UNRESTRICTED):
         def import_parsers(cx: ConfigExtractor):
@@ -78,18 +85,11 @@ class CXUpdateServer(ServiceUpdater):
                     # Get the package dependencies for each required dependency
                     deps = []
                     for r in req:
-                        proc_env = os.environ
-                        if os.environ.get('PIP_PROXY'):
-                            proc_env['http_proxy'] = os.environ['PIP_PROXY']
-                            proc_env['https_proxy'] = os.environ['PIP_PROXY']
-
-                        output = subprocess.run(['johnnydep', '-o', 'pinned', '--ignore-errors', r],
-                                                env=proc_env, capture_output=True).stdout.decode()
+                        dist = JohnnyDist(r, ignore_errors=True)
                         [
                             (deps.append(d), req_pkgs.append(d.split("==")[0]))
-                            for d in output.split("\n")
-                            if d != 'None'
-                            and d.split("==")[0] not in req_pkgs  # Prevent package version conflicts with requirements
+                            for d in dist.serialise(format="pinned").split("\n")
+                            if d.split("==")[0] not in req_pkgs  # Prevent package version conflicts with requirements
                             and not d.split("==")[0] in PYTHON_PACKAGE_EXCL  # Prevent package conflicts with container
                         ]
                     # The new requirements list is a combination of the original list with their dependencies
