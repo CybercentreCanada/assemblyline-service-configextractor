@@ -11,10 +11,7 @@ from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.client import get_client
 from assemblyline_v4_service.updater.updater import UI_SERVER, UPDATER_DIR, ServiceUpdater, temporary_api_key
 from configextractor.main import ConfigExtractor
-from johnnydep.lib import JohnnyDist
-from johnnydep.logs import configure_logging
-
-configure_logging()  # Set logging to WARNING level
+from copy import deepcopy
 
 Classification = forge.get_classification()
 
@@ -22,9 +19,12 @@ Classification = forge.get_classification()
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.proc_env = deepcopy(os.environ)
         if os.environ.get('PIP_PROXY'):
             # Configure global proxy for pip
             subprocess.run(['pip', 'config', 'set', 'global.proxy', os.environ['PIP_PROXY']])
+            self.proc_env['https_proxy'] = os.environ['PIP_PROXY']
+            self.proc_env['http_proxy'] = os.environ['PIP_PROXY']
 
     def import_update(self, files_sha256, client, source_name, default_classification=Classification.UNRESTRICTED):
         def import_parsers(cx: ConfigExtractor):
@@ -85,11 +85,13 @@ class CXUpdateServer(ServiceUpdater):
                     # Get the package dependencies for each required dependency
                     deps = []
                     for r in req:
-                        dist = JohnnyDist(r, ignore_errors=True)
+                        output = subprocess.run(['johnnydep', '-o', 'pinned', '--ignore-errors', r],
+                                                env=self.proc_env, capture_output=True).stdout.decode()
                         [
                             (deps.append(d), req_pkgs.append(d.split("==")[0]))
-                            for d in dist.serialise(format="pinned").split("\n")
-                            if d.split("==")[0] not in req_pkgs  # Prevent package version conflicts with requirements
+                            for d in output.split("\n")
+                            if d != 'None'
+                            and d.split("==")[0] not in req_pkgs  # Prevent package version conflicts with requirements
                             and not d.split("==")[0] in PYTHON_PACKAGE_EXCL  # Prevent package conflicts with container
                         ]
                     # The new requirements list is a combination of the original list with their dependencies
@@ -99,9 +101,6 @@ class CXUpdateServer(ServiceUpdater):
 
                 # Install to temporary directory
                 cmd = "pip,install,-r,{req_path},-t,{pkg_dest},--disable-pip-version-check,--no-cache-dir,--upgrade,--no-deps"
-                if os.environ.get("PIP_PROXY"):
-                    # Proxy is required to package installation
-                    cmd += f",--proxy,{os.environ['PIP_PROXY']}"
                 with tempfile.TemporaryDirectory() as pkg_dest:
                     proc = subprocess.run(
                         cmd.format(req_path=mod_req_path, pkg_dest=pkg_dest).split(","), capture_output=True
