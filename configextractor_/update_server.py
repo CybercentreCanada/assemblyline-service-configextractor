@@ -1,9 +1,7 @@
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
-from copy import deepcopy
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
@@ -24,14 +22,11 @@ Classification = forge.get_classification()
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.proc_env = deepcopy(os.environ)
         if os.environ.get("PIP_PROXY"):
             # Configure global proxy for pip
             subprocess.run(
                 ["pip", "config", "set", "global.proxy", os.environ["PIP_PROXY"]]
             )
-            self.proc_env["https_proxy"] = os.environ["PIP_PROXY"]
-            self.proc_env["http_proxy"] = os.environ["PIP_PROXY"]
 
     def import_update(
         self,
@@ -42,10 +37,9 @@ class CXUpdateServer(ServiceUpdater):
     ):
         def import_parsers(cx: ConfigExtractor):
             upload_list = list()
-            parser_paths = cx.parsers.keys()
-            self.log.debug(f"Importing following parsers: {parser_paths}")
-            for parser_path in parser_paths:
-                parser_details = cx.get_details(parser_path)
+            for parser_obj in cx.parsers.values():
+                self.log.debug(f"Importing following parser: {parser_obj.module}")
+                parser_details = cx.get_details(parser_obj)
                 if parser_details:
                     id = f"{parser_details['framework']}_{parser_details['name']}"
                     try:
@@ -67,7 +61,7 @@ class CXUpdateServer(ServiceUpdater):
                         Signature(
                             dict(
                                 classification=classification,
-                                data=open(parser_path, "r").read(),
+                                data=open(parser_obj.module_path, "r").read(),
                                 name=parser_details["name"],
                                 signature_id=id,
                                 source=source_name,
@@ -85,74 +79,14 @@ class CXUpdateServer(ServiceUpdater):
             dir = dir[:-1]
             self.log.info(dir)
 
-            PYTHON_PACKAGE_EXCL = ["yara-python", "maco"]
-
             # Find any requirement files and pip install to a specific directory that will get transferred to services
             # Limit search for requirements.txt to root of folder containing parsers
             if "requirements.txt" in os.listdir(dir):
-                req_path = os.path.join(dir, "requirements.txt")
-                mod_req_path = os.path.join(dir, "modified_requirements.txt")
-                with open(req_path, "r") as req_fp:
-                    req = [
-                        r.strip()
-                        for r in req_fp.readlines()
-                        if not any([r.startswith(x) for x in PYTHON_PACKAGE_EXCL])
-                    ]
-                    req_pkgs = [r.split("==")[0] for r in req]
-                    # Get the package dependencies for each required dependency
-                    deps = []
-                    for r in req:
-                        output = subprocess.run(
-                            ["johnnydep", "-o", "pinned", "--ignore-errors", r],
-                            env=self.proc_env,
-                            capture_output=True,
-                        ).stdout.decode()
-                        [
-                            (deps.append(d), req_pkgs.append(d.split("==")[0]))
-                            for d in output.split("\n")
-                            if d != "None"
-                            and d.split("==")[0]
-                            not in req_pkgs  # Prevent package version conflicts with requirements
-                            and not d.split("==")[0]
-                            in PYTHON_PACKAGE_EXCL  # Prevent package conflicts with container
-                        ]
-                    # The new requirements list is a combination of the original list with their dependencies
-                    mod_req = req + deps
-                    with open(mod_req_path, "w") as mod_fp:
-                        mod_fp.write("\n".join(mod_req))
-
-                # Install to temporary directory
-                cmd = "pip,install,-r,{req_path},-t,{pkg_dest},--disable-pip-version-check,--no-cache-dir,--upgrade,--no-deps"
-                with tempfile.TemporaryDirectory() as pkg_dest:
-                    proc = subprocess.run(
-                        cmd.format(req_path=mod_req_path, pkg_dest=pkg_dest).split(","),
-                        capture_output=True,
-                    )
-                    self.log.debug(proc.stdout)
-                    if proc.stderr and not any(
-                        p in proc.stderr.decode() for p in PYTHON_PACKAGE_EXCL
-                    ):
-                        if b"dependency conflicts" not in proc.stderr:
-                            self.log.error(proc.stderr)
-
-                    # Copy off into local packages and source-specific directory
-                    source_packages_dest = os.path.join(
-                        self.latest_updates_dir, f"{source_name}_python_packages"
-                    )
-                    # Purge to ensure the latest versions of the packages required
-                    # Also, remove instances of the old directory if it still exists
-                    shutil.rmtree(source_packages_dest, ignore_errors=True)
-                    shutil.rmtree(
-                        os.path.join(self.latest_updates_dir, "python_packages"),
-                        ignore_errors=True,
-                    )
-
-                    shutil.copytree(pkg_dest, source_packages_dest)
-                    shutil.copytree(
-                        pkg_dest,
-                        "/var/lib/assemblyline/.local/lib/python3.9/site-packages",
-                        dirs_exist_ok=True,
-                    )
+                subprocess.run(
+                    ["/opt/al_service/create_venv.sh", dir],
+                    cwd=dir,
+                    capture_output=True,
+                )
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
@@ -176,14 +110,6 @@ class CXUpdateServer(ServiceUpdater):
                     if "already exists" in str(e):
                         continue
                     raise e
-
-                # Cleanup modules generated from source
-                for parser_module in [
-                    module
-                    for module in sys.modules.keys()
-                    if module.startswith(os.path.split(dir)[1])
-                ]:
-                    sys.modules.pop(parser_module)
             else:
                 raise Exception(
                     "No parser(s) found! Review source and try again later."
@@ -223,22 +149,6 @@ class CXUpdateServer(ServiceUpdater):
                 )
 
                 output_directory = self.prepare_output_directory()
-
-                # Merge Python packages into output directory
-                output_python_dir = os.path.join(output_directory, "python_packages")
-                [
-                    (
-                        shutil.copytree(
-                            os.path.join(output_directory, pkg_dir),
-                            output_python_dir,
-                            dirs_exist_ok=True,
-                        ),
-                        shutil.rmtree(os.path.join(output_directory, pkg_dir)),
-                    )
-                    for pkg_dir in os.listdir(output_directory)
-                    if pkg_dir.endswith("_python_packages")
-                ]
-
                 self.serve_directory(output_directory, time_keeper, al_client)
 
 

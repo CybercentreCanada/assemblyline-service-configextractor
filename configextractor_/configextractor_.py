@@ -1,7 +1,6 @@
 import hashlib
 import json
 import os
-import sys
 import tempfile
 from base64 import b64encode
 from typing import Any
@@ -62,14 +61,13 @@ class ConfigExtractor(ServiceBase):
     # Generate the rules_hash and init rules_list based on the raw files in the rules_directory from updater
     def _gen_rules_hash(self) -> str:
         self.rules_list = []
-        self.signatures_meta = json.loads(
-            open(
-                os.path.join(self.rules_directory, SIGNATURES_META_FILENAME), "r"
-            ).read()
+        signatures_meta_path = os.path.join(
+            self.rules_directory, SIGNATURES_META_FILENAME
         )
+        self.signatures_meta = json.loads(open(signatures_meta_path, "r").read())
         for obj in os.listdir(self.rules_directory):
             obj_path = os.path.join(self.rules_directory, obj)
-            if os.path.isdir(obj_path) and "python_packages" not in obj_path:
+            if obj_path != signatures_meta_path:
                 self.rules_list.append(obj_path)
         all_sha256s = [f for f in self.rules_list]
 
@@ -80,23 +78,9 @@ class ConfigExtractor(ServiceBase):
             " ".join(sorted(all_sha256s)).encode("utf-8")
         ).hexdigest()[:7]
 
-    def _clear_rules(self) -> None:
-        for dir in self.rules_list:
-            # Cleanup old modules
-            for parser_module in [
-                module
-                for module in sys.modules.keys()
-                if module.startswith(os.path.split(dir)[1])
-            ]:
-                sys.modules.pop(parser_module)
-
     def _load_rules(self) -> None:
         if self.rules_list:
             self.log.debug(self.rules_list)
-
-            python_packages_dir = os.path.join(self.rules_directory, "python_packages")
-            if python_packages_dir not in sys.path:
-                sys.path.append(python_packages_dir)
 
             blocklist = []
             for parser_name, meta in self.signatures_meta.items():
