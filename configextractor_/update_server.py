@@ -22,11 +22,6 @@ Classification = forge.get_classification()
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if os.environ.get("PIP_PROXY"):
-            # Configure global proxy for pip
-            subprocess.run(
-                ["pip", "config", "set", "global.proxy", os.environ["PIP_PROXY"]]
-            )
 
     def import_update(
         self,
