@@ -1,29 +1,35 @@
-from typing import Any
+import hashlib
+import json
+import os
+import tempfile
 from base64 import b64encode
+from typing import Any
 
-from assemblyline.common import forge, attack_map
-from assemblyline.odm.base import IP_ONLY_REGEX, FULL_URI, DOMAIN_ONLY_REGEX
+import regex
+from assemblyline.common import attack_map, forge
+from assemblyline.odm.base import DOMAIN_ONLY_REGEX, FULL_URI, IP_ONLY_REGEX
 from assemblyline.odm.models.ontology.results import MalwareConfig
-from assemblyline_v4_service.common.base import ServiceBase, SIGNATURES_META_FILENAME
+from assemblyline_v4_service.common.base import SIGNATURES_META_FILENAME, ServiceBase
 from assemblyline_v4_service.common.result import (
+    BODY_FORMAT,
+    Heuristic,
     Result,
     ResultSection,
     ResultTableSection,
-    BODY_FORMAT,
     TableRow,
-    Heuristic,
 )
-
-import json
-import hashlib
-import os
-import regex
-import sys
-import tempfile
-
 from configextractor.main import ConfigExtractor as CX
-from configextractor_.maco_tags import extract_connection_tags, extract_DNS_tags, extract_FTP_tags, extract_HTTP_tags, extract_proxy_tags, extract_SMTP_tags, extract_SSH_tags
-from maco.model import ExtractorModel, ConnUsageEnum
+from maco.model import ConnUsageEnum, ExtractorModel
+
+from configextractor_.maco_tags import (
+    extract_connection_tags,
+    extract_DNS_tags,
+    extract_FTP_tags,
+    extract_HTTP_tags,
+    extract_proxy_tags,
+    extract_SMTP_tags,
+    extract_SSH_tags,
+)
 
 cl_engine = forge.get_classification()
 
@@ -35,7 +41,7 @@ class Base64TruncatedEncoder(json.JSONEncoder):
         if isinstance(o, bytes):
             ret = b64encode(o).decode()
             if len(ret) > 1000:
-                ret = ret[:1000] + '...'
+                ret = ret[:1000] + "..."
             return ret
         return json.JSONEncoder.default(self, o)
 
@@ -55,12 +61,13 @@ class ConfigExtractor(ServiceBase):
     # Generate the rules_hash and init rules_list based on the raw files in the rules_directory from updater
     def _gen_rules_hash(self) -> str:
         self.rules_list = []
-        self.signatures_meta = json.loads(
-            open(os.path.join(self.rules_directory, SIGNATURES_META_FILENAME), 'r').read()
+        signatures_meta_path = os.path.join(
+            self.rules_directory, SIGNATURES_META_FILENAME
         )
+        self.signatures_meta = json.loads(open(signatures_meta_path, "r").read())
         for obj in os.listdir(self.rules_directory):
             obj_path = os.path.join(self.rules_directory, obj)
-            if os.path.isdir(obj_path) and 'python_packages' not in obj_path:
+            if obj_path != signatures_meta_path:
                 self.rules_list.append(obj_path)
         all_sha256s = [f for f in self.rules_list]
 
@@ -71,23 +78,13 @@ class ConfigExtractor(ServiceBase):
             " ".join(sorted(all_sha256s)).encode("utf-8")
         ).hexdigest()[:7]
 
-    def _clear_rules(self) -> None:
-        for dir in self.rules_list:
-            # Cleanup old modules
-            for parser_module in [module for module in sys.modules.keys() if module.startswith(os.path.split(dir)[1])]:
-                sys.modules.pop(parser_module)
-
     def _load_rules(self) -> None:
         if self.rules_list:
             self.log.debug(self.rules_list)
 
-            python_packages_dir = os.path.join(self.rules_directory, "python_packages")
-            if python_packages_dir not in sys.path:
-                sys.path.append(python_packages_dir)
-
             blocklist = []
             for parser_name, meta in self.signatures_meta.items():
-                if meta['status'] == "DISABLED":
+                if meta["status"] == "DISABLED":
                     blocklist.append(rf".*{parser_name}$")
             self.log.info(
                 f"Blocking the following parsers matching these patterns: {blocklist}"
@@ -144,16 +141,20 @@ class ConfigExtractor(ServiceBase):
             "tcp": (ExtractorModel.Connection, extract_connection_tags),
             "udp": (ExtractorModel.Connection, extract_connection_tags),
         }
-        request.temp_submission_data.setdefault('url_headers', {})
+        request.temp_submission_data.setdefault("url_headers", {})
         for field, model_tuple in network_fields.items():
             sorted_network_config = {}
             for network_config in config.pop(field, []):
-                if field == 'http' and network_config.get('uri'):
-                    headers = network_config.get('headers', {})
-                    if network_config.get('user_agent'):
-                        headers.update({'User-Agent': network_config['user_agent']})
-                    request.temp_submission_data['url_headers'].update({network_config['uri']: headers})
-                sorted_network_config.setdefault(network_config.get("usage", "other"), []).append(network_config)
+                if field == "http" and network_config.get("uri"):
+                    headers = network_config.get("headers", {})
+                    if network_config.get("user_agent"):
+                        headers.update({"User-Agent": network_config["user_agent"]})
+                    request.temp_submission_data["url_headers"].update(
+                        {network_config["uri"]: headers}
+                    )
+                sorted_network_config.setdefault(
+                    network_config.get("usage", "other"), []
+                ).append(network_config)
 
             if sorted_network_config:
                 connection_section = ResultSection(field.upper())
@@ -172,7 +173,7 @@ class ConfigExtractor(ServiceBase):
                         title_text=f"Usage: {usage.upper()} x{len(connections)}",
                         heuristic=heuristic,
                         tags=tags,
-                        auto_collapse=auto_collapse
+                        auto_collapse=auto_collapse,
                     )
                     for c in connections:
                         c.pop("usage", None)
@@ -199,6 +200,7 @@ class ConfigExtractor(ServiceBase):
                     else:
                         clean_config[k] = v
             return clean_config
+
         self.ontology.add_result_part(MalwareConfig, strip_null(config))
 
     def execute(self, request):
@@ -221,25 +223,27 @@ class ConfigExtractor(ServiceBase):
                 # Get AL-specific details about the parser
                 id = f"{parser_framework}_{parser_name}"
                 signature_meta = self.signatures_meta[id]
-                source_name = signature_meta['source']
-                if not parser_output.get('config'):
+                source_name = signature_meta["source"]
+                if not parser_output.get("config"):
                     # No configuration therefore skip
                     continue
 
                 config = parser_output.pop("config")
 
                 # Correct revoked ATT&CK IDs
-                for i, v in enumerate(config.get('attack', [])):
-                    config['attack'][i] = attack_map.revoke_map.get(v, v)
+                for i, v in enumerate(config.get("attack", [])):
+                    config["attack"][i] = attack_map.revoke_map.get(v, v)
 
                 # Account for the possibility of 'family' field to be a string (Output of MACO <= 1.0.2)
-                if isinstance(config['family'], str):
-                    config['family'] = [config['family']]
+                if isinstance(config["family"], str):
+                    config["family"] = [config["family"]]
 
                 # Include extractor's name for ontology output only
-                config['config_extractor'] = config.get('config_extractor', f"{source_name}.{parser_name}")
+                config["config_extractor"] = config.get(
+                    "config_extractor", f"{source_name}.{parser_name}"
+                )
                 self.attach_ontology(config)
-                config.pop('config_extractor')
+                config.pop("config_extractor")
 
                 parser_output["family"] = config.pop("family")
                 parser_output["Framework"] = parser_framework
@@ -271,18 +275,22 @@ class ConfigExtractor(ServiceBase):
                     body_format=BODY_FORMAT.KEY_VALUE,
                     tags=tags,
                     heuristic=Heuristic(1, attack_ids=attack_ids),
-                    classification=signature_meta['classification'],
+                    classification=signature_meta["classification"],
                 )
-                extra_tags = {"file.rule.configextractor": [f"{source_name}.{parser_name}"]}
-                network_section = self.network_ioc_section(config, request, extra_tags=extra_tags)
+                extra_tags = {
+                    "file.rule.configextractor": [f"{source_name}.{parser_name}"]
+                }
+                network_section = self.network_ioc_section(
+                    config, request, extra_tags=extra_tags
+                )
                 if network_section:
                     parser_section.add_subsection(network_section)
 
-                for binary in config.get('binaries', []):
+                for binary in config.get("binaries", []):
                     # Append binary data to submission for analysis
-                    datatype = binary.get('datatype', 'other')
-                    data = binary.get('data')
-                    if datatype in ['other', 'payload'] and data:
+                    datatype = binary.get("datatype", "other")
+                    data = binary.get("data")
+                    if datatype in ["other", "payload"] and data:
                         if isinstance(data, str):
                             data = data.encode()
                         sha256 = hashlib.sha256(data).hexdigest()
@@ -303,7 +311,7 @@ class ConfigExtractor(ServiceBase):
                         body=json.dumps(config, cls=Base64TruncatedEncoder),
                         body_format=BODY_FORMAT.JSON,
                         parent=parser_section,
-                        tags=other_tags
+                        tags=other_tags,
                     )
 
         request.result = result
