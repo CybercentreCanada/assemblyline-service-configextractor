@@ -46,6 +46,17 @@ class CXUpdateServer(ServiceUpdater):
 
         return check_passed
 
+    # Define how to prepare the output directory before being served, must return the path of the directory to serve.
+    def prepare_output_directory(self) -> str:
+        output_directory = tempfile.mkdtemp()
+        shutil.copytree(
+            self.latest_updates_dir,
+            output_directory,
+            dirs_exist_ok=True,
+            copy_function=shutil.copy,
+        )
+        return output_directory
+
     def import_update(
         self,
         files_sha256,

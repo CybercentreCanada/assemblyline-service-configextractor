@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Handle passing in no input
+if [ -z $1 ]; then exit; fi
+
 python3.9 -m venv $1/venv
 . $1/venv/bin/activate
 pip install -U pip
