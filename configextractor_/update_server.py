@@ -23,6 +23,29 @@ class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    # A sanity check to make sure we do in fact have things to send to services
+    def _inventory_check(self) -> bool:
+        check_passed = False
+        if not self._update_dir:
+            return check_passed
+
+        # Each directory within the update_dir should be named after the source
+        all_sources = set([_s.name for _s in self._service.update_config.sources])
+        existing_sources = set(os.listdir(self._update_dir))
+        missing_sources = all_sources - existing_sources
+
+        # The check has passed if at least one source exists
+        check_passed = bool(all_sources.intersection(existing_sources))
+
+        if missing_sources:
+            # If sources are missing, then clear caching from Redis and trigger source updates
+            for source in missing_sources:
+                self._current_source = source
+                self.set_source_update_time(0)
+            self.trigger_update()
+
+        return check_passed
+
     def import_update(
         self,
         files_sha256,
