@@ -53,8 +53,16 @@ class CXUpdateServer(ServiceUpdater):
             self.latest_updates_dir,
             output_directory,
             dirs_exist_ok=True,
-            copy_function=shutil.copy,
         )
+        # Reinstall any venv packages that are missing after performing the copy
+        for source in os.listdir(output_directory):
+            dir = os.path.join(output_directory, source)
+            if "requirements.txt" in os.listdir(dir):
+                subprocess.run(
+                    ["/opt/al_service/create_venv.sh", dir],
+                    cwd=dir,
+                    capture_output=True,
+                )
         return output_directory
 
     def import_update(
