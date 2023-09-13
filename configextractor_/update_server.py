@@ -1,10 +1,10 @@
-import json
 import os
 import shutil
 import subprocess
-import tarfile
 import tempfile
+import threading
 import time
+from typing import Dict
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
@@ -12,8 +12,7 @@ from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.client import get_client
 from assemblyline_v4_service.updater.updater import (
-    SIGNATURES_META_FILENAME,
-    STATUS_FILE,
+    SERVICE_NAME,
     UI_SERVER,
     UPDATER_DIR,
     ServiceUpdater,
@@ -27,6 +26,10 @@ Classification = forge.get_classification()
 class CXUpdateServer(ServiceUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._service = self.datastore.get_service_with_delta(SERVICE_NAME)
+        self.source_locks: Dict[str, threading.Lock] = {
+            _s.name: threading.Lock() for _s in self._service.update_config.sources
+        }
 
     # A sanity check to make sure we do in fact have things to send to services
     def _inventory_check(self) -> bool:
@@ -122,28 +125,40 @@ class CXUpdateServer(ServiceUpdater):
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 self.log.info("Transferring directory to persistent storage")
-                try:
-                    destination = os.path.join(self.latest_updates_dir, source_name)
-                    # Removing old version of directory if exists
-                    if os.path.exists(destination):
-                        self.log.info(f"Removing directory: {destination}")
-                        shutil.rmtree(destination)
-                        while os.path.exists(destination):
-                            # Give some time for the OS to cleanup the directory
-                            self.log.info("Sleeping..")
-                            time.sleep(3)
-                    shutil.move(dir, destination)
-                    self.log.info(f"{dir} -> {destination}")
-                except shutil.Error as e:
-                    if "already exists" in str(e):
-                        continue
-                    raise e
+                with self.source_locks[source_name]:
+                    try:
+                        destination = os.path.join(self.latest_updates_dir, source_name)
+                        # Removing old version of directory if exists
+                        if os.path.exists(destination):
+                            self.log.info(f"Removing directory: {destination}")
+                            shutil.rmtree(destination)
+                            while os.path.exists(destination):
+                                # Give some time for the OS to cleanup the directory
+                                self.log.info("Sleeping..")
+                                time.sleep(3)
+                        shutil.move(dir, destination)
+                        self.log.debug(f"{dir} → {destination}")
+                    except shutil.Error as e:
+                        if "already exists" in str(e):
+                            continue
+                        raise e
             else:
                 raise Exception("No parser(s) found! Review source and try again later.")
             self.log.info("Transfer completed")
 
     def is_valid(self, file_path) -> bool:
         return os.path.isdir(file_path)
+
+    def prepare_output_directory(self) -> str:
+        output_directory = tempfile.mkdtemp()
+        for source, lock in self.source_locks.items():
+            source_path = os.path.join(self.latest_updates_dir, source)
+            if os.path.exists(source_path):
+                with lock:
+                    shutil.copytree(
+                        os.path.join(self.latest_updates_dir, source), os.path.join(output_directory, source)
+                    )
+        return output_directory
 
     def do_local_update(self) -> None:
         old_update_time = self.get_local_update_time()
