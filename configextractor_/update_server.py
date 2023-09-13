@@ -8,12 +8,7 @@ from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.client import get_client
-from assemblyline_v4_service.updater.updater import (
-    UI_SERVER,
-    UPDATER_DIR,
-    ServiceUpdater,
-    temporary_api_key,
-)
+from assemblyline_v4_service.updater.updater import UI_SERVER, UPDATER_DIR, ServiceUpdater, temporary_api_key
 from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
@@ -107,9 +102,7 @@ class CXUpdateServer(ServiceUpdater):
                             )
                         ).as_primitives()
                     )
-            return client.signature.add_update_many(
-                source_name, "configextractor", upload_list, dedup_name=False
-            )
+            return client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
 
         for dir, _ in files_sha256:
             # Remove cached duplicates
@@ -129,9 +122,7 @@ class CXUpdateServer(ServiceUpdater):
             if cx.parsers:
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
                 resp = import_parsers(cx)
-                self.log.info(
-                    f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline."
-                )
+                self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
                 self.log.debug(resp)
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
@@ -148,9 +139,7 @@ class CXUpdateServer(ServiceUpdater):
                         continue
                     raise e
             else:
-                raise Exception(
-                    "No parser(s) found! Review source and try again later."
-                )
+                raise Exception("No parser(s) found! Review source and try again later.")
 
     def is_valid(self, file_path) -> bool:
         return os.path.isdir(file_path)
@@ -177,20 +166,14 @@ class CXUpdateServer(ServiceUpdater):
             if al_client.signature.update_available(
                 since=epoch_to_iso(old_update_time) or "", sig_type=self.updater_type
             )["update_available"]:
-                _, time_keeper = tempfile.mkstemp(
-                    prefix="time_keeper_", dir=UPDATER_DIR
-                )
+                _, time_keeper = tempfile.mkstemp(prefix="time_keeper_", dir=UPDATER_DIR)
                 self.log.info("An update is available for download from the datastore")
-                self.log.debug(
-                    f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}"
-                )
+                self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
                 output_directory = self.prepare_output_directory()
                 self.serve_directory(output_directory, time_keeper, al_client)
 
 
 if __name__ == "__main__":
-    with CXUpdateServer(
-        downloadable_signature_statuses=["DEPLOYED", "DISABLED"]
-    ) as server:
+    with CXUpdateServer(downloadable_signature_statuses=["DEPLOYED", "DISABLED"]) as server:
         server.serve_forever()
