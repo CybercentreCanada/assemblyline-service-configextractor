@@ -231,6 +231,13 @@ class ConfigExtractor(ServiceBase):
                 self.attach_ontology(config)
                 config.pop("config_extractor")
 
+                if not config.get('family'):
+                    # Family isn't included in the output which is required!
+                    # Move onto next result, but log which parser needs correcting.
+                    self.log.warning(f"[{parser_framework}] {parser_name} is missing 'family' in it's output "
+                                     "which is mandatory to the MaCo spec. Moving onto next result...")
+                    continue
+
                 parser_output["family"] = config.pop("family")
                 parser_output["Framework"] = parser_framework
 
@@ -272,6 +279,11 @@ class ConfigExtractor(ServiceBase):
                     # Append binary data to submission for analysis
                     datatype = binary.get("datatype", "other")
                     data = binary.get("data")
+
+                    # Account for the possibility of 'encryption' field to be a dict (Output of MACO <= 1.0.10)
+                    if binary.get("encryption") and isinstance(binary["encryption"], dict):
+                        binary["encryption"] = [binary["encryption"]]
+
                     if datatype in ["other", "payload"] and data:
                         if isinstance(data, str):
                             data = data.encode()
