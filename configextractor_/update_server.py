@@ -121,20 +121,26 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.debug(resp)
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
+                self.log.info("Transferring directory to persistent storage")
                 try:
                     destination = os.path.join(self.latest_updates_dir, source_name)
                     # Removing old version of directory if exists
                     if os.path.exists(destination):
-                        self.log.debug(f"Removing directory: {destination}")
+                        self.log.info(f"Removing directory: {destination}")
                         shutil.rmtree(destination)
+                        while os.path.exists(destination):
+                            # Give some time for the OS to cleanup the directory
+                            self.log.info("Sleeping..")
+                            time.sleep(3)
                     shutil.move(dir, destination)
-                    self.log.debug(f"{dir} -> {destination}")
+                    self.log.info(f"{dir} -> {destination}")
                 except shutil.Error as e:
                     if "already exists" in str(e):
                         continue
                     raise e
             else:
                 raise Exception("No parser(s) found! Review source and try again later.")
+            self.log.info("Transfer completed")
 
     def is_valid(self, file_path) -> bool:
         return os.path.isdir(file_path)
