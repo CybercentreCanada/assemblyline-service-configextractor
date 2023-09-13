@@ -103,11 +103,15 @@ class CXUpdateServer(ServiceUpdater):
             # Find any requirement files and pip install to a specific directory that will get transferred to services
             # Limit search for requirements.txt to root of folder containing parsers
             if "requirements.txt" in os.listdir(dir):
-                subprocess.run(
+                proc = subprocess.run(
                     ["/opt/al_service/create_venv.sh", dir],
                     cwd=dir,
                     capture_output=True,
                 )
+                # Files used for debugging venv creation
+                open(os.path.join(dir, "create_venv.out"), "wb").write(proc.stdout)
+                if proc.stderr:
+                    open(os.path.join(dir, "create_venv.err"), "wb").write(proc.stderr)
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
