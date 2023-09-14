@@ -155,12 +155,15 @@ class CXUpdateServer(ServiceUpdater):
             source_path = os.path.join(self.latest_updates_dir, source)
             if os.path.exists(source_path):
                 with lock:
-                    shutil.copytree(
-                        os.path.join(self.latest_updates_dir, source),
-                        os.path.join(output_directory, source),
-                        symlinks=True,
-                        dirs_exist_ok=True,
-                    )
+                    try:
+                        shutil.copytree(
+                            os.path.join(self.latest_updates_dir, source),
+                            os.path.join(output_directory, source),
+                            symlinks=True,
+                            dirs_exist_ok=True,
+                        )
+                    except shutil.Error:
+                        pass
         return output_directory
 
     def do_local_update(self) -> None:
