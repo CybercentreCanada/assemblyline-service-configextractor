@@ -144,7 +144,7 @@ class CXUpdateServer(ServiceUpdater):
                         raise e
             else:
                 raise Exception("No parser(s) found! Review source and try again later.")
-            self.log.info("Transfer completed")
+            self.log.info(f"Transfer of {source_name} completed")
 
     def is_valid(self, file_path) -> bool:
         return os.path.isdir(file_path)
@@ -156,7 +156,10 @@ class CXUpdateServer(ServiceUpdater):
             if os.path.exists(source_path):
                 with lock:
                     shutil.copytree(
-                        os.path.join(self.latest_updates_dir, source), os.path.join(output_directory, source)
+                        os.path.join(self.latest_updates_dir, source),
+                        os.path.join(output_directory, source),
+                        symlinks=True,
+                        dirs_exist_ok=True,
                     )
         return output_directory
 
