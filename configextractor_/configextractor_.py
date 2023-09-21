@@ -218,6 +218,8 @@ class ConfigExtractor(ServiceBase):
 
                 config = parser_output.pop("config")
 
+                # Patch output to be compatible with AL Ontology (which is modelled after the latest MACO release)
+
                 # Correct revoked ATT&CK IDs
                 for i, v in enumerate(config.get("attack", [])):
                     config["attack"][i] = attack_map.revoke_map.get(v, v)
@@ -225,6 +227,11 @@ class ConfigExtractor(ServiceBase):
                 # Account for the possibility of 'family' field to be a string (Output of MACO <= 1.0.2)
                 if isinstance(config["family"], str):
                     config["family"] = [config["family"]]
+
+                for binary in config.get("binaries", []):
+                    # Account for the possibility of 'encryption' field to be a dict (Output of MACO <= 1.0.10)
+                    if binary.get("encryption") and isinstance(binary["encryption"], dict):
+                        binary["encryption"] = [binary["encryption"]]
 
                 # Include extractor's name for ontology output only
                 config["config_extractor"] = config.get("config_extractor", f"{source_name}.{parser_name}")
@@ -279,10 +286,6 @@ class ConfigExtractor(ServiceBase):
                     # Append binary data to submission for analysis
                     datatype = binary.get("datatype", "other")
                     data = binary.get("data")
-
-                    # Account for the possibility of 'encryption' field to be a dict (Output of MACO <= 1.0.10)
-                    if binary.get("encryption") and isinstance(binary["encryption"], dict):
-                        binary["encryption"] = [binary["encryption"]]
 
                     if datatype in ["other", "payload"] and data:
                         if isinstance(data, str):
