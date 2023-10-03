@@ -67,7 +67,6 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.debug(f"Importing following parser: {parser_obj.module}")
                 parser_details = cx.get_details(parser_obj)
                 if parser_details:
-                    id = f"{parser_details['framework']}_{parser_details['name']}"
                     try:
                         classification = parser_details["classification"]
                         if classification:
@@ -78,7 +77,7 @@ class CXUpdateServer(ServiceUpdater):
                             classification = default_classification
                     except InvalidClassification:
                         self.log.warning(
-                            f'{id}: Classification "{classification}" not recognized. '
+                            f'{parser_obj.id}: Classification "{classification}" not recognized. '
                             f"Defaulting to {default_classification}.."
                         )
                         classification = default_classification
@@ -89,7 +88,7 @@ class CXUpdateServer(ServiceUpdater):
                                 classification=classification,
                                 data=open(parser_obj.module_path, "r").read(),
                                 name=parser_details["name"],
-                                signature_id=id,
+                                signature_id=parser_obj.id,
                                 source=source_name,
                                 type="configextractor",
                                 status="DEPLOYED",
