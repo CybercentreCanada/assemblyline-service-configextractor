@@ -210,8 +210,16 @@ class ConfigExtractor(ServiceBase):
             for parser_name, parser_output in parser_results.items():
                 # Get AL-specific details about the parser
                 id = f"{parser_framework}_{parser_name}"
-                signature_meta = self.signatures_meta[id]
-                source_name = signature_meta["source"]
+                signature_meta = self.signatures_meta.get(id, None)
+                if signature_meta is None:
+                    self.log.info(f"{id} was not found in signature_meta. Skipping.")
+                    continue
+                
+                source_name = signature_meta.get("source")
+                if not source_name:
+                    self.log.info(f"Source not found. Skipping.")
+                    continue
+                
                 if not parser_output.get("config"):
                     # No configuration therefore skip
                     continue
