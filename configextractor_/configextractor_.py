@@ -207,9 +207,16 @@ class ConfigExtractor(ServiceBase):
             "Raw output from configextractor-py",
         )
         for parser_framework, parser_results in config_result.items():
-            for parser_name, parser_output in parser_results.items():
+            for parser_output in parser_results:
+                # Retrieve identifier from the results
+                id = parser_output.pop('id', None)
+
+                if id not in self.signatures_meta:
+                    self.log.warning(f"{id} wasn't found in signatures map. Skipping...")
+                    continue
+
                 # Get AL-specific details about the parser
-                id = f"{parser_framework}_{parser_name}"
+                parser_name = self.cx.get_details(self.cx.parsers[id])["name"]
                 signature_meta = self.signatures_meta[id]
                 source_name = signature_meta["source"]
                 if not parser_output.get("config"):

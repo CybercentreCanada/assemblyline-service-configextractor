@@ -20,7 +20,7 @@ The updater is able to scan through the root directory containing parsers and lo
 
 If you require a proxy connection for package installation, add environment variable `PIP_PROXY` to the container configuration.
 
-## [ConfigExtractor Python Library](https://github.com/CybercentreCanada/configextractor-py)
+## [ConfigExtractor Python Library](https://github.com/CybercentreCanada/configextractor-py) (now available on [PyPI](https://pypi.org/project/configextractor-py/))
 
 All parser directories that are able to work with this library should also be compatible with the service.
 
