@@ -11,7 +11,7 @@ def extract_FTP_tags(data: List[Dict]) -> Dict:
         if d.get("hostname"):
             tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
-            tags.setdefault("network.port", []).append(d["hostname"])
+            tags.setdefault("network.port", []).append(d["port"])
 
         if d.get("path"):
             tags.setdefault("file.path", []).append(d["path"])
@@ -27,7 +27,7 @@ def extract_SMTP_tags(data: List[Dict]) -> Dict:
         if d.get("hostname"):
             tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
-            tags.setdefault("network.port", []).append(d["hostname"])
+            tags.setdefault("network.port", []).append(d["port"])
 
         if d.get("mail_to"):
             tags.setdefault("network.email.address", []).extend(d["mail_to"])
@@ -48,7 +48,7 @@ def extract_HTTP_tags(data: List[Dict]) -> Dict:
         if d.get("hostname"):
             tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
-            tags.setdefault("network.port", []).append(d["hostname"])
+            tags.setdefault("network.port", []).append(d["port"])
 
         if d.get("uri"):
             tags.setdefault("network.static.uri", []).append(d["uri"])
@@ -68,7 +68,7 @@ def extract_SSH_tags(data: List[Dict]) -> Dict:
         if d.get("hostname"):
             tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
-            tags.setdefault("network.port", []).append(d["hostname"])
+            tags.setdefault("network.port", []).append(d["port"])
 
     return tags
 
@@ -83,7 +83,7 @@ def extract_proxy_tags(data: List[Dict]) -> Dict:
         if d.get("hostname"):
             tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
-            tags.setdefault("network.port", []).append(d["hostname"])
+            tags.setdefault("network.port", []).append(d["port"])
 
     return tags
 
@@ -94,7 +94,7 @@ def extract_DNS_tags(data: List[Dict]) -> Dict:
         if d.get("ip"):
             tags.setdefault("network.static.ip", []).append(d["ip"])
         if d.get("port"):
-            tags.setdefault("network.port", []).append(d["hostname"])
+            tags.setdefault("network.port", []).append(d["port"])
 
     return tags
 
