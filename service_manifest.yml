@@ -5,7 +5,7 @@ description: >
 
   This service runs parsers to extract malware configuration data
 accepts: .*
-rejects: empty|metadata/.*
+rejects: empty|metadata/.*|uri/.*
 
 stage: SECONDARY
 
