@@ -41,8 +41,9 @@ class CXUpdateServer(ServiceUpdater):
         all_sources = set([_s.name for _s in self._service.update_config.sources])
         existing_sources = set()
         for source in os.listdir(self._update_dir):
-            if ConfigExtractor([os.path.join(self._update_dir, source)]).parsers:
-                # Check for any potential data corruption
+            fullpath = os.path.join(self._update_dir, source)
+            # Check for any potential data corruption
+            if os.path.isdir(fullpath) and ConfigExtractor([fullpath]).parsers:
                 existing_sources.add(source)
         missing_sources = all_sources - existing_sources
 
