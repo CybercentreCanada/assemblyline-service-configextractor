@@ -39,7 +39,11 @@ class CXUpdateServer(ServiceUpdater):
 
         # Each directory within the update_dir should be named after the source
         all_sources = set([_s.name for _s in self._service.update_config.sources])
-        existing_sources = set(os.listdir(self._update_dir))
+        existing_sources = set()
+        for source in os.listdir(self._update_dir):
+            if ConfigExtractor([os.path.join(self._update_dir, source)]).parsers:
+                # Check for any potential data corruption
+                existing_sources.add(source)
         missing_sources = all_sources - existing_sources
 
         # The check has passed if at least one source exists
