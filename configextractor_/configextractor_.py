@@ -9,9 +9,9 @@ import regex
 from assemblyline.common import attack_map, forge
 from assemblyline.odm.base import DOMAIN_ONLY_REGEX, FULL_URI, IP_ONLY_REGEX
 from assemblyline.odm.models.ontology.results import MalwareConfig
+from assemblyline.odm.models.result import BODY_FORMAT
 from assemblyline_v4_service.common.base import SIGNATURES_META_FILENAME, ServiceBase
 from assemblyline_v4_service.common.result import (
-    BODY_FORMAT,
     Heuristic,
     Result,
     ResultSection,
