@@ -17,8 +17,7 @@ timeout: 120
 
 disable_cache: false
 
-# Disabled at first so Administrator can assign appropriate storage class
-enabled: false
+enabled: true
 
 is_external: false
 
@@ -66,16 +65,7 @@ dependencies:
       command: ["python", "-m", "configextractor_.update_server"]
       image: ${REGISTRY}cccs/assemblyline-service-configextractor:$SERVICE_TAG
       ports: ["5003"]
-      environment:
-        - name: UPDATER_DIR
-          value: /mnt/updates
-
     run_as_core: True
-    volumes:
-      updates:
-        mount_path: /mnt/updates
-        capacity: 1048576 #1Gi
-        storage_class: default
 
 update_config:
   generates_signatures: true
