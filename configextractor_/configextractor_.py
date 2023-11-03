@@ -209,7 +209,7 @@ class ConfigExtractor(ServiceBase):
         for parser_framework, parser_results in config_result.items():
             for parser_output in parser_results:
                 # Retrieve identifier from the results
-                id = parser_output.pop('id', None)
+                id = parser_output.pop("id", None)
 
                 if id not in self.signatures_meta:
                     self.log.warning(f"{id} wasn't found in signatures map. Skipping...")
