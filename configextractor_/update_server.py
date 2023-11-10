@@ -13,6 +13,7 @@ from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.client import get_client
 from assemblyline_v4_service.updater.updater import (
     SERVICE_NAME,
+    SOURCE_STATUS_KEY,
     UI_SERVER,
     UPDATER_DIR,
     ServiceUpdater,
@@ -60,6 +61,10 @@ class CXUpdateServer(ServiceUpdater):
         if missing_sources:
             # If sources are missing, then clear caching from Redis and trigger source updates
             for source in missing_sources:
+                # Ensure there are no active updates going on before you re-trigger download of source
+                state = self.update_data_hash.get(f"{source}.{SOURCE_STATUS_KEY}")
+                if state and state["status"] == "UPDATING":
+                    continue
                 self._current_source = source
                 self.set_source_update_time(0)
             self.trigger_update()
