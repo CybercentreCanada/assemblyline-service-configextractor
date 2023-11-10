@@ -13,6 +13,7 @@ from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.client import get_client
 from assemblyline_v4_service.updater.updater import (
     SERVICE_NAME,
+    SOURCE_STATUS_KEY,
     UI_SERVER,
     UPDATER_DIR,
     ServiceUpdater,
@@ -21,6 +22,18 @@ from assemblyline_v4_service.updater.updater import (
 from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
+
+
+def create_venv(dir):
+    proc = subprocess.run(
+        ["/opt/al_service/create_venv.sh", dir],
+        cwd=dir,
+        capture_output=True,
+    )
+    # Files used for debugging venv creation
+    open(os.path.join(dir, "create_venv.out"), "wb").write(proc.stdout)
+    if proc.stderr:
+        open(os.path.join(dir, "create_venv.err"), "wb").write(proc.stderr)
 
 
 class CXUpdateServer(ServiceUpdater):
@@ -48,6 +61,10 @@ class CXUpdateServer(ServiceUpdater):
         if missing_sources:
             # If sources are missing, then clear caching from Redis and trigger source updates
             for source in missing_sources:
+                # Ensure there are no active updates going on before you re-trigger download of source
+                state = self.update_data_hash.get(f"{source}.{SOURCE_STATUS_KEY}")
+                if state and state["status"] == "UPDATING":
+                    continue
                 self._current_source = source
                 self.set_source_update_time(0)
             self.trigger_update()
@@ -109,28 +126,30 @@ class CXUpdateServer(ServiceUpdater):
 
             # Find any requirement files and pip install to a specific directory that will get transferred to services
             # Limit search for requirements.txt to root of folder containing parsers
+            venv_created = False
             if "requirements.txt" in os.listdir(dir):
-                proc = subprocess.run(
-                    ["/opt/al_service/create_venv.sh", dir],
-                    cwd=dir,
-                    capture_output=True,
-                )
-                # Files used for debugging venv creation
-                open(os.path.join(dir, "create_venv.out"), "wb").write(proc.stdout)
-                if proc.stderr:
-                    open(os.path.join(dir, "create_venv.err"), "wb").write(proc.stderr)
+                create_venv(dir)
+                venv_created = True
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
                 resp = import_parsers(cx)
+                self.push_status("UPDATING", "Parsers successfully stored as signatures in Signatures index.")
                 self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
                 self.log.debug(resp)
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 self.log.info("Transferring directory to persistent storage")
+                self.push_status("UPDATING", "Preparing to transfer parsers to local persistence...")
                 with self.source_locks[source_name]:
                     try:
+                        if venv_created:
+                            # Remove venv before transfer
+                            self.push_status("UPDATING", "Removing venv before transfer...")
+                            shutil.rmtree(os.path.join(dir, "venv"))
+
+                        self.push_status("UPDATING", "Beginning transfer of parsers...")
                         destination = os.path.join(self.latest_updates_dir, source_name)
                         # Removing old version of directory if exists
                         if os.path.exists(destination):
@@ -142,6 +161,9 @@ class CXUpdateServer(ServiceUpdater):
                                 time.sleep(3)
                         shutil.move(dir, destination)
                         self.log.debug(f"{dir} → {destination}")
+                        if venv_created:
+                            self.push_status("UPDATING", "Re-creating necessary venv in persistent space...")
+                            create_venv(destination)
                     except shutil.Error as e:
                         if "already exists" in str(e):
                             continue
