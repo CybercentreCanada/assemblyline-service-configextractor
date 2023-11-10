@@ -63,7 +63,7 @@ class CXUpdateServer(ServiceUpdater):
             for source in missing_sources:
                 # Ensure there are no active updates going on before you re-trigger download of source
                 state = self.update_data_hash.get(f"{source}.{SOURCE_STATUS_KEY}")
-                if state and state.get("status") == "UPDATING":
+                if state and state.get("state") == "UPDATING":
                     continue
                 self._current_source = source
                 self.set_source_update_time(0)
