@@ -214,7 +214,10 @@ class CXUpdateServer(ServiceUpdater):
             if al_client.signature.update_available(
                 since=epoch_to_iso(old_update_time) or "", sig_type=self.updater_type
             )["update_available"]:
-                _, new_time = tempfile.mkstemp(prefix="time_keeper_", dir=UPDATER_DIR)
+                # Create a temporary file for the time keeper
+                new_time = tempfile.NamedTemporaryFile(prefix="time_keeper_", dir=UPDATER_DIR, delete=False)
+                new_time.close()
+                new_time = new_time.name
                 self.log.info("An update is available for download from the datastore")
                 self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
