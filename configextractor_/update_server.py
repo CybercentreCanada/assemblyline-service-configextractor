@@ -125,11 +125,11 @@ class CXUpdateServer(ServiceUpdater):
             self.log.info(dir)
 
             # Find any requirement files and pip install to a specific directory that will get transferred to services
-            # Limit search for requirements.txt to root of folder containing parsers
-            venv_created = False
-            if "requirements.txt" in os.listdir(dir):
-                create_venv(dir)
-                venv_created = True
+            venv_created = []
+            for root, _, files in os.walk(dir):
+                if "requirements.txt" in files:
+                    create_venv(root)
+                    venv_created.append(root)
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
             if cx.parsers:
@@ -146,8 +146,8 @@ class CXUpdateServer(ServiceUpdater):
                     try:
                         if venv_created:
                             # Remove venv before transfer
-                            self.push_status("UPDATING", "Removing venv before transfer...")
-                            shutil.rmtree(os.path.join(dir, "venv"))
+                            self.push_status("UPDATING", "Removing venv(s) before transfer...")
+                            [shutil.rmtree(os.path.join(d, "venv")) for d in venv_created]
 
                         self.push_status("UPDATING", "Beginning transfer of parsers...")
                         destination = os.path.join(self.latest_updates_dir, source_name)
@@ -162,8 +162,8 @@ class CXUpdateServer(ServiceUpdater):
                         shutil.move(dir, destination)
                         self.log.debug(f"{dir} → {destination}")
                         if venv_created:
-                            self.push_status("UPDATING", "Re-creating necessary venv in persistent space...")
-                            create_venv(destination)
+                            self.push_status("UPDATING", "Re-creating necessary venv(s) in persistent space...")
+                            [create_venv(d.replace(dir, destination)) for d in venv_created]
                     except shutil.Error as e:
                         if "already exists" in str(e):
                             continue
