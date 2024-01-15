@@ -35,10 +35,6 @@ def create_venv(dir):
 
 
 class CXUpdateServer(ServiceUpdater):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._service = self.datastore.get_service_with_delta(SERVICE_NAME)
-
     def import_update(
         self,
         files_sha256,
