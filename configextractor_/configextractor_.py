@@ -225,9 +225,6 @@ class ConfigExtractor(ServiceBase):
 
                 config = parser_output.pop("config")
 
-                # If we actually have a configuration that was extracted, then mark section as malicious
-                heur_id = 1 if config else 3
-
                 # Patch output to be compatible with AL Ontology (which is modelled after the latest MACO release)
 
                 # Correct revoked ATT&CK IDs
@@ -270,6 +267,9 @@ class ConfigExtractor(ServiceBase):
                     campaign_id = config.pop("campaign_id", [])
                     parser_output["Campaign ID"] = campaign_id
                     tags.update({"attribution.campaign": campaign_id})
+
+                # If we actually have a configuration that was extracted, then mark section as malicious
+                heur_id = 1 if config else 3
 
                 parser_section = ResultSection(
                     title_text=parser_name,
