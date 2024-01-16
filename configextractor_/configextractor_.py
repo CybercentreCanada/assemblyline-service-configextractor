@@ -209,7 +209,7 @@ class ConfigExtractor(ServiceBase):
         for parser_framework, parser_results in config_result.items():
             for parser_output in parser_results:
                 # Retrieve identifier from the results
-                id = parser_output.pop('id', None)
+                id = parser_output.pop("id", None)
 
                 if id not in self.signatures_meta:
                     self.log.warning(f"{id} wasn't found in signatures map. Skipping...")
@@ -224,6 +224,9 @@ class ConfigExtractor(ServiceBase):
                     continue
 
                 config = parser_output.pop("config")
+
+                # If we actually have a configuration that was extracted, then mark section as malicious
+                heur_id = 1 if config else 3
 
                 # Patch output to be compatible with AL Ontology (which is modelled after the latest MACO release)
 
@@ -274,7 +277,7 @@ class ConfigExtractor(ServiceBase):
                     parent=result,
                     body_format=BODY_FORMAT.KEY_VALUE,
                     tags=tags,
-                    heuristic=Heuristic(1, attack_ids=attack_ids),
+                    heuristic=Heuristic(heur_id, attack_ids=attack_ids),
                     classification=signature_meta["classification"],
                 )
                 extra_tags = {"file.rule.configextractor": [f"{source_name}.{parser_name}"]}
