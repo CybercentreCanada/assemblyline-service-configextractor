@@ -47,8 +47,12 @@ heuristics:
       ransom: 1000
       decoy: 10 # Used to mask actual malicious connection but the connections themselves aren't malicious
       other: 10
-
     description: Indicates a network IOC was extracted from malware configuration
+  - heur_id: 3
+    name: Missing Malware Configuration
+    score: 0
+    filetype: "*"
+    description: Category - Informational - Indicates configuration block wasn't extracted despite YARA hit
 
 # Docker configuration block which defines:
 #  - the name of the docker container that will be created
