@@ -248,6 +248,9 @@ class ConfigExtractor(ServiceBase):
                 parser_output["family"] = config.pop("family")
                 parser_output["Framework"] = parser_framework
 
+                # If we actually have a configuration that was extracted, then mark section as malicious
+                heur_id = 1 if config else 3
+
                 tags = {
                     "file.rule.configextractor": [f"{source_name}.{parser_name}"],
                     "attribution.family": [f for f in parser_output["family"]],
@@ -267,9 +270,6 @@ class ConfigExtractor(ServiceBase):
                     campaign_id = config.pop("campaign_id", [])
                     parser_output["Campaign ID"] = campaign_id
                     tags.update({"attribution.campaign": campaign_id})
-
-                # If we actually have a configuration that was extracted, then mark section as malicious
-                heur_id = 1 if config else 3
 
                 parser_section = ResultSection(
                     title_text=parser_name,
