@@ -277,7 +277,11 @@ class ConfigExtractor(ServiceBase):
                     parent=result,
                     body_format=BODY_FORMAT.KEY_VALUE,
                     tags=tags,
-                    heuristic=Heuristic(heur_id, attack_ids=attack_ids),
+                    heuristic=Heuristic(
+                        heur_id,
+                        attack_ids=attack_ids,
+                        signature="exception" if parser_output.get("exception") else None,
+                    ),
                     classification=signature_meta["classification"],
                 )
                 extra_tags = {"file.rule.configextractor": [f"{source_name}.{parser_name}"]}

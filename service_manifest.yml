@@ -52,7 +52,9 @@ heuristics:
     name: Missing Malware Configuration
     score: 0
     filetype: "*"
-    description: Category - Informational - Indicates configuration block wasn't extracted despite YARA hit
+    description: Category - Informational - Indicates configuration block wasn't extracted
+    signature_score_map:
+      exception: 0 # A runtime exception occurred
 
 # Docker configuration block which defines:
 #  - the name of the docker container that will be created
