@@ -2,9 +2,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-import threading
 import time
-from typing import Dict
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
@@ -37,40 +35,6 @@ def create_venv(dir):
 
 
 class CXUpdateServer(ServiceUpdater):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._service = self.datastore.get_service_with_delta(SERVICE_NAME)
-        self.source_locks: Dict[str, threading.Lock] = {
-            _s.name: threading.Lock() for _s in self._service.update_config.sources
-        }
-
-    # A sanity check to make sure we do in fact have things to send to services
-    def _inventory_check(self) -> bool:
-        check_passed = False
-        if not self._update_dir:
-            return check_passed
-
-        # Each directory within the update_dir should be named after the source
-        all_sources = set([_s.name for _s in self._service.update_config.sources])
-        existing_sources = set(os.listdir(self._update_dir))
-        missing_sources = all_sources - existing_sources
-
-        # The check has passed if at least one source exists
-        check_passed = bool(all_sources.intersection(existing_sources))
-
-        if missing_sources:
-            # If sources are missing, then clear caching from Redis and trigger source updates
-            for source in missing_sources:
-                # Ensure there are no active updates going on before you re-trigger download of source
-                state = self.update_data_hash.get(f"{source}.{SOURCE_STATUS_KEY}")
-                if state and state.get("state") == "UPDATING":
-                    continue
-                self._current_source = source
-                self.set_source_update_time(0)
-            self.trigger_update()
-
-        return check_passed
-
     def import_update(
         self,
         files_sha256,
@@ -142,32 +106,31 @@ class CXUpdateServer(ServiceUpdater):
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 self.log.info("Transferring directory to persistent storage")
                 self.push_status("UPDATING", "Preparing to transfer parsers to local persistence...")
-                with self.source_locks[source_name]:
-                    try:
-                        if venv_created:
-                            # Remove venv before transfer
-                            self.push_status("UPDATING", "Removing venv(s) before transfer...")
-                            [shutil.rmtree(os.path.join(d, "venv")) for d in venv_created]
+                try:
+                    if venv_created:
+                        # Remove venv before transfer
+                        self.push_status("UPDATING", "Removing venv(s) before transfer...")
+                        [shutil.rmtree(os.path.join(d, "venv")) for d in venv_created]
 
-                        self.push_status("UPDATING", "Beginning transfer of parsers...")
-                        destination = os.path.join(self.latest_updates_dir, source_name)
-                        # Removing old version of directory if exists
-                        if os.path.exists(destination):
-                            self.log.info(f"Removing directory: {destination}")
-                            shutil.rmtree(destination)
-                            while os.path.exists(destination):
-                                # Give some time for the OS to cleanup the directory
-                                self.log.info("Sleeping..")
-                                time.sleep(3)
-                        shutil.move(dir, destination)
-                        self.log.debug(f"{dir} → {destination}")
-                        if venv_created:
-                            self.push_status("UPDATING", "Re-creating necessary venv(s) in persistent space...")
-                            [create_venv(d.replace(dir, destination)) for d in venv_created]
-                    except shutil.Error as e:
-                        if "already exists" in str(e):
-                            continue
-                        raise e
+                    self.push_status("UPDATING", "Beginning transfer of parsers...")
+                    destination = os.path.join(self.latest_updates_dir, source_name)
+                    # Removing old version of directory if exists
+                    if os.path.exists(destination):
+                        self.log.info(f"Removing directory: {destination}")
+                        shutil.rmtree(destination)
+                        while os.path.exists(destination):
+                            # Give some time for the OS to cleanup the directory
+                            self.log.info("Sleeping..")
+                            time.sleep(3)
+                    shutil.move(dir, destination)
+                    self.log.debug(f"{dir} → {destination}")
+                    if venv_created:
+                        self.push_status("UPDATING", "Re-creating necessary venv(s) in persistent space...")
+                        [create_venv(d.replace(dir, destination)) for d in venv_created]
+                except shutil.Error as e:
+                    if "already exists" in str(e):
+                        continue
+                    raise e
             else:
                 raise Exception("No parser(s) found! Review source and try again later.")
             self.log.info(f"Transfer of {source_name} completed")
@@ -177,19 +140,20 @@ class CXUpdateServer(ServiceUpdater):
 
     def prepare_output_directory(self) -> str:
         output_directory = tempfile.mkdtemp()
-        for source, lock in self.source_locks.items():
-            source_path = os.path.join(self.latest_updates_dir, source)
-            if os.path.exists(source_path):
-                with lock:
-                    try:
-                        shutil.copytree(
-                            os.path.join(self.latest_updates_dir, source),
-                            os.path.join(output_directory, source),
-                            symlinks=True,
-                            dirs_exist_ok=True,
-                        )
-                    except shutil.Error:
-                        pass
+        for source in self._service.update_config.sources:
+            if self.update_data_hash.get(f"{source.name}.{SOURCE_STATUS_KEY}")["state"] == "UPDATING":
+                continue
+            local_source_path = os.path.join(self.latest_updates_dir, source.name)
+            if os.path.exists(local_source_path):
+                try:
+                    shutil.copytree(
+                        local_source_path,
+                        local_source_path.replace(self.latest_updates_dir, output_directory),
+                        symlinks=True,
+                        dirs_exist_ok=True,
+                    )
+                except shutil.Error:
+                    pass
         return output_directory
 
     def do_local_update(self) -> None:
