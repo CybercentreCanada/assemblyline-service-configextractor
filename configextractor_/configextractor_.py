@@ -222,6 +222,9 @@ class ConfigExtractor(ServiceBase):
                 if not parser_output.get("config"):
                     # No configuration therefore skip
                     continue
+                elif signature_meta["status"] == "DISABLED":
+                    # Not processing output from this extractor
+                    continue
 
                 config = parser_output.pop("config")
 
@@ -271,17 +274,21 @@ class ConfigExtractor(ServiceBase):
                     parser_output["Campaign ID"] = campaign_id
                     tags.update({"attribution.campaign": campaign_id})
 
+                if heur_id == 1:
+                    # Configuration extracted, create heuristic with all actionable tags
+                    heuristic = Heuristic(heur_id, attack_ids=attack_ids)
+                elif heur_id == 3:
+                    # No configuration was extracted, likely due to an exception at runtime. Omit any tagging.
+                    heuristic = Heuristic(heur_id, signature="exception" if parser_output.get("exception") else None)
+                    tags = []
+
                 parser_section = ResultSection(
                     title_text=parser_name,
                     body=json.dumps(parser_output),
                     parent=result,
                     body_format=BODY_FORMAT.KEY_VALUE,
                     tags=tags,
-                    heuristic=Heuristic(
-                        heur_id,
-                        attack_ids=attack_ids,
-                        signature="exception" if parser_output.get("exception") else None,
-                    ),
+                    heuristic=heuristic,
                     classification=signature_meta["classification"],
                 )
                 extra_tags = {"file.rule.configextractor": [f"{source_name}.{parser_name}"]}
