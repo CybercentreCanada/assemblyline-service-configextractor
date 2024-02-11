@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import time
 
@@ -88,14 +89,7 @@ class CXUpdateServer(ServiceUpdater):
             dir = dir[:-1]
             self.log.info(dir)
 
-            # Find any requirement files and pip install to a specific directory that will get transferred to services
-            venv_created = []
-            for root, _, files in os.walk(dir):
-                if "requirements.txt" in files:
-                    create_venv(root)
-                    venv_created.append(root)
-
-            cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
+            cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log, create_venv=True)
             if cx.parsers:
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
                 resp = import_parsers(cx)
@@ -106,31 +100,15 @@ class CXUpdateServer(ServiceUpdater):
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 self.log.info("Transferring directory to persistent storage")
                 self.push_status("UPDATING", "Preparing to transfer parsers to local persistence...")
-                try:
-                    if venv_created:
-                        # Remove venv before transfer
-                        self.push_status("UPDATING", "Removing venv(s) before transfer...")
-                        [shutil.rmtree(os.path.join(d, "venv")) for d in venv_created]
 
-                    self.push_status("UPDATING", "Beginning transfer of parsers...")
-                    destination = os.path.join(self.latest_updates_dir, source_name)
-                    # Removing old version of directory if exists
-                    if os.path.exists(destination):
-                        self.log.info(f"Removing directory: {destination}")
-                        shutil.rmtree(destination)
-                        while os.path.exists(destination):
-                            # Give some time for the OS to cleanup the directory
-                            self.log.info("Sleeping..")
-                            time.sleep(3)
-                    shutil.move(dir, destination)
-                    self.log.debug(f"{dir} → {destination}")
-                    if venv_created:
-                        self.push_status("UPDATING", "Re-creating necessary venv(s) in persistent space...")
-                        [create_venv(d.replace(dir, destination)) for d in venv_created]
-                except shutil.Error as e:
-                    if "already exists" in str(e):
-                        continue
-                    raise e
+                # Store updates as tar files
+                destination = os.path.join(self.latest_updates_dir, source_name)
+                if os.path.exists(destination):
+                    # Remove old update for source
+                    os.remove(destination)
+
+                with tarfile.TarFile(destination, "x") as tar_file:
+                    tar_file.add(dir, "/")
             else:
                 raise Exception("No parser(s) found! Review source and try again later.")
             self.log.info(f"Transfer of {source_name} completed")
@@ -145,15 +123,21 @@ class CXUpdateServer(ServiceUpdater):
                 continue
             local_source_path = os.path.join(self.latest_updates_dir, source.name)
             if os.path.exists(local_source_path):
-                try:
-                    shutil.copytree(
-                        local_source_path,
-                        local_source_path.replace(self.latest_updates_dir, output_directory),
-                        symlinks=True,
-                        dirs_exist_ok=True,
-                    )
-                except shutil.Error:
-                    pass
+                if os.path.isfile(local_source_path):
+                    # Extract contents of tarfile into output directory under source-named subdirectory
+                    with tarfile.open(local_source_path, "r") as tar:
+                        tar.extractall(local_source_path.replace(self.latest_updates_dir, output_directory))
+                else:
+                    # Maintain legacy support if what's available locally is a directory
+                    try:
+                        shutil.copytree(
+                            local_source_path,
+                            local_source_path.replace(self.latest_updates_dir, output_directory),
+                            symlinks=True,
+                            dirs_exist_ok=True,
+                        )
+                    except shutil.Error:
+                        pass
         return output_directory
 
     def do_local_update(self) -> None:
