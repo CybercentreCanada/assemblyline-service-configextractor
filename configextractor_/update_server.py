@@ -3,7 +3,6 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
-import time
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
@@ -11,7 +10,6 @@ from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.client import get_client
 from assemblyline_v4_service.updater.updater import (
-    SERVICE_NAME,
     SOURCE_STATUS_KEY,
     UI_SERVER,
     UPDATER_DIR,
@@ -104,8 +102,12 @@ class CXUpdateServer(ServiceUpdater):
                 # Store updates as tar files
                 destination = os.path.join(self.latest_updates_dir, source_name)
                 if os.path.exists(destination):
-                    # Remove old update for source
-                    os.remove(destination)
+                    if os.path.isfile(destination):
+                        # Remove old update for source
+                        os.remove(destination)
+                    else:
+                        # Legacy: remove directory
+                        shutil.rmtree(destination)
 
                 with tarfile.TarFile(destination, "x") as tar_file:
                     tar_file.add(dir, "/")
