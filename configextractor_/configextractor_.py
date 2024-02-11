@@ -222,6 +222,9 @@ class ConfigExtractor(ServiceBase):
                 if not parser_output.get("config"):
                     # No configuration therefore skip
                     continue
+                elif signature_meta["status"] == "DISABLED":
+                    # Not processing output from this extractor
+                    continue
 
                 config = parser_output.pop("config")
 
