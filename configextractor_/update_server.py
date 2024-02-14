@@ -21,18 +21,6 @@ from configextractor.main import ConfigExtractor
 Classification = forge.get_classification()
 
 
-def create_venv(dir):
-    proc = subprocess.run(
-        ["/opt/al_service/create_venv.sh", dir],
-        cwd=dir,
-        capture_output=True,
-    )
-    # Files used for debugging venv creation
-    open(os.path.join(dir, "create_venv.out"), "wb").write(proc.stdout)
-    if proc.stderr:
-        open(os.path.join(dir, "create_venv.err"), "wb").write(proc.stderr)
-
-
 class CXUpdateServer(ServiceUpdater):
     def import_update(
         self,
