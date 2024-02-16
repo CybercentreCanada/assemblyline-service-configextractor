@@ -1,6 +1,5 @@
 import os
 import shutil
-import subprocess
 import tarfile
 import tempfile
 
@@ -18,7 +17,6 @@ class CXUpdateServer(ServiceUpdater):
     def import_update(
         self,
         files_sha256,
-        client,
         source_name,
         default_classification=Classification.UNRESTRICTED,
     ):
@@ -61,7 +59,7 @@ class CXUpdateServer(ServiceUpdater):
                             )
                         ).as_primitives()
                     )
-            return client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
+            return self.client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
 
         for dir, _ in files_sha256:
             # Remove cached duplicates
