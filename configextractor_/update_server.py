@@ -1,6 +1,5 @@
 import os
 import shutil
-import subprocess
 import tarfile
 import tempfile
 
@@ -8,14 +7,7 @@ from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
-from assemblyline_v4_service.updater.client import get_client
-from assemblyline_v4_service.updater.updater import (
-    SOURCE_STATUS_KEY,
-    UI_SERVER,
-    UPDATER_DIR,
-    ServiceUpdater,
-    temporary_api_key,
-)
+from assemblyline_v4_service.updater.updater import SOURCE_STATUS_KEY, UPDATER_DIR, ServiceUpdater
 from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
@@ -25,7 +17,6 @@ class CXUpdateServer(ServiceUpdater):
     def import_update(
         self,
         files_sha256,
-        client,
         source_name,
         default_classification=Classification.UNRESTRICTED,
     ):
@@ -68,7 +59,7 @@ class CXUpdateServer(ServiceUpdater):
                             )
                         ).as_primitives()
                     )
-            return client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
+            return self.client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
 
         for dir, _ in files_sha256:
             # Remove cached duplicates
@@ -135,32 +126,19 @@ class CXUpdateServer(ServiceUpdater):
         if not os.path.exists(UPDATER_DIR):
             os.makedirs(UPDATER_DIR)
 
-        self.log.info("Setup service account.")
-        username = self.ensure_service_account()
-        self.log.info("Create temporary API key.")
-        with temporary_api_key(self.datastore, username) as api_key:
-            self.log.info(f"Connecting to Assemblyline API: {UI_SERVER}")
-            al_client = get_client(
-                UI_SERVER,
-                apikey=(username, api_key),
-                verify=False,
-                datastore=self.datastore,
-            )
+        # Check if new signatures have been added
+        self.log.info("Check for new signatures.")
+        if self.client.signature.update_available(since=epoch_to_iso(old_update_time) or "",
+                                                  sig_type=self.updater_type):
+            # Create a temporary file for the time keeper
+            new_time = tempfile.NamedTemporaryFile(prefix="time_keeper_", dir=UPDATER_DIR, delete=False)
+            new_time.close()
+            new_time = new_time.name
+            self.log.info("An update is available for download from the datastore")
+            self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
-            # Check if new signatures have been added
-            self.log.info("Check for new signatures.")
-            if al_client.signature.update_available(
-                since=epoch_to_iso(old_update_time) or "", sig_type=self.updater_type
-            )["update_available"]:
-                # Create a temporary file for the time keeper
-                new_time = tempfile.NamedTemporaryFile(prefix="time_keeper_", dir=UPDATER_DIR, delete=False)
-                new_time.close()
-                new_time = new_time.name
-                self.log.info("An update is available for download from the datastore")
-                self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
-
-                output_dir = self.prepare_output_directory()
-                self.serve_directory(output_dir, new_time, al_client)
+            output_dir = self.prepare_output_directory()
+            self.serve_directory(output_dir, new_time)
 
 
 if __name__ == "__main__":
