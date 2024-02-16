@@ -18,10 +18,9 @@ timeout: 120
 disable_cache: false
 
 enabled: true
-
 is_external: false
-
 licence_count: 0
+privileged: true
 
 uses_tags: false
 uses_temp_submission_data: true
@@ -71,6 +70,8 @@ dependencies:
       command: ["python", "-m", "configextractor_.update_server"]
       image: ${REGISTRY}cccs/assemblyline-service-configextractor:$SERVICE_TAG
       ports: ["5003"]
+      cpu_cores: 2
+      ram_mb: 2048
     run_as_core: True
 
 update_config:
