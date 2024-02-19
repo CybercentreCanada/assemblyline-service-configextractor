@@ -8,7 +8,7 @@ USER assemblyline
 RUN pip uninstall -y yara-python
 
 USER root
-RUN apt-get update && apt-get install -y git libssl1.1 libmagic1 upx-ucl mono-complete gcc && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git libssl-dev libmagic1 mono-complete gcc libdnlib2.1-cil && rm -rf /var/lib/apt/lists/*
 # Create a temporary image to do our compiling in
 FROM base AS build
 
@@ -31,7 +31,7 @@ RUN touch /tmp/before-pip
 # Get ConfigExtractor library
 RUN pip install -U git+https://github.com/CybercentreCanada/configextractor-py.git
 
-RUN pip install --no-cache-dir --user --global-option="build" --global-option="--enable-dotnet" --global-option="--enable-magic" yara-python==${YARA_VERSION}
+RUN pip install --no-cache-dir --user --global-option="build" --global-option="--enable-magic" yara-python==${YARA_VERSION}
 RUN pip install --no-cache-dir --user gitpython plyara markupsafe==2.0.1
 
 # Public libraries that can be used by parsers

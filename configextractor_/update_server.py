@@ -1,44 +1,22 @@
 import os
 import shutil
-import subprocess
+import tarfile
 import tempfile
-import time
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
-from assemblyline_v4_service.updater.client import get_client
-from assemblyline_v4_service.updater.updater import (
-    SERVICE_NAME,
-    SOURCE_STATUS_KEY,
-    UI_SERVER,
-    UPDATER_DIR,
-    ServiceUpdater,
-    temporary_api_key,
-)
+from assemblyline_v4_service.updater.updater import SOURCE_STATUS_KEY, UPDATER_DIR, ServiceUpdater
 from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
-
-
-def create_venv(dir):
-    proc = subprocess.run(
-        ["/opt/al_service/create_venv.sh", dir],
-        cwd=dir,
-        capture_output=True,
-    )
-    # Files used for debugging venv creation
-    open(os.path.join(dir, "create_venv.out"), "wb").write(proc.stdout)
-    if proc.stderr:
-        open(os.path.join(dir, "create_venv.err"), "wb").write(proc.stderr)
 
 
 class CXUpdateServer(ServiceUpdater):
     def import_update(
         self,
         files_sha256,
-        client,
         source_name,
         default_classification=Classification.UNRESTRICTED,
     ):
@@ -81,21 +59,14 @@ class CXUpdateServer(ServiceUpdater):
                             )
                         ).as_primitives()
                     )
-            return client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
+            return self.client.signature.add_update_many(source_name, "configextractor", upload_list, dedup_name=False)
 
         for dir, _ in files_sha256:
             # Remove cached duplicates
             dir = dir[:-1]
             self.log.info(dir)
 
-            # Find any requirement files and pip install to a specific directory that will get transferred to services
-            venv_created = []
-            for root, _, files in os.walk(dir):
-                if "requirements.txt" in files:
-                    create_venv(root)
-                    venv_created.append(root)
-
-            cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log)
+            cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log, create_venv=True)
             if cx.parsers:
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
                 resp = import_parsers(cx)
@@ -106,31 +77,19 @@ class CXUpdateServer(ServiceUpdater):
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 self.log.info("Transferring directory to persistent storage")
                 self.push_status("UPDATING", "Preparing to transfer parsers to local persistence...")
-                try:
-                    if venv_created:
-                        # Remove venv before transfer
-                        self.push_status("UPDATING", "Removing venv(s) before transfer...")
-                        [shutil.rmtree(os.path.join(d, "venv")) for d in venv_created]
 
-                    self.push_status("UPDATING", "Beginning transfer of parsers...")
-                    destination = os.path.join(self.latest_updates_dir, source_name)
-                    # Removing old version of directory if exists
-                    if os.path.exists(destination):
-                        self.log.info(f"Removing directory: {destination}")
+                # Store updates as tar files
+                destination = os.path.join(self.latest_updates_dir, source_name)
+                if os.path.exists(destination):
+                    if os.path.isfile(destination):
+                        # Remove old update for source
+                        os.remove(destination)
+                    else:
+                        # Legacy: remove directory
                         shutil.rmtree(destination)
-                        while os.path.exists(destination):
-                            # Give some time for the OS to cleanup the directory
-                            self.log.info("Sleeping..")
-                            time.sleep(3)
-                    shutil.move(dir, destination)
-                    self.log.debug(f"{dir} → {destination}")
-                    if venv_created:
-                        self.push_status("UPDATING", "Re-creating necessary venv(s) in persistent space...")
-                        [create_venv(d.replace(dir, destination)) for d in venv_created]
-                except shutil.Error as e:
-                    if "already exists" in str(e):
-                        continue
-                    raise e
+
+                with tarfile.TarFile(destination, "x") as tar_file:
+                    tar_file.add(dir, "/")
             else:
                 raise Exception("No parser(s) found! Review source and try again later.")
             self.log.info(f"Transfer of {source_name} completed")
@@ -145,15 +104,21 @@ class CXUpdateServer(ServiceUpdater):
                 continue
             local_source_path = os.path.join(self.latest_updates_dir, source.name)
             if os.path.exists(local_source_path):
-                try:
-                    shutil.copytree(
-                        local_source_path,
-                        local_source_path.replace(self.latest_updates_dir, output_directory),
-                        symlinks=True,
-                        dirs_exist_ok=True,
-                    )
-                except shutil.Error:
-                    pass
+                if os.path.isfile(local_source_path):
+                    # Extract contents of tarfile into output directory under source-named subdirectory
+                    with tarfile.open(local_source_path, "r") as tar:
+                        tar.extractall(local_source_path.replace(self.latest_updates_dir, output_directory))
+                else:
+                    # Maintain legacy support if what's available locally is a directory
+                    try:
+                        shutil.copytree(
+                            local_source_path,
+                            local_source_path.replace(self.latest_updates_dir, output_directory),
+                            symlinks=True,
+                            dirs_exist_ok=True,
+                        )
+                    except shutil.Error:
+                        pass
         return output_directory
 
     def do_local_update(self) -> None:
@@ -161,32 +126,19 @@ class CXUpdateServer(ServiceUpdater):
         if not os.path.exists(UPDATER_DIR):
             os.makedirs(UPDATER_DIR)
 
-        self.log.info("Setup service account.")
-        username = self.ensure_service_account()
-        self.log.info("Create temporary API key.")
-        with temporary_api_key(self.datastore, username) as api_key:
-            self.log.info(f"Connecting to Assemblyline API: {UI_SERVER}")
-            al_client = get_client(
-                UI_SERVER,
-                apikey=(username, api_key),
-                verify=False,
-                datastore=self.datastore,
-            )
+        # Check if new signatures have been added
+        self.log.info("Check for new signatures.")
+        if self.client.signature.update_available(since=epoch_to_iso(old_update_time) or "",
+                                                  sig_type=self.updater_type):
+            # Create a temporary file for the time keeper
+            new_time = tempfile.NamedTemporaryFile(prefix="time_keeper_", dir=UPDATER_DIR, delete=False)
+            new_time.close()
+            new_time = new_time.name
+            self.log.info("An update is available for download from the datastore")
+            self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
 
-            # Check if new signatures have been added
-            self.log.info("Check for new signatures.")
-            if al_client.signature.update_available(
-                since=epoch_to_iso(old_update_time) or "", sig_type=self.updater_type
-            )["update_available"]:
-                # Create a temporary file for the time keeper
-                new_time = tempfile.NamedTemporaryFile(prefix="time_keeper_", dir=UPDATER_DIR, delete=False)
-                new_time.close()
-                new_time = new_time.name
-                self.log.info("An update is available for download from the datastore")
-                self.log.debug(f"{self.updater_type} update available since {epoch_to_iso(old_update_time) or ''}")
-
-                output_dir = self.prepare_output_directory()
-                self.serve_directory(output_dir, new_time, al_client)
+            output_dir = self.prepare_output_directory()
+            self.serve_directory(output_dir, new_time)
 
 
 if __name__ == "__main__":
