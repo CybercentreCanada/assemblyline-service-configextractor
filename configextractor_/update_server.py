@@ -100,7 +100,8 @@ class CXUpdateServer(ServiceUpdater):
     def prepare_output_directory(self) -> str:
         output_directory = tempfile.mkdtemp()
         for source in self._service.update_config.sources:
-            if self.update_data_hash.get(f"{source.name}.{SOURCE_STATUS_KEY}")["state"] == "UPDATING":
+            update_hash = self.update_data_hash.get(f"{source.name}.{SOURCE_STATUS_KEY}")
+            if not update_hash or update_hash["state"] == "UPDATING":
                 continue
             local_source_path = os.path.join(self.latest_updates_dir, source.name)
             if os.path.exists(local_source_path):
