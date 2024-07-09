@@ -218,15 +218,26 @@ class ConfigExtractor(ServiceBase):
                 # Get AL-specific details about the parser
                 parser_name = self.cx.get_details(self.cx.parsers[id])["name"]
                 signature_meta = self.signatures_meta[id]
-                source_name = signature_meta["source"]
-                if not parser_output.get("config"):
-                    # No configuration therefore skip
-                    continue
-                elif signature_meta["status"] == "DISABLED":
+                if signature_meta["status"] == "DISABLED":
                     # Not processing output from this extractor
                     continue
 
-                config = parser_output.pop("config")
+                source_name = signature_meta["source"]
+                config = parser_output.pop("config", {})
+
+                # No configuration was extracted, likely due to an exception at runtime. Omit any tagging.
+                if not config:
+                    # Append to result section but collapsed
+                    ResultSection(
+                        title_text=parser_name,
+                        body=json.dumps(parser_output),
+                        parent=result,
+                        body_format=BODY_FORMAT.KEY_VALUE,
+                        heuristic=Heuristic(3, signature="exception" if parser_output.get("exception") else None),
+                        classification=signature_meta["classification"],
+                        auto_collapse=True,
+                    )
+                    continue
 
                 # Patch output to be compatible with AL Ontology (which is modelled after the latest MACO release)
 
@@ -274,23 +285,17 @@ class ConfigExtractor(ServiceBase):
                     parser_output["Campaign ID"] = campaign_id
                     tags.update({"attribution.campaign": campaign_id})
 
-                if heur_id == 1:
-                    # Configuration extracted, create heuristic with all actionable tags
-                    heuristic = Heuristic(heur_id, attack_ids=attack_ids)
-                elif heur_id == 3:
-                    # No configuration was extracted, likely due to an exception at runtime. Omit any tagging.
-                    heuristic = Heuristic(heur_id, signature="exception" if parser_output.get("exception") else None)
-                    tags = []
-
+                # Configuration extracted, create heuristic with all actionable tags
                 parser_section = ResultSection(
                     title_text=parser_name,
                     body=json.dumps(parser_output),
                     parent=result,
                     body_format=BODY_FORMAT.KEY_VALUE,
                     tags=tags,
-                    heuristic=heuristic,
+                    heuristic=Heuristic(1, attack_ids=attack_ids),
                     classification=signature_meta["classification"],
                 )
+
                 extra_tags = {"file.rule.configextractor": [f"{source_name}.{parser_name}"]}
                 network_section = self.network_ioc_section(config, request, extra_tags=extra_tags)
                 if network_section:
