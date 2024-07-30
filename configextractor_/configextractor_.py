@@ -235,6 +235,7 @@ class ConfigExtractor(ServiceBase):
                         body_format=BODY_FORMAT.KEY_VALUE,
                         heuristic=Heuristic(3, signature="exception" if parser_output.get("exception") else None),
                         classification=signature_meta["classification"],
+                        tags={"file.rule.configextractor": [f"{source_name}.{parser_name}"]},
                         auto_collapse=True,
                     )
                     continue
@@ -261,9 +262,6 @@ class ConfigExtractor(ServiceBase):
 
                 parser_output["family"] = config.pop("family")
                 parser_output["Framework"] = parser_framework
-
-                # If we actually have a configuration that was extracted, then mark section as malicious
-                heur_id = 1 if config else 3
 
                 tags = {
                     "file.rule.configextractor": [f"{source_name}.{parser_name}"],
