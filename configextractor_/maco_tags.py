@@ -1,6 +1,9 @@
 # Documents how Model objects in the MACO standard translate to Assemblyline tags
 
+import re
 from typing import Dict, List
+
+from assemblyline.odm import IP_ONLY_REGEX
 
 
 def extract_FTP_tags(data: List[Dict]) -> Dict:
@@ -9,7 +12,10 @@ def extract_FTP_tags(data: List[Dict]) -> Dict:
         if d.get("password"):
             tags.setdefault("info.password", []).append(d["password"])
         if d.get("hostname"):
-            tags.setdefault("network.static.domain", []).append(d["hostname"])
+            if re.match(IP_ONLY_REGEX, d["hostname"]):
+                tags.setdefault("network.static.ip", []).append(d["hostname"])
+            else:
+                tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
             tags.setdefault("network.port", []).append(d["port"])
 
@@ -25,7 +31,10 @@ def extract_SMTP_tags(data: List[Dict]) -> Dict:
         if d.get("password"):
             tags.setdefault("info.password", []).append(d["password"])
         if d.get("hostname"):
-            tags.setdefault("network.static.domain", []).append(d["hostname"])
+            if re.match(IP_ONLY_REGEX, d["hostname"]):
+                tags.setdefault("network.static.ip", []).append(d["hostname"])
+            else:
+                tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
             tags.setdefault("network.port", []).append(d["port"])
 
@@ -46,7 +55,10 @@ def extract_HTTP_tags(data: List[Dict]) -> Dict:
         if d.get("password"):
             tags.setdefault("info.password", []).append(d["password"])
         if d.get("hostname"):
-            tags.setdefault("network.static.domain", []).append(d["hostname"])
+            if re.match(IP_ONLY_REGEX, d["hostname"]):
+                tags.setdefault("network.static.ip", []).append(d["hostname"])
+            else:
+                tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
             tags.setdefault("network.port", []).append(d["port"])
 
@@ -66,7 +78,10 @@ def extract_SSH_tags(data: List[Dict]) -> Dict:
         if d.get("password"):
             tags.setdefault("info.password", []).append(d["password"])
         if d.get("hostname"):
-            tags.setdefault("network.static.domain", []).append(d["hostname"])
+            if re.match(IP_ONLY_REGEX, d["hostname"]):
+                tags.setdefault("network.static.ip", []).append(d["hostname"])
+            else:
+                tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
             tags.setdefault("network.port", []).append(d["port"])
 
@@ -81,7 +96,10 @@ def extract_proxy_tags(data: List[Dict]) -> Dict:
         if d.get("password"):
             tags.setdefault("info.password", []).append(d["password"])
         if d.get("hostname"):
-            tags.setdefault("network.static.domain", []).append(d["hostname"])
+            if re.match(IP_ONLY_REGEX, d["hostname"]):
+                tags.setdefault("network.static.ip", []).append(d["hostname"])
+            else:
+                tags.setdefault("network.static.domain", []).append(d["hostname"])
         if d.get("port"):
             tags.setdefault("network.port", []).append(d["port"])
 
