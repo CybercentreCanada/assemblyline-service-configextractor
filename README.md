@@ -29,3 +29,11 @@ At the time of writing, we officially support the following frameworks:
 - [MWCP](https://github.com/dod-cyber-crime-center/DC3-MWCP)
 - [CAPE w/ MACO output](https://github.com/kevoreilly/CAPEv2)
 - [MACO](https://github.com/CybercentreCanada/Maco)
+
+# Contributions ✨
+
+Thanks to everyone who have contributed to this project:
+
+|                                                           Contributor                                                           | Contribution(s)                                                                                                                               |                                                                                                                                                             |
+| :-----------------------------------------------------------------------------------------------------------------------------: | --------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| <a href="https://github.com/jeFF0Falltrades"><img src="https://contrib.rocks/image?repo=jeFF0Falltrades/rat_king_parser" /></a> | Adding MACO compatibility to support integration of [rat_king_parser](https://github.com/jeFF0Falltrades/rat_king_parser) within Assemblyline | [![License](https://img.shields.io/github/license/jeFF0Falltrades/rat_king_parser)](https://github.com/jeFF0Falltrades/rat_king_parser/blob/master/LICENSE) |
