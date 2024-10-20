@@ -26,9 +26,8 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.debug(f"Importing following parser: {parser_obj.module}")
                 parser_details = cx.get_details(parser_obj)
 
-                # Patch ID to prefix with the name of the source
+                # Fetch ID of extractor for result-signature links
                 id = parser_obj.id
-                id = ".".join([source_name] + id.split(".")[1:])
 
                 if parser_details:
                     try:
@@ -129,8 +128,9 @@ class CXUpdateServer(ServiceUpdater):
 
         # Check if new signatures have been added
         self.log.info("Check for new signatures.")
-        if self.client.signature.update_available(since=epoch_to_iso(old_update_time) or "",
-                                                  sig_type=self.updater_type):
+        if self.client.signature.update_available(
+            since=epoch_to_iso(old_update_time) or "", sig_type=self.updater_type
+        ):
             # Create a temporary file for the time keeper
             new_time = tempfile.NamedTemporaryFile(prefix="time_keeper_", dir=UPDATER_DIR, delete=False)
             new_time.close()
