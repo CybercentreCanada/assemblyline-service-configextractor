@@ -1,7 +1,9 @@
 import os
 import shutil
+import sys
 import tarfile
 import tempfile
+
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
@@ -12,6 +14,7 @@ from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
 
+CLEAN_PATH = list(sys.path)
 
 class CXUpdateServer(ServiceUpdater):
     def import_update(
@@ -20,6 +23,9 @@ class CXUpdateServer(ServiceUpdater):
         source_name,
         default_classification=Classification.UNRESTRICTED,
     ):
+        # Reset the PATH when importing extractors
+        sys.path = CLEAN_PATH
+
         def import_parsers(cx: ConfigExtractor):
             upload_list = list()
             for parser_obj in cx.parsers.values():
