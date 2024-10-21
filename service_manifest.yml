@@ -81,12 +81,20 @@ update_config:
     - name: CAPE
       pattern: .*/modules/processing/parsers/CAPE/$
       uri: https://github.com/cccs-rs/CAPEv2.git
-      default_classification: TLP:W
+      default_classification: TLP:C
     # Pending: https://github.com/RussianPanda95/Configuration_extractors/pull/3
     - name: RussianPanda95
       pattern: .*/RussianPanda95/$
       uri: https://github.com/cccs-rs/Configuration_extractors.git
-      default_classification: TLP:W
+      default_classification: TLP:C
+    - name: RatKingParser
+      pattern: .*/RatKingParser/$
+      uri: https://github.com/jeFF0Falltrades/rat_king_parser.git
+      default_classification: TLP:C
+    - name: apophis
+      pattern: .*/apophis/scripts/$
+      uri: https://github.com/apophis133/apophis-YARA-Rules.git
+      default_classification: TLP:C
   update_interval_seconds: 21600 # Quarter-day (every 6 hours)
   wait_for_update: true
   signature_delimiter: file

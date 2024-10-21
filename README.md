@@ -29,3 +29,12 @@ At the time of writing, we officially support the following frameworks:
 - [MWCP](https://github.com/dod-cyber-crime-center/DC3-MWCP)
 - [CAPE w/ MACO output](https://github.com/kevoreilly/CAPEv2)
 - [MACO](https://github.com/CybercentreCanada/Maco)
+
+# Contributions ✨
+
+Thanks to everyone who have contributed to this project:
+
+|                                                                                             Contributor                                                                                              | Contribution(s)                                                                                                                                |                                                                           License                                                                           |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|              <a href="https://github.com/jeFF0Falltrades"><img src="https://images.weserv.nl/?url=github.com/jeFF0Falltrades.png?v=4&h=75&w=75&fit=cover&mask=circle&maxage=7d"/> </a>               | Added MACO extractors in [rat_king_parser](https://github.com/jeFF0Falltrades/rat_king_parser)  | [![License](https://img.shields.io/github/license/jeFF0Falltrades/rat_king_parser)](https://github.com/jeFF0Falltrades/rat_king_parser/blob/master/LICENSE) |
+| <a href="https://github.com/apophis133"><img src="https://images.weserv.nl/?url=github.com/apophis133.png?v=4&h=75&w=75&fit=cover&mask=circle&maxage=7d" style="border-radius: 50%;width: 75px"></a> | Added MACO extractors in [apophis-YARA-Rules](https://github.com/apophis133/apophis-YARA-Rules) |                                                                                                                                                             |
