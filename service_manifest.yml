@@ -79,7 +79,7 @@ update_config:
   sources:
     # Pending: https://github.com/kevoreilly/CAPEv2/pull/2373
     - name: CAPE
-      pattern: .*/CAPE/$
+      pattern: ^\/tmp\/w+\/CAPE\/$
       uri: https://github.com/cccs-rs/CAPEv2.git
       default_classification: TLP:C
       branch: extractor/to_MACO
