@@ -77,11 +77,12 @@ dependencies:
 update_config:
   generates_signatures: true
   sources:
-    # Pending: https://github.com/kevoreilly/CAPEv2/pull/1037#issuecomment-1242071140
+    # Pending: https://github.com/kevoreilly/CAPEv2/pull/2373
     - name: CAPE
-      pattern: .*/modules/processing/parsers/CAPE/$
+      pattern: .*/CAPE/$
       uri: https://github.com/cccs-rs/CAPEv2.git
       default_classification: TLP:C
+      branch: extractor/to_MACO
     # Pending: https://github.com/RussianPanda95/Configuration_extractors/pull/3
     - name: RussianPanda95
       pattern: .*/RussianPanda95/$
@@ -92,7 +93,7 @@ update_config:
       uri: https://github.com/jeFF0Falltrades/rat_king_parser.git
       default_classification: TLP:C
     - name: apophis
-      pattern: .*/apophis/scripts/$
+      pattern: .*/apophis/$
       uri: https://github.com/apophis133/apophis-YARA-Rules.git
       default_classification: TLP:C
   update_interval_seconds: 21600 # Quarter-day (every 6 hours)
