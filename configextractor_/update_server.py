@@ -16,6 +16,7 @@ Classification = forge.get_classification()
 
 CLEAN_PATH = list(sys.path)
 
+
 class CXUpdateServer(ServiceUpdater):
     def import_update(
         self,
@@ -25,6 +26,7 @@ class CXUpdateServer(ServiceUpdater):
     ):
         # Reset the PATH when importing extractors
         sys.path = CLEAN_PATH
+        extractors_found = False
 
         def import_parsers(cx: ConfigExtractor):
             upload_list = list()
@@ -73,6 +75,7 @@ class CXUpdateServer(ServiceUpdater):
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log, create_venv=True)
             if cx.parsers:
+                extractors_found = True
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
                 resp = import_parsers(cx)
                 self.push_status("UPDATING", "Parsers successfully stored as signatures in Signatures index.")
@@ -95,9 +98,10 @@ class CXUpdateServer(ServiceUpdater):
 
                 with tarfile.TarFile(destination, "x") as tar_file:
                     tar_file.add(dir, "/")
-            else:
-                raise Exception("No parser(s) found! Review source and try again later.")
-            self.log.info(f"Transfer of {source_name} completed")
+                self.log.info(f"Transfer of {source_name} completed")
+
+        if not extractors_found:
+            raise Exception("No parser(s) found! Review source and try again later.")
 
     def is_valid(self, file_path) -> bool:
         return os.path.isdir(file_path)
