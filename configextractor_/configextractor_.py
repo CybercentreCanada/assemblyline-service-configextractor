@@ -226,18 +226,19 @@ class ConfigExtractor(ServiceBase):
                 config = parser_output.pop("config", {})
 
                 # No configuration was extracted, likely due to an exception at runtime. Omit any tagging.
-                if not config and request.get_param("include_empty_config"):
-                    # Append to result section but collapsed
-                    ResultSection(
-                        title_text=parser_name,
-                        body=json.dumps(parser_output),
-                        parent=result,
-                        body_format=BODY_FORMAT.KEY_VALUE,
-                        heuristic=Heuristic(3, signature="exception" if parser_output.get("exception") else None),
-                        classification=signature_meta["classification"],
-                        tags={"file.rule.configextractor": [f"{source_name}.{parser_name}"]},
-                        auto_collapse=True,
-                    )
+                if not config:
+                    if request.get_param("include_empty_config"):
+                        # Append to result section but collapsed
+                        ResultSection(
+                            title_text=parser_name,
+                            body=json.dumps(parser_output),
+                            parent=result,
+                            body_format=BODY_FORMAT.KEY_VALUE,
+                            heuristic=Heuristic(3, signature="exception" if parser_output.get("exception") else None),
+                            classification=signature_meta["classification"],
+                            tags={"file.rule.configextractor": [f"{source_name}.{parser_name}"]},
+                            auto_collapse=True,
+                        )
                     continue
 
                 # Patch output to be compatible with AL Ontology (which is modelled after the latest MACO release)
