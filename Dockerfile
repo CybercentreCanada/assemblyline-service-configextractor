@@ -8,7 +8,7 @@ USER assemblyline
 RUN pip uninstall -y yara-python
 
 USER root
-RUN apt-get update && apt-get install -y git libssl-dev libmagic1 mono-complete gcc libdnlib2.1-cil g++ && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git libssl-dev libmagic1 mono-complete gcc libdnlib2.1-cil g++ curl && rm -rf /var/lib/apt/lists/*
 # Create a temporary image to do our compiling in
 FROM base AS build
 
@@ -39,6 +39,9 @@ RUN pip install --no-cache-dir --user netstruct beautifulsoup4 pyOpenSSL
 
 # Remove uses of pycrypto
 RUN pip uninstall -y -q pycrypto
+
+# Install Poetry for dependency installation
+RUN curl -sSL https://install.python-poetry.org | python3 -
 
 # Revert back to before the compile
 FROM base
