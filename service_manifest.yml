@@ -27,7 +27,7 @@ uses_temp_submission_data: true
 
 submission_params:
   - default: true
-    name: show_empty_config
+    name: include_empty_config
     type: bool
     value: true
 
