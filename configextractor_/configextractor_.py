@@ -226,7 +226,7 @@ class ConfigExtractor(ServiceBase):
                 config = parser_output.pop("config", {})
 
                 # No configuration was extracted, likely due to an exception at runtime. Omit any tagging.
-                if not config:
+                if not config and request.get_param("show_empty_config"):
                     # Append to result section but collapsed
                     ResultSection(
                         title_text=parser_name,

@@ -25,6 +25,12 @@ privileged: true
 uses_tags: false
 uses_temp_submission_data: true
 
+submission_params:
+  - default: true
+    name: show_empty_config
+    type: bool
+    value: true
+
 # Service configuration block (dictionary of config variables)
 heuristics:
   - heur_id: 1
