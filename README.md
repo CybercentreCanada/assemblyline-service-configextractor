@@ -8,7 +8,7 @@ This Assemblyline service extracts malware configurations (such as IP, URL and d
 
 The updater for this service requires matches on directories containing parsers.
 
-For example, the CAPE source will have a match pattern of `.*/modules/processing/parsers/CAPE/$` in which we're trying to target the parsers in this directory only.
+For example, the CAPE source will have a match pattern of `^\/tmp\/w+\/CAPE\/$` in which we're trying to target the parsers in the root directory only.
 
 ### Persistence
 
@@ -34,7 +34,8 @@ At the time of writing, we officially support the following frameworks:
 
 Thanks to everyone who have contributed to this project:
 
-|                                                                                             Contributor                                                                                              | Contribution(s)                                                                                                                                |                                                                           License                                                                           |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                                                             Contributor                                                                                              | Contribution(s)                                                                                 |                                                                           License                                                                           |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ----------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------: |
 |              <a href="https://github.com/jeFF0Falltrades"><img src="https://images.weserv.nl/?url=github.com/jeFF0Falltrades.png?v=4&h=75&w=75&fit=cover&mask=circle&maxage=7d"/> </a>               | Added MACO extractors in [rat_king_parser](https://github.com/jeFF0Falltrades/rat_king_parser)  | [![License](https://img.shields.io/github/license/jeFF0Falltrades/rat_king_parser)](https://github.com/jeFF0Falltrades/rat_king_parser/blob/master/LICENSE) |
 | <a href="https://github.com/apophis133"><img src="https://images.weserv.nl/?url=github.com/apophis133.png?v=4&h=75&w=75&fit=cover&mask=circle&maxage=7d" style="border-radius: 50%;width: 75px"></a> | Added MACO extractors in [apophis-YARA-Rules](https://github.com/apophis133/apophis-YARA-Rules) |                                                                                                                                                             |
+| <a href="https://github.com/kevoreilly"><img src="https://images.weserv.nl/?url=github.com/kevoreilly.png?v=4&h=75&w=75&fit=cover&mask=circle&maxage=7d" style="border-radius: 50%;width: 75px"></a> | Added MACO extractors in [CAPEv2](https://github.com/kevoreilly/CAPEv2)                         |             [![License](https://img.shields.io/badge/license-GPL--3.0-informational)](https://github.com/kevoreilly/CAPEv2/blob/master/LICENSE)             |

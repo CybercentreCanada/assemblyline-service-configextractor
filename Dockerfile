@@ -40,9 +40,6 @@ RUN pip install --no-cache-dir --user netstruct beautifulsoup4 pyOpenSSL
 # Remove uses of pycrypto
 RUN pip uninstall -y -q pycrypto
 
-# Install Poetry for dependency installation
-RUN curl -sSL https://install.python-poetry.org | python3 -
-
 # Revert back to before the compile
 FROM base
 
