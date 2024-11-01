@@ -77,10 +77,9 @@ dependencies:
 update_config:
   generates_signatures: true
   sources:
-    # Pending: https://github.com/kevoreilly/CAPEv2/pull/2373
     - name: CAPE
-      pattern: ^\/tmp\/w+\/CAPE\/$
-      uri: https://github.com/cccs-rs/CAPEv2.git
+      pattern: ^\/tmp\/\w+\/CAPE\/$
+      uri: https://github.com/kevoreilly/CAPEv2.git
       default_classification: TLP:C
       branch: extractor/to_MACO
     # Pending: https://github.com/RussianPanda95/Configuration_extractors/pull/3
