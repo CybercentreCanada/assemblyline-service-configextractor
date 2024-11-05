@@ -8,7 +8,13 @@ USER assemblyline
 RUN pip uninstall -y yara-python
 
 USER root
-RUN apt-get update && apt-get install -y git libssl-dev libmagic1 mono-complete gcc libdnlib2.1-cil g++ curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git libssl-dev libmagic1 gcc libdnlib2.1-cil g++ curl dirmngr ca-certificates gnupg
+
+# Install mono
+RUN gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+RUN echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/debian stable-buster main" | tee /etc/apt/sources.list.d/mono-official-stable.list
+RUN apt update && apt install -y mono-complete && rm -rf /var/lib/apt/lists/*
+
 # Create a temporary image to do our compiling in
 FROM base AS build
 
@@ -29,7 +35,7 @@ USER assemblyline
 RUN touch /tmp/before-pip
 
 # Get ConfigExtractor library
-RUN pip install -U git+https://github.com/CybercentreCanada/configextractor-py.git
+RUN pip install -U git+https://github.com/CybercentreCanada/configextractor-py.git@bugfixes
 
 RUN pip install --no-cache-dir --user --global-option="build" --global-option="--enable-magic" yara-python==${YARA_VERSION}
 RUN pip install --no-cache-dir --user gitpython plyara markupsafe==2.0.1
