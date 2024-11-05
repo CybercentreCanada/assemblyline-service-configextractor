@@ -83,10 +83,9 @@ dependencies:
 update_config:
   generates_signatures: true
   sources:
-    # Pending: https://github.com/CAPESandbox/community/pull/472
     - name: CAPE
       pattern: ^\/tmp\/\w+\/CAPE\/$
-      uri: https://github.com/cccs-rs/community.git
+      uri: https://github.com/CAPESandbox/community.git
       default_classification: TLP:C
       branch: extractor/to_MACO
     # Pending: https://github.com/RussianPanda95/Configuration_extractors/pull/3
