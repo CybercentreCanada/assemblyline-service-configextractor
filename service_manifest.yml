@@ -85,7 +85,7 @@ update_config:
   sources:
     - name: CAPE
       pattern: ^\/tmp\/\w+\/CAPE\/$
-      uri: https://github.com/kevoreilly/CAPEv2.git
+      uri: https://github.com/CAPESandbox/community.git
       default_classification: TLP:C
       branch: extractor/to_MACO
     # Pending: https://github.com/RussianPanda95/Configuration_extractors/pull/3

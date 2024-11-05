@@ -14,8 +14,6 @@ from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
 
-CLEAN_PATH = list(sys.path)
-
 
 class CXUpdateServer(ServiceUpdater):
     def import_update(
@@ -24,8 +22,6 @@ class CXUpdateServer(ServiceUpdater):
         source_name,
         default_classification=Classification.UNRESTRICTED,
     ):
-        # Reset the PATH when importing extractors
-        sys.path = CLEAN_PATH
         extractors_found = False
 
         def import_parsers(cx: ConfigExtractor):
