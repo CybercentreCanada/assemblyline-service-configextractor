@@ -29,7 +29,7 @@ USER assemblyline
 RUN touch /tmp/before-pip
 
 # Get ConfigExtractor library
-RUN pip install -U git+https://github.com/CybercentreCanada/configextractor-py.git@CAPESandbox/community
+RUN pip install -U git+https://github.com/CybercentreCanada/configextractor-py.git
 
 RUN pip install --no-cache-dir --user --global-option="build" --global-option="--enable-magic" yara-python==${YARA_VERSION}
 RUN pip install --no-cache-dir --user gitpython plyara markupsafe==2.0.1
