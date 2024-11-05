@@ -84,8 +84,8 @@ update_config:
   generates_signatures: true
   sources:
     - name: CAPE
-      pattern: ^\/tmp\/\w+\/CAPE\/$
-      uri: https://github.com/kevoreilly/CAPEv2.git
+      pattern: .*/CAPE/$
+      uri: https://github.com/cccs-rs/community.git
       default_classification: TLP:C
       branch: extractor/to_MACO
     # Pending: https://github.com/RussianPanda95/Configuration_extractors/pull/3

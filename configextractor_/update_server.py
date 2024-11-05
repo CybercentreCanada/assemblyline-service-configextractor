@@ -24,8 +24,6 @@ class CXUpdateServer(ServiceUpdater):
         source_name,
         default_classification=Classification.UNRESTRICTED,
     ):
-        # Reset the PATH when importing extractors
-        sys.path = CLEAN_PATH
         extractors_found = False
 
         def import_parsers(cx: ConfigExtractor):
