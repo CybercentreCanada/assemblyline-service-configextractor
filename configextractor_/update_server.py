@@ -1,9 +1,9 @@
 import os
 import shutil
-import sys
 import tarfile
 import tempfile
 
+from multiprocessing import Process
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
@@ -16,7 +16,7 @@ Classification = forge.get_classification()
 
 
 class CXUpdateServer(ServiceUpdater):
-    def import_update(
+    def _import_update(
         self,
         files_sha256,
         source_name,
@@ -93,8 +93,11 @@ class CXUpdateServer(ServiceUpdater):
                         shutil.rmtree(destination)
 
                 with tarfile.TarFile(destination, "x") as tar_file:
-                    tar_file.add(dir, "/")
+                    # Add to TAR file but maintain directory context when sending to service
+                    dir_name = os.path.basename(dir)
+                    tar_file.add(dir, f"/{dir_name if dir_name != source_name else ''}")
                 self.log.info(f"Transfer of {source_name} completed")
+                return
 
         if not extractors_found:
             raise Exception("No parser(s) found! Review source and try again later.")
@@ -126,6 +129,12 @@ class CXUpdateServer(ServiceUpdater):
                     except shutil.Error:
                         pass
         return output_directory
+
+    def import_update(self, validated_files, source_name, default_classification):
+        # Execute update as a separate process (avoid instances where modules are loaded repeatedly in the same process)
+        p = Process(target=self._import_update, args=(validated_files, source_name, default_classification))
+        p.start()
+        p.join()
 
     def do_local_update(self) -> None:
         old_update_time = self.get_local_update_time()

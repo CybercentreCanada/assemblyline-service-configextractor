@@ -2,57 +2,20 @@ ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch AS base
 
 ENV SERVICE_PATH configextractor_.configextractor_.ConfigExtractor
-ENV YARA_VERSION=4.3.1
 
 USER assemblyline
 RUN pip uninstall -y yara-python
 
 USER root
-RUN apt-get update && apt-get install -y git libssl-dev libmagic1 gcc libdnlib2.1-cil g++ curl dirmngr ca-certificates gnupg
-
-# Install mono
+RUN apt-get update && apt-get install -y libdnlib2.1-cil g++ dirmngr ca-certificates gnupg
+RUN pip install uv
+# Install latest version of mono (https://www.mono-project.com/download/stable/#download-lin-debian)
 RUN gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-RUN echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/debian stable-buster main" | tee /etc/apt/sources.list.d/mono-official-stable.list
+RUN echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/debian stable-buster main"  | tee /etc/apt/sources.list.d/mono-official-stable.list
 RUN apt update && apt install -y mono-complete && rm -rf /var/lib/apt/lists/*
 
-# Create a temporary image to do our compiling in
-FROM base AS build
-
-RUN apt-get update && apt-get install -y git libssl-dev libmagic-dev automake libtool make gcc wget libjansson-dev pkg-config && rm -rf /var/lib/apt/lists/*
-
-# Compile and install YARA
-RUN wget -O /tmp/yara.tar.gz https://github.com/VirusTotal/yara/archive/v${YARA_VERSION}.tar.gz
-RUN tar -zxf /tmp/yara.tar.gz -C /tmp
-WORKDIR /tmp/yara-${YARA_VERSION}
-RUN ./bootstrap.sh
-RUN ./configure --enable-magic --enable-dotnet --with-crypto --prefix /tmp/yara_install
-RUN make
-RUN make install
-
-
-# Build the yara python plugins, install other dependencies
-USER assemblyline
-RUN touch /tmp/before-pip
-
-# Get ConfigExtractor library
-RUN pip install -U git+https://github.com/CybercentreCanada/configextractor-py.git@bugfixes
-
-RUN pip install --no-cache-dir --user --global-option="build" --global-option="--enable-magic" yara-python==${YARA_VERSION}
-RUN pip install --no-cache-dir --user gitpython plyara markupsafe==2.0.1
-
-# Public libraries that can be used by parsers
-RUN pip install --no-cache-dir --user netstruct beautifulsoup4 pyOpenSSL
-
-# Remove uses of pycrypto
-RUN pip uninstall -y -q pycrypto
-
-# Revert back to before the compile
-FROM base
-
-RUN apt-get update && apt-get install -y libssl-dev libmagic-dev automake libtool make gcc libjansson-dev pkg-config && rm -rf /var/lib/apt/lists/*
-
-COPY --from=build /tmp/yara_install /usr/local
-COPY --chown=assemblyline:assemblyline --from=build /var/lib/assemblyline/.local /var/lib/assemblyline/.local
+# Install configextractor-py & maco (testing)
+RUN uv pip install --system git+https://github.com/CybercentreCanada/configextractor-py.git
 
 # Create directories
 RUN mkdir -p /mount/updates
