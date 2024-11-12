@@ -1,9 +1,9 @@
 import os
 import shutil
-import sys
 import tarfile
 import tempfile
 
+from multiprocessing import Process
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
@@ -16,7 +16,7 @@ Classification = forge.get_classification()
 
 
 class CXUpdateServer(ServiceUpdater):
-    def import_update(
+    def _import_update(
         self,
         files_sha256,
         source_name,
@@ -129,6 +129,12 @@ class CXUpdateServer(ServiceUpdater):
                     except shutil.Error:
                         pass
         return output_directory
+
+    def import_update(self, validated_files, source_name, default_classification):
+        # Execute update as a separate process (avoid instances where modules are loaded repeatedly in the same process)
+        p = Process(target=self._import_update, args=(validated_files, source_name, default_classification))
+        p.start()
+        p.join()
 
     def do_local_update(self) -> None:
         old_update_time = self.get_local_update_time()
