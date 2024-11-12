@@ -15,8 +15,7 @@ RUN echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] 
 RUN apt update && apt install -y mono-complete && rm -rf /var/lib/apt/lists/*
 
 # Install configextractor-py & maco (testing)
-RUN uv pip install --system git+https://github.com/CybercentreCanada/configextractor-py.git@bugfixes
-RUN uv pip install --system -U git+https://github.com/CybercentreCanada/Maco.git@perf
+RUN uv pip install --system git+https://github.com/CybercentreCanada/configextractor-py.git
 
 # Create directories
 RUN mkdir -p /mount/updates
