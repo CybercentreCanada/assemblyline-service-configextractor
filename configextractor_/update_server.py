@@ -93,8 +93,10 @@ class CXUpdateServer(ServiceUpdater):
                         shutil.rmtree(destination)
 
                 with tarfile.TarFile(destination, "x") as tar_file:
-                    tar_file.add(dir, "/")
+                    # Add to TAR file but maintain directory context when sending to service
+                    tar_file.add(dir, f"/{os.path.basename(dir)}")
                 self.log.info(f"Transfer of {source_name} completed")
+                return
 
         if not extractors_found:
             raise Exception("No parser(s) found! Review source and try again later.")
