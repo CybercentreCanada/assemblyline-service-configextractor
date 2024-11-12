@@ -94,7 +94,8 @@ class CXUpdateServer(ServiceUpdater):
 
                 with tarfile.TarFile(destination, "x") as tar_file:
                     # Add to TAR file but maintain directory context when sending to service
-                    tar_file.add(dir, f"/{os.path.basename(dir)}")
+                    dir_name = os.path.basename(dir)
+                    tar_file.add(dir, f"/{dir_name if dir_name != source_name else ''}")
                 self.log.info(f"Transfer of {source_name} completed")
                 return
 
