@@ -78,10 +78,9 @@ class ConfigExtractor(ServiceBase):
         if self.rules_list:
             self.log.debug(self.rules_list)
 
-            blocklist = []
-            for parser_name, meta in self.signatures_meta.items():
-                if meta["status"] == "DISABLED":
-                    blocklist.append(rf".*{parser_name}$")
+            blocklist = [
+                parser_name for parser_name, meta in self.signatures_meta.items() if meta["status"] == "DISABLED"
+            ]
             self.log.info(f"Blocking the following parsers matching these patterns: {blocklist}")
             self.cx = CX(
                 parsers_dirs=self.rules_list,
