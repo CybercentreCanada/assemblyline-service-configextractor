@@ -150,7 +150,7 @@ class CXUpdateServer(ServiceUpdater):
             if os.path.exists(local_source_path):
                 if os.path.isfile(local_source_path):
                     # Extract contents of tarfile into output directory under source-named subdirectory
-                    with tarfile.open(local_source_path, mode="r:gz") as tar:
+                    with tarfile.open(local_source_path, mode="r") as tar:
                         tar.extractall(local_source_path.replace(self.latest_updates_dir, output_directory))
                 else:
                     # Maintain legacy support if what's available locally is a directory
