@@ -2,20 +2,49 @@ import os
 import shutil
 import tarfile
 import tempfile
-
+from hashlib import md5
 from multiprocessing import Process
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
-from assemblyline_v4_service.updater.updater import SOURCE_STATUS_KEY, UPDATER_DIR, ServiceUpdater
+from assemblyline_v4_service.updater.updater import (
+    SOURCE_STATUS_KEY,
+    UPDATER_DIR,
+    ServiceUpdater,
+)
 from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
 
 
 class CXUpdateServer(ServiceUpdater):
+    def __init__(
+        self,
+        logger=None,
+        shutdown_timeout=None,
+        config=None,
+        datastore=None,
+        redis=None,
+        redis_persist=None,
+        default_pattern=".*",
+        downloadable_signature_statuses=...,
+    ):
+        super().__init__(
+            logger,
+            shutdown_timeout,
+            config,
+            datastore,
+            redis,
+            redis_persist,
+            default_pattern,
+            downloadable_signature_statuses,
+        )
+
+        # Track cases where we may want to perform a forced update
+        self.force_local_update = False
+
     def _import_update(
         self,
         files_sha256,
@@ -84,18 +113,24 @@ class CXUpdateServer(ServiceUpdater):
 
                 # Store updates as tar files
                 destination = os.path.join(self.latest_updates_dir, source_name)
+                old_hash = None
                 if os.path.exists(destination):
                     if os.path.isfile(destination):
+                        with open(destination, "rb") as f:
+                            old_hash = md5(f.read()).hexdigest()
                         # Remove old update for source
                         os.remove(destination)
                     else:
                         # Legacy: remove directory
                         shutil.rmtree(destination)
 
-                with tarfile.TarFile(destination, "x") as tar_file:
+                with tarfile.open(destination, mode="x:gz") as tar_file:
                     # Add to TAR file but maintain directory context when sending to service
                     dir_name = os.path.basename(dir)
                     tar_file.add(dir, f"/{dir_name if dir_name != source_name else ''}")
+                with open(destination, "rb") as f:
+                    if old_hash and old_hash != md5(f.read()).hexdigest():
+                        self.force_local_update = True
                 self.log.info(f"Transfer of {source_name} completed")
                 return
 
@@ -115,7 +150,7 @@ class CXUpdateServer(ServiceUpdater):
             if os.path.exists(local_source_path):
                 if os.path.isfile(local_source_path):
                     # Extract contents of tarfile into output directory under source-named subdirectory
-                    with tarfile.open(local_source_path, "r") as tar:
+                    with tarfile.open(local_source_path, mode="r") as tar:
                         tar.extractall(local_source_path.replace(self.latest_updates_dir, output_directory))
                 else:
                     # Maintain legacy support if what's available locally is a directory
@@ -141,9 +176,18 @@ class CXUpdateServer(ServiceUpdater):
         if not os.path.exists(UPDATER_DIR):
             os.makedirs(UPDATER_DIR)
 
+        # Check if any sources have been removed from Assemblyline
+        sources = [s.name for s in self._service.update_config.sources]
+        for file_tar in os.listdir(self.latest_updates_dir):
+            if file_tar not in sources:
+                # Source has been removed, cleanup stored entry
+                self.log.info(f"{file_tar} looks like it was removed from the system. Forcing update..")
+                os.remove(os.path.join(self.latest_updates_dir, file_tar))
+                self.force_local_update = True
+
         # Check if new signatures have been added
         self.log.info("Check for new signatures.")
-        if self.client.signature.update_available(
+        if self.force_local_update or self.client.signature.update_available(
             since=epoch_to_iso(old_update_time) or "", sig_type=self.updater_type
         ):
             # Create a temporary file for the time keeper
@@ -155,6 +199,8 @@ class CXUpdateServer(ServiceUpdater):
 
             output_dir = self.prepare_output_directory()
             self.serve_directory(output_dir, new_time)
+
+        self.force_local_update = False
 
 
 if __name__ == "__main__":
