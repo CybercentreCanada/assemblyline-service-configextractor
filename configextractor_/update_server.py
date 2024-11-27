@@ -3,7 +3,6 @@ import shutil
 import tarfile
 import tempfile
 from hashlib import md5
-from multiprocessing import Process
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
@@ -45,7 +44,7 @@ class CXUpdateServer(ServiceUpdater):
         # Track cases where we may want to perform a forced update
         self.force_local_update = False
 
-    def _import_update(
+    def import_update(
         self,
         files_sha256,
         source_name,
@@ -56,7 +55,7 @@ class CXUpdateServer(ServiceUpdater):
         def import_parsers(cx: ConfigExtractor):
             upload_list = list()
             for parser_obj in cx.parsers.values():
-                self.log.debug(f"Importing following parser: {parser_obj.module}")
+                self.log.debug(f"Importing following parser: {parser_obj.id}")
                 parser_details = cx.get_details(parser_obj)
 
                 # Fetch ID of extractor for result-signature links
@@ -164,12 +163,6 @@ class CXUpdateServer(ServiceUpdater):
                     except shutil.Error:
                         pass
         return output_directory
-
-    def import_update(self, validated_files, source_name, default_classification):
-        # Execute update as a separate process (avoid instances where modules are loaded repeatedly in the same process)
-        p = Process(target=self._import_update, args=(validated_files, source_name, default_classification))
-        p.start()
-        p.join()
 
     def do_local_update(self) -> None:
         old_update_time = self.get_local_update_time()
