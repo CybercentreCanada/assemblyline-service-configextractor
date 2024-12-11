@@ -49,6 +49,8 @@ class CXUpdateServer(ServiceUpdater):
         files_sha256,
         source_name,
         default_classification=Classification.UNRESTRICTED,
+        *args,
+        **kwargs
     ):
         extractors_found = False
 
