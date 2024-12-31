@@ -12,23 +12,9 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 "-d",
-                "configextractor_.configextractor_.ConfigExtractor",
-                "/path/to/sample"
+                "configextractor_.configextractor.Configextractor",
+                "${file}"
             ],
-            "justMyCode": false,
-        },
-        {
-            "name": "RunUpdater",
-            "type": "python",
-            "request": "launch",
-            "module": "configextractor_.update_server",
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "UPDATER_DIR": "${workspaceFolder}/updates",
-                "SERVICE_PATH": "configextractor_.configextractor_.ConfigExtractor",
-                "AL_SERVICE_NAME": "ConfigExtractor",
-                "UI_SERVER": "https://nginx/"
-            },
             "justMyCode": false,
         },
     ]
