@@ -7,7 +7,7 @@
       "service_name": "configextractor",
       "__svc_name": "configextractor",
       "__repository": "assemblyline-service-configextractor",
-      "__pkg_name": "configextractor",
+      "__pkg_name": "configextractor_",
       "class_name": "ConfigExtractor",
       "short_description": "This service runs parsers to extract malware configuration data.",
       "short_description_fr": "Ce service exécute des analyseurs pour extraire les données de configuration des logiciels malveillants.",
