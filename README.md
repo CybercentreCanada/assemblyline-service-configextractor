@@ -3,7 +3,7 @@
 [![Static Badge](https://img.shields.io/badge/github-assemblyline-blue?logo=github)](https://github.com/CybercentreCanada/assemblyline)
 [![Static Badge](https://img.shields.io/badge/github-assemblyline\_service\_configextractor-blue?logo=github)](https://github.com/CybercentreCanada/assemblyline-service-configextractor)
 [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues/CybercentreCanada/assemblyline/service-configextractor)](https://github.com/CybercentreCanada/assemblyline/issues?q=is:issue+is:open+label:service-configextractor)
-[![License](https://img.shields.io/github/license/CybercentreCanada/assemblyline-service-configextractor/tree/cccs-rs-patch-1)](./LICENSE)
+[![License](https://img.shields.io/github/license/CybercentreCanada/assemblyline-service-configextractor/)](./LICENSE)
 # ConfigExtractor Service
 
 This service runs parsers to extract malware configuration data.
