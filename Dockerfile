@@ -25,9 +25,6 @@ RUN mkdir -p /opt/al_service
 WORKDIR /opt/al_service
 COPY . .
 
-# Cleanup
-RUN rm ./Dockerfile
-
 # Set owner
 RUN chown -R assemblyline /opt/al_service
 
