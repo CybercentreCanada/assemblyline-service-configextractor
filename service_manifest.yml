@@ -1,4 +1,4 @@
-name: Configextractor
+name: ConfigExtractor
 version: $SERVICE_TAG
 description: This service runs parsers to extract malware configuration data.
 
@@ -85,7 +85,6 @@ update_config:
       pattern: ^\/tmp\/\w+\/CAPE\/$
       uri: https://github.com/CAPESandbox/community.git
       default_classification: TLP:C
-      branch: extractor/to_MACO
     # Pending: https://github.com/RussianPanda95/Configuration_extractors/pull/3
     - name: RussianPanda95
       pattern: .*/RussianPanda95/$

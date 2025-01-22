@@ -14,7 +14,7 @@ RUN gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-o
 RUN echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/debian stable-buster main"  | tee /etc/apt/sources.list.d/mono-official-stable.list
 RUN apt update && apt install -y mono-complete && rm -rf /var/lib/apt/lists/*
 
-# Install configextractor-py & maco (testing)
+# Install configextractor-py
 RUN uv pip install --system git+https://github.com/CybercentreCanada/configextractor-py.git
 
 # Create directories

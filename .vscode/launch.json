@@ -5,17 +5,46 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "RunServiceOnce",
+            "name": "RunServiceOnce ConfigExtractor",
             "type": "python",
             "request": "launch",
             "module": "assemblyline_v4_service.dev.run_service_once",
             "cwd": "${workspaceFolder}",
             "args": [
                 "-d",
-                "configextractor_.configextractor.Configextractor",
+                "configextractor_.configextractor_.ConfigExtractor",
                 "${file}"
             ],
             "justMyCode": false,
+        },
+        {
+            "name": "[Service] ConfigExtractor - Privileged",
+            "type": "python",
+            "request": "launch",
+            "module": "assemblyline_v4_service.run_privileged_service",
+            "env": {
+                "SERVICE_MANIFEST_PATH": "service_manifest.yml",
+                "PRIVILEGED": "true",
+                "SERVICE_PATH": "configextractor_.configextractor_.ConfigExtractor",
+                "TASKING_DIR": "/tmp/ConfigExtractor"
+            },
+            "console": "internalConsole",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+        },
+        {
+            "name": "RunUpdater",
+            "type": "python",
+            "request": "launch",
+            "module": "configextractor_.update_server",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "UPDATER_DIR": "${workspaceFolder}/updates",
+                "SERVICE_PATH": "configextractor_.configextractor_.ConfigExtractor",
+                "AL_SERVICE_NAME": "ConfigExtractor",
+            },
+            "justMyCode": false,
+
         },
     ]
 }
