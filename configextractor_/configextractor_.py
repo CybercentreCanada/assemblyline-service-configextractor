@@ -7,7 +7,6 @@ from typing import Any
 
 import regex
 from assemblyline.common import attack_map, forge
-from assemblyline.odm.base import DOMAIN_ONLY_REGEX, FULL_URI, IP_ONLY_REGEX
 from assemblyline.odm.models.ontology.results import MalwareConfig
 from assemblyline_v4_service.common.base import SIGNATURES_META_FILENAME, ServiceBase
 from assemblyline_v4_service.common.result import (
@@ -29,6 +28,7 @@ from configextractor_.maco_tags import (
     extract_proxy_tags,
     extract_SMTP_tags,
     extract_SSH_tags,
+    tag_output,
 )
 
 cl_engine = forge.get_classification()
@@ -61,7 +61,9 @@ class ConfigExtractor(ServiceBase):
     # Generate the rules_hash and init rules_list based on the raw files in the rules_directory from updater
     def _gen_rules_hash(self) -> str:
         self.rules_list = []
-        signatures_meta_path = os.path.join(self.rules_directory, SIGNATURES_META_FILENAME)
+        signatures_meta_path = os.path.join(
+            self.rules_directory, SIGNATURES_META_FILENAME
+        )
         self.signatures_meta = json.loads(open(signatures_meta_path, "r").read())
         for obj in os.listdir(self.rules_directory):
             obj_path = os.path.join(self.rules_directory, obj)
@@ -72,16 +74,22 @@ class ConfigExtractor(ServiceBase):
         if len(all_sha256s) == 1:
             return all_sha256s[0][:7]
 
-        return hashlib.sha256(" ".join(sorted(all_sha256s)).encode("utf-8")).hexdigest()[:7]
+        return hashlib.sha256(
+            " ".join(sorted(all_sha256s)).encode("utf-8")
+        ).hexdigest()[:7]
 
     def _load_rules(self) -> None:
         if self.rules_list:
             self.log.debug(self.rules_list)
 
             blocklist = [
-                parser_name for parser_name, meta in self.signatures_meta.items() if meta["status"] == "DISABLED"
+                parser_name
+                for parser_name, meta in self.signatures_meta.items()
+                if meta["status"] == "DISABLED"
             ]
-            self.log.info(f"Blocking the following parsers matching these patterns: {blocklist}")
+            self.log.info(
+                f"Blocking the following parsers matching these patterns: {blocklist}"
+            )
             self.cx = CX(
                 parsers_dirs=self.rules_list,
                 logger=self.log,
@@ -90,39 +98,14 @@ class ConfigExtractor(ServiceBase):
             )
 
         if not self.cx:
-            raise Exception("Unable to start ConfigExtractor because can't find directory containing parsers")
+            raise Exception(
+                "Unable to start ConfigExtractor because can't find directory containing parsers"
+            )
 
         if not self.cx.parsers:
             raise Exception(
                 f"Unable to start ConfigExtractor because can't find parsers in given directory: {self.rules_directory}"
             )
-
-    # Temporary tagging method until CAPE is switched over to MACO modelling
-    def tag_output(self, output: Any, tags: dict = {}):
-        def tag_string(value):
-            if regex.search(IP_ONLY_REGEX, value):
-                tags.setdefault("network.static.ip", []).append(value)
-            elif regex.search(DOMAIN_ONLY_REGEX, value):
-                tags.setdefault("network.static.domain", []).append(value)
-            elif regex.search(FULL_URI, value):
-                tags.setdefault("network.static.uri", []).append(value)
-
-        if isinstance(output, dict):
-            # Iterate over values of dictionary
-            for key, value in output.items():
-                if key == "decoded_strings":
-                    tags["file.string.decoded"] = value
-                    continue
-
-                if isinstance(value, dict):
-                    self.tag_output(value, tags)
-                elif isinstance(value, list):
-                    [self.tag_output(v, tags) for v in value]
-                elif isinstance(value, str):
-                    tag_string(value)
-
-        elif isinstance(output, str):
-            tag_string(output)
 
     def network_ioc_section(self, config, request, extra_tags) -> ResultSection:
         network_section = ResultSection("Network IOCs")
@@ -145,8 +128,12 @@ class ConfigExtractor(ServiceBase):
                     headers = network_config.get("headers", {})
                     if network_config.get("user_agent"):
                         headers.update({"User-Agent": network_config["user_agent"]})
-                    request.temp_submission_data["url_headers"].update({network_config["uri"]: headers})
-                sorted_network_config.setdefault(network_config.get("usage", "other"), []).append(network_config)
+                    request.temp_submission_data["url_headers"].update(
+                        {network_config["uri"]: headers}
+                    )
+                sorted_network_config.setdefault(
+                    network_config.get("usage", "other"), []
+                ).append(network_config)
 
             if sorted_network_config:
                 connection_section = ResultSection(field.upper())
@@ -216,7 +203,9 @@ class ConfigExtractor(ServiceBase):
                 id = parser_output.pop("id", None)
 
                 if id not in self.signatures_meta:
-                    self.log.warning(f"{id} wasn't found in signatures map. Skipping...")
+                    self.log.warning(
+                        f"{id} wasn't found in signatures map. Skipping..."
+                    )
                     continue
 
                 # Get AL-specific details about the parser
@@ -238,9 +227,20 @@ class ConfigExtractor(ServiceBase):
                             body=json.dumps(parser_output),
                             parent=result,
                             body_format=BODY_FORMAT.KEY_VALUE,
-                            heuristic=Heuristic(3, signature="exception" if parser_output.get("exception") else None),
+                            heuristic=Heuristic(
+                                3,
+                                signature=(
+                                    "exception"
+                                    if parser_output.get("exception")
+                                    else None
+                                ),
+                            ),
                             classification=signature_meta["classification"],
-                            tags={"file.rule.configextractor": [f"{source_name}.{parser_name}"]},
+                            tags={
+                                "file.rule.configextractor": [
+                                    f"{source_name}.{parser_name}"
+                                ]
+                            },
                             auto_collapse=True,
                         )
                     continue
@@ -257,11 +257,15 @@ class ConfigExtractor(ServiceBase):
 
                 for binary in config.get("binaries", []):
                     # Account for the possibility of 'encryption' field to be a dict (Output of MACO <= 1.0.10)
-                    if binary.get("encryption") and isinstance(binary["encryption"], dict):
+                    if binary.get("encryption") and isinstance(
+                        binary["encryption"], dict
+                    ):
                         binary["encryption"] = [binary["encryption"]]
 
                 # Include extractor's name for ontology output only
-                config["config_extractor"] = config.get("config_extractor", f"{source_name}.{parser_name}")
+                config["config_extractor"] = config.get(
+                    "config_extractor", f"{source_name}.{parser_name}"
+                )
                 self.attach_ontology(config)
                 config.pop("config_extractor")
 
@@ -299,8 +303,12 @@ class ConfigExtractor(ServiceBase):
                     classification=signature_meta["classification"],
                 )
 
-                extra_tags = {"file.rule.configextractor": [f"{source_name}.{parser_name}"]}
-                network_section = self.network_ioc_section(config, request, extra_tags=extra_tags)
+                extra_tags = {
+                    "file.rule.configextractor": [f"{source_name}.{parser_name}"]
+                }
+                network_section = self.network_ioc_section(
+                    config, request, extra_tags=extra_tags
+                )
                 if network_section:
                     parser_section.add_subsection(network_section)
 
@@ -324,7 +332,7 @@ class ConfigExtractor(ServiceBase):
 
                 if config:
                     other_tags = {}
-                    self.tag_output(config, other_tags)
+                    tag_output(config, other_tags)
                     ResultSection(
                         "Other data",
                         body=json.dumps(config, cls=Base64TruncatedEncoder),
