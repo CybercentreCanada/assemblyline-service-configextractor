@@ -1,9 +1,9 @@
 # Documents how Model objects in the MACO standard translate to Assemblyline tags
 
 import re
-from typing import Dict, List
+from typing import Any, Dict, List
 
-from assemblyline.odm import IP_ONLY_REGEX
+from assemblyline.odm.base import DOMAIN_ONLY_REGEX, FULL_URI, IP_ONLY_REGEX
 
 
 def extract_FTP_tags(data: List[Dict]) -> Dict:
@@ -51,7 +51,9 @@ def extract_SMTP_tags(data: List[Dict]) -> Dict:
 def extract_HTTP_tags(data: List[Dict]) -> Dict:
     tags = {}
     for d in data:
-        tags.setdefault("network.protocol", []).append(d.get("protocol", "HTTP").upper())
+        tags.setdefault("network.protocol", []).append(
+            d.get("protocol", "HTTP").upper()
+        )
         if d.get("password"):
             tags.setdefault("info.password", []).append(d["password"])
         if d.get("hostname"):
@@ -129,3 +131,31 @@ def extract_connection_tags(data: List[Dict]) -> Dict:
                 tags.setdefault("network.static.domain", []).append(d[f"{side}_domain"])
 
     return tags
+
+
+# Catch-all function for tagging strings
+def tag_output(output: Any, tags: dict = {}):
+    def tag_string(value):
+        if re.search(IP_ONLY_REGEX, value):
+            tags.setdefault("network.static.ip", []).append(value)
+        elif re.search(DOMAIN_ONLY_REGEX, value):
+            tags.setdefault("network.static.domain", []).append(value)
+        elif re.search(FULL_URI, value):
+            tags.setdefault("network.static.uri", []).append(value)
+
+    if isinstance(output, dict):
+        # Iterate over values of dictionary
+        for key, value in output.items():
+            if key == "decoded_strings":
+                tags["file.string.decoded"] = value
+                continue
+
+            if isinstance(value, dict):
+                tag_output(value, tags)
+            elif isinstance(value, list):
+                [tag_output(v, tags) for v in value]
+            elif isinstance(value, str):
+                tag_string(value)
+
+    elif isinstance(output, str):
+        tag_string(output)
