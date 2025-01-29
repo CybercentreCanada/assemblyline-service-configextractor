@@ -108,8 +108,12 @@ class ConfigExtractor(ServiceBase):
                 tags.setdefault("network.static.uri", []).append(value)
 
         if isinstance(output, dict):
-            # Iterate over valuse of dictionary
-            for value in output.values():
+            # Iterate over values of dictionary
+            for key, value in output.items():
+                if key == "decoded_strings":
+                    tags["file.string.decoded"] = value
+                    continue
+
                 if isinstance(value, dict):
                     self.tag_output(value, tags)
                 elif isinstance(value, list):
