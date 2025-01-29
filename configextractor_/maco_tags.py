@@ -134,7 +134,7 @@ def extract_connection_tags(data: List[Dict]) -> Dict:
 
 
 # Catch-all function for tagging strings
-def tag_output(self, output: Any, tags: dict = {}):
+def tag_output(output: Any, tags: dict = {}):
     def tag_string(value):
         if re.search(IP_ONLY_REGEX, value):
             tags.setdefault("network.static.ip", []).append(value)
@@ -151,9 +151,9 @@ def tag_output(self, output: Any, tags: dict = {}):
                 continue
 
             if isinstance(value, dict):
-                self.tag_output(value, tags)
+                tag_output(value, tags)
             elif isinstance(value, list):
-                [self.tag_output(v, tags) for v in value]
+                [tag_output(v, tags) for v in value]
             elif isinstance(value, str):
                 tag_string(value)
 
