@@ -58,7 +58,7 @@ class CXUpdateServer(ServiceUpdater):
         # If there is a configuration to set the deployment status of the extractor, map it out
         extractor_statuses = {
             extractor: status
-            for status, extractor_list in configuration.get("deployment_status", {})
+            for status, extractor_list in configuration.get("deployment_status", {}).items()
             for extractor in extractor_list
         }
 
