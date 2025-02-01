@@ -49,10 +49,18 @@ class CXUpdateServer(ServiceUpdater):
         files_sha256,
         source_name,
         default_classification=Classification.UNRESTRICTED,
+        configuration={},
         *args,
-        **kwargs
+        **kwargs,
     ):
         extractors_found = False
+
+        # If there is a configuration to set the deployment status of the extractor, map it out
+        extractor_statuses = {
+            extractor: status
+            for status, extractor_list in configuration.get("deployment_status", {}).items()
+            for extractor in extractor_list
+        }
 
         def import_parsers(cx: ConfigExtractor):
             upload_list = list()
@@ -64,6 +72,7 @@ class CXUpdateServer(ServiceUpdater):
                 id = parser_obj.id
 
                 if parser_details:
+                    extractor_name = parser_details["name"]
                     try:
                         classification = parser_details["classification"]
                         if classification:
@@ -79,16 +88,19 @@ class CXUpdateServer(ServiceUpdater):
                         )
                         classification = default_classification
 
+                    # Set extractor deployment status based on source configuration, otherwise default to DEPLOYED
+                    status = extractor_statuses.get(extractor_name, "DEPLOYED")
+
                     upload_list.append(
                         Signature(
                             dict(
                                 classification=classification,
                                 data=open(parser_obj.module_path, "r").read(),
-                                name=parser_details["name"],
+                                name=extractor_name,
                                 signature_id=id,
                                 source=source_name,
                                 type="configextractor",
-                                status="DEPLOYED",
+                                status=status,
                             )
                         ).as_primitives()
                     )
@@ -199,5 +211,5 @@ class CXUpdateServer(ServiceUpdater):
 
 
 if __name__ == "__main__":
-    with CXUpdateServer(downloadable_signature_statuses=["DEPLOYED", "DISABLED"]) as server:
+    with CXUpdateServer(downloadable_signature_statuses=["DEPLOYED", "NOISY", "DISABLED"]) as server:
         server.serve_forever()
