@@ -1,14 +1,16 @@
 [![Discord](https://img.shields.io/badge/chat-on%20discord-7289da.svg?sanitize=true)](https://discord.gg/GUAy9wErNu)
 [![](https://img.shields.io/discord/908084610158714900)](https://discord.gg/GUAy9wErNu)
 [![Static Badge](https://img.shields.io/badge/github-assemblyline-blue?logo=github)](https://github.com/CybercentreCanada/assemblyline)
-[![Static Badge](https://img.shields.io/badge/github-assemblyline\_service\_configextractor-blue?logo=github)](https://github.com/CybercentreCanada/assemblyline-service-configextractor)
+[![Static Badge](https://img.shields.io/badge/github-assemblyline_service_configextractor-blue?logo=github)](https://github.com/CybercentreCanada/assemblyline-service-configextractor)
 [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues/CybercentreCanada/assemblyline/service-configextractor)](https://github.com/CybercentreCanada/assemblyline/issues?q=is:issue+is:open+label:service-configextractor)
 [![License](https://img.shields.io/github/license/CybercentreCanada/assemblyline-service-configextractor)](./LICENSE)
+
 # ConfigExtractor Service
 
 This service runs parsers to extract malware configuration data.
 
 ## Service Details
+
 This Assemblyline service extracts malware configurations (such as IP, URL and domain) for various malware family by leveraging the [ConfigExtractor Python library](https://github.com/CybercentreCanada/configextractor-py) for analysis.
 
 ### Updater
@@ -18,6 +20,21 @@ This Assemblyline service extracts malware configurations (such as IP, URL and d
 The updater for this service requires matches on directories containing parsers.
 
 For example, the CAPE source will have a match pattern of `^\/tmp\/w+\/CAPE\/$` in which we're trying to target the parsers in the root directory only.
+
+##### Source Configuration
+
+You can the following configuration(s) for a source:
+
+```json
+{
+    // Set the deployment status of extractors
+    "deployment_status": {
+        // Set all extractor classes in this list to NOISY on update
+        "NOISY": ["extractor_class", ...],
+        "DISABLED": ["broken_extractor_class", ...]
+    }
+}
+```
 
 #### Persistence
 
@@ -38,7 +55,6 @@ At the time of writing, we officially support the following frameworks:
 - [MWCP](https://github.com/dod-cyber-crime-center/DC3-MWCP)
 - [CAPE w/ MACO output](https://github.com/kevoreilly/CAPEv2)
 - [MACO](https://github.com/CybercentreCanada/Maco)
-
 
 ## Image variants and tags
 
@@ -77,6 +93,7 @@ General Assemblyline documentation can be found at: https://cybercentrecanada.gi
 Ce service exécute des analyseurs pour extraire les données de configuration des logiciels malveillants.
 
 ## Détails du service
+
 Ce service Assemblyline extrait les configurations des logiciels malveillants (telles que l'IP, l'URL et le domaine) pour diverses familles de logiciels malveillants en exploitant la [bibliothèque Python ConfigExtractor] (https://github.com/CybercentreCanada/configextractor-py) à des fins d'analyse.
 
 ### Mise à jour
@@ -86,6 +103,23 @@ Ce service Assemblyline extrait les configurations des logiciels malveillants (t
 L'outil de mise à jour pour ce service nécessite des correspondances sur les répertoires contenant des analyseurs.
 
 Par exemple, la source CAPE aura un modèle de correspondance de `^\/tmp\/w\+/CAPE\/$` dans lequel nous essayons de cibler les analyseurs dans le répertoire racine uniquement.
+
+##### Configuration de la source
+
+Vous pouvez utiliser les configurations suivantes pour une source :
+
+```json
+{
+    // Définir l'état de déploiement des extracteurs
+    "deployment_status" : {
+        // Définit toutes les classes d'extracteurs de cette liste comme NOISY lors de la mise à jour
+        "NOISY" : ["extractor_class", ...],
+        "DISABLED" : ["broken_extractor_class", ...]
+    }
+}
+```
+
+Traduit avec DeepL.com (version gratuite)
 
 #### Persistance
 
@@ -102,6 +136,7 @@ Si vous avez besoin d'une connexion proxy pour l'installation des paquets, ajout
 Tous les répertoires d'analyseurs qui sont capables de fonctionner avec cette bibliothèque devraient également être compatibles avec le service.
 
 Au moment de la rédaction de ce document, nous supportons officiellement les frameworks suivants:
+
 - [MWCP](https://github.com/dod-cyber-crime-center/DC3-MWCP)
 - [CAPE w/ MACO output](https://github.com/kevoreilly/CAPEv2)
 - [MACO](https://github.com/CybercentreCanada/Maco)
@@ -138,14 +173,14 @@ Pour ajouter ce service à votre déploiement d'Assemblyline, suivez ceci
 
 La documentation générale sur Assemblyline peut être consultée à l'adresse suivante: https://cybercentrecanada.github.io/assemblyline4_docs/
 
-
 ---
+
 # Contributions ✨
 
 Thanks to everyone who have contributed to this project/Merci à tous ceux qui ont contribué à ce projet:
 
-|                                                                                             Contributor/Contributeur                                                                                              | Contribution(s)                                                                                 |                                                                           License/Licence                                                                           |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ----------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                                                       Contributor/Contributeur                                                                                       | Contribution(s)                                                                                                                      |                                                                       License/Licence                                                                       |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------: |
 |              <a href="https://github.com/jeFF0Falltrades"><img src="https://images.weserv.nl/?url=github.com/jeFF0Falltrades.png?v=4&h=75&w=75&fit=cover&mask=circle&maxage=7d"/> </a>               | Added MACO extractors in/Ajout des extracteurs MACO dans:<br> [rat_king_parser](https://github.com/jeFF0Falltrades/rat_king_parser)  | [![License](https://img.shields.io/github/license/jeFF0Falltrades/rat_king_parser)](https://github.com/jeFF0Falltrades/rat_king_parser/blob/master/LICENSE) |
 | <a href="https://github.com/apophis133"><img src="https://images.weserv.nl/?url=github.com/apophis133.png?v=4&h=75&w=75&fit=cover&mask=circle&maxage=7d" style="border-radius: 50%;width: 75px"></a> | Added MACO extractors in/Ajout des extracteurs MACO dans:<br> [apophis-YARA-Rules](https://github.com/apophis133/apophis-YARA-Rules) |                                                                                                                                                             |
 | <a href="https://github.com/kevoreilly"><img src="https://images.weserv.nl/?url=github.com/kevoreilly.png?v=4&h=75&w=75&fit=cover&mask=circle&maxage=7d" style="border-radius: 50%;width: 75px"></a> | Added MACO extractors in/Ajout des extracteurs MACO dans:<br> [CAPESandbox community](https://github.com/CAPESandbox/community)      |             [![License](https://img.shields.io/badge/license-GPL--3.0-informational)](https://github.com/kevoreilly/CAPEv2/blob/master/LICENSE)             |
