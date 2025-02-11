@@ -23,7 +23,7 @@ For example, the CAPE source will have a match pattern of `^\/tmp\/w+\/CAPE\/$` 
 
 ##### Source Configuration
 
-You can the following configuration(s) for a source:
+You can set the following configuration(s) for a source:
 
 ```json
 {
@@ -106,7 +106,7 @@ Par exemple, la source CAPE aura un modèle de correspondance de `^\/tmp\/w\+/CA
 
 ##### Configuration de la source
 
-Vous pouvez utiliser les configurations suivantes pour une source :
+Vous pouvez définir la (les) configuration(s) suivante(s) pour une source :
 
 ```json
 {
