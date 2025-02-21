@@ -160,8 +160,12 @@ class ConfigExtractor(ServiceBase):
                 if v:
                     if isinstance(v, dict):
                         clean_config[k] = strip_null(v)
-                    elif isinstance(v, list) and isinstance(v[0], dict):
-                        clean_config[k] = [strip_null(vi) for vi in v]
+                    elif isinstance(v, list):
+                        if isinstance(v[0], dict):
+                            clean_config[k] = [strip_null(vi) for vi in v]
+                        elif isinstance(v[0], str):
+                            # Remove empty strings
+                            clean_config[k] = [vi for vi in v if vi]
                     else:
                         clean_config[k] = v
             return clean_config
