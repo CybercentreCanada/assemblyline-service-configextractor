@@ -86,6 +86,7 @@ class ConfigExtractor(ServiceBase):
                 parsers_dirs=self.rules_list,
                 logger=self.log,
                 parser_blocklist=blocklist,
+                create_venv=True,
                 skip_install=True,
             )
 
