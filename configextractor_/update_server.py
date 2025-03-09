@@ -8,41 +8,14 @@ from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
-from assemblyline_v4_service.updater.updater import (
-    SOURCE_STATUS_KEY,
-    UPDATER_DIR,
-    ServiceUpdater,
-)
+from assemblyline_v4_service.updater.updater import SOURCE_STATUS_KEY, UPDATER_DIR, ServiceUpdater
 from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
 
 
 class CXUpdateServer(ServiceUpdater):
-    def __init__(
-        self,
-        logger=None,
-        shutdown_timeout=None,
-        config=None,
-        datastore=None,
-        redis=None,
-        redis_persist=None,
-        default_pattern=".*",
-        downloadable_signature_statuses=...,
-    ):
-        super().__init__(
-            logger,
-            shutdown_timeout,
-            config,
-            datastore,
-            redis,
-            redis_persist,
-            default_pattern,
-            downloadable_signature_statuses,
-        )
-
-        # Track cases where we may want to perform a forced update
-        self.force_local_update = False
+    force_local_update = False
 
     def import_update(
         self,
