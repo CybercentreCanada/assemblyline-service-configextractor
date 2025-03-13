@@ -90,6 +90,7 @@ update_config:
       pattern: .*/RussianPanda95/$
       uri: https://github.com/cccs-rs/Configuration_extractors.git
       default_classification: TLP:C
+      branch: temp_deprecate
     - name: RatKingParser
       pattern: .*/RatKingParser/$
       uri: https://github.com/jeFF0Falltrades/rat_king_parser.git
