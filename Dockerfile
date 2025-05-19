@@ -1,7 +1,7 @@
 ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch AS base
 
-ENV SERVICE_PATH configextractor_.configextractor_.ConfigExtractor
+ENV SERVICE_PATH=configextractor_.configextractor_.ConfigExtractor
 
 USER assemblyline
 RUN pip uninstall -y yara-python

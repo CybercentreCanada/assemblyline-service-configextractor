@@ -1,13 +1,13 @@
 {
   "template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
-  "commit": "349a8390e48c1607f6dc245add2627df07c7bc9b",
+  "commit": "c60a8ed86819416a005aeceec3c03b0e889a4ba3",
   "checkout": null,
   "context": {
     "cookiecutter": {
       "service_name": "configextractor",
       "__svc_name": "configextractor",
       "__repository": "assemblyline-service-configextractor",
-      "__pkg_name": "configextractor_",
+      "__pkg_name": "configextractor",
       "class_name": "ConfigExtractor",
       "short_description": "This service runs parsers to extract malware configuration data.",
       "short_description_fr": "Ce service exécute des analyseurs pour extraire les données de configuration des logiciels malveillants.",
@@ -16,7 +16,8 @@
       "org_name_full": "CybercentreCanada",
       "org_name_short": "cccs",
       "license": "mit",
-      "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git"
+      "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
+      "_commit": "c60a8ed86819416a005aeceec3c03b0e889a4ba3"
     }
   },
   "directory": null
