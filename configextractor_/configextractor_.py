@@ -108,7 +108,9 @@ class ConfigExtractor(ServiceBase):
                 f"Unable to start ConfigExtractor because can't find parsers in given directory: {self.rules_directory}"
             )
 
-    def network_ioc_section(self, config, request, extra_tags) -> ResultSection:
+    def network_ioc_section(
+        self, config, request, extra_tags, apply_heuristic
+    ) -> ResultSection:
         network_section = ResultSection("Network IOCs")
 
         network_fields = {
@@ -141,7 +143,9 @@ class ConfigExtractor(ServiceBase):
                 for usage, connections in sorted_network_config.items():
                     model, tag_extractor = model_tuple
                     tags = tag_extractor(connections)
-                    heuristic = Heuristic(2, signature=usage)
+                    heuristic = (
+                        Heuristic(2, signature=usage) if apply_heuristic else None
+                    )
                     auto_collapse = False
                     if usage in ["decoy", "other"]:
                         # Display connections, but don't tag/score
@@ -306,6 +310,7 @@ class ConfigExtractor(ServiceBase):
                     tags.update({"attribution.campaign": campaign_id})
 
                 # Configuration extracted, create heuristic with all actionable tags
+                apply_heuristic = signature_meta["status"] != "NOISY"
                 parser_section = ResultSection(
                     title_text=parser_name,
                     body=json.dumps(parser_output),
@@ -313,7 +318,7 @@ class ConfigExtractor(ServiceBase):
                     body_format=BODY_FORMAT.KEY_VALUE,
                     tags=tags,
                     heuristic=Heuristic(1, attack_ids=attack_ids)
-                    if signature_meta["status"] != "NOISY"
+                    if apply_heuristic
                     else None,
                     classification=signature_meta["classification"],
                 )
@@ -322,7 +327,7 @@ class ConfigExtractor(ServiceBase):
                     "file.rule.configextractor": [f"{source_name}.{parser_name}"]
                 }
                 network_section = self.network_ioc_section(
-                    config, request, extra_tags=extra_tags
+                    config, request, extra_tags, apply_heuristic
                 )
                 if network_section:
                     parser_section.add_subsection(network_section)
