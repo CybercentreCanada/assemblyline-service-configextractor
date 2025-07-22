@@ -66,6 +66,10 @@ docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-configextractor:$SERVICE_TAG
   cpu_cores: 1.0
   ram_mb: 1024
+  environment:
+    # Disable fetching CAPE yara rules
+    - name: CAPE_HTTP_TIMEOUT
+      value: "0"
 
 dependencies:
   updates:
