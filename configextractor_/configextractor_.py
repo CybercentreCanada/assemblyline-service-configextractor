@@ -175,7 +175,8 @@ class ConfigExtractor(ServiceBase):
 
     def execute(self, request):
         result = Result()
-        config_result = self.cx.run_parsers(request.file_path)
+        config_result = self.cx.run_parsers(request.file_path,
+                                            timeout=self.service_attributes.timeout - 30)
         if not config_result:
             request.result = result
             return
