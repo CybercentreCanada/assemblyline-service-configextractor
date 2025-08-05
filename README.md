@@ -119,8 +119,6 @@ Vous pouvez définir la (les) configuration(s) suivante(s) pour une source :
 }
 ```
 
-Traduit avec DeepL.com (version gratuite)
-
 #### Persistance
 
 Le service de mise à jour suppose que vous avez attaché un volume de stockage pour stocker votre collection de sources. Contrairement à d'autres services, cet outil de mise à jour s'appuie sur un volume de stockage pour maintenir la persistance plutôt que sur le magasin de données d'Assemblyline.
