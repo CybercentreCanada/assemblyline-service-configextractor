@@ -99,6 +99,10 @@ update_config:
       pattern: .*/RatKingParser/$
       uri: https://github.com/jeFF0Falltrades/rat_king_parser.git
       default_classification: TLP:C
+    - name: CAPE_PARSERS
+      pattern: ^\/tmp\/\w+\/CAPE_PARSERS\/$
+      uri: https://github.com/CAPESandbox/CAPE-parsers.git
+      default_classification: TLP:C
   update_interval_seconds: 21600 # Quarter-day (every 6 hours)
   wait_for_update: true
   signature_delimiter: file
