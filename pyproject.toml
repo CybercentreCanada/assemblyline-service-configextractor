@@ -1,2 +1,10 @@
 [tool.cruft]
 skip = ["pkglist.txt", "README.md", "configextractor", "tests"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+docstring-code-format = true
+quote-style = "double"
+indent-style = "space"
