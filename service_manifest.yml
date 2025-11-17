@@ -85,8 +85,8 @@ dependencies:
 update_config:
   generates_signatures: true
   sources:
-    - name: CAPE
-      pattern: ^\/tmp\/\w+\/CAPE\/$
+    - name: CAPE_PARSERS
+      pattern: ^\/tmp\/\w+\/CAPE_PARSERS\/$
       uri: https://github.com/cccs-rs/CAPE-parsers.git
       branch: assemblyline
       default_classification: TLP:C
