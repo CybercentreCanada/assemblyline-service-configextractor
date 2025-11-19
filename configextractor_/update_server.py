@@ -8,7 +8,11 @@ from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
-from assemblyline_v4_service.updater.updater import SOURCE_STATUS_KEY, UPDATER_DIR, ServiceUpdater
+from assemblyline_v4_service.updater.updater import (
+    SOURCE_STATUS_KEY,
+    UPDATER_DIR,
+    ServiceUpdater,
+)
 from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
@@ -64,6 +68,11 @@ class CXUpdateServer(ServiceUpdater):
                     # Set extractor deployment status based on source configuration, otherwise default to DEPLOYED
                     status = extractor_statuses.get(extractor_name, "DEPLOYED")
 
+                    # Disable extractor without a YARA rule if configured to do so
+                    if configuration.get("disable_yaraless_extractors") and not parser_obj.rule:
+                        self.log.info(f"Disabling extractor because there's no YARA rule associated: {extractor_name}")
+                        status = "DISABLED"
+
                     upload_list.append(
                         Signature(
                             dict(
@@ -89,7 +98,10 @@ class CXUpdateServer(ServiceUpdater):
                 extractors_found = True
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
                 resp = import_parsers(cx)
-                self.push_status("UPDATING", "Parsers successfully stored as signatures in Signatures index.")
+                self.push_status(
+                    "UPDATING",
+                    "Parsers successfully stored as signatures in Signatures index.",
+                )
                 self.log.info(f"Sucessfully added {resp['success']} parsers from source {source_name} to Assemblyline.")
                 self.log.debug(resp)
 

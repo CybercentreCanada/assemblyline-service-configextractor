@@ -51,9 +51,7 @@ def extract_SMTP_tags(data: List[Dict]) -> Dict:
 def extract_HTTP_tags(data: List[Dict]) -> Dict:
     tags = {}
     for d in data:
-        tags.setdefault("network.protocol", []).append(
-            d.get("protocol", "HTTP").upper()
-        )
+        tags.setdefault("network.protocol", []).append(d.get("protocol", "HTTP").upper())
         if d.get("password"):
             tags.setdefault("info.password", []).append(d["password"])
         if d.get("hostname"):

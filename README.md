@@ -32,7 +32,9 @@ You can set the following configuration(s) for a source:
         // Set all extractor classes in this list to NOISY on update
         "NOISY": ["extractor_class", ...],
         "DISABLED": ["broken_extractor_class", ...]
-    }
+    },
+    // Disable extractors that don't contain a YARA rule for filtering
+    "disable_yaraless_extractors": false
 }
 ```
 
@@ -53,7 +55,7 @@ All parser directories that are able to work with this library should also be co
 At the time of writing, we officially support the following frameworks:
 
 - [MWCP](https://github.com/dod-cyber-crime-center/DC3-MWCP)
-- [CAPE w/ MACO output](https://github.com/kevoreilly/CAPEv2)
+- [CAPE](https://github.com/CAPESandbox/CAPE-parsers)
 - [MACO](https://github.com/CybercentreCanada/Maco)
 
 ## Image variants and tags
@@ -115,7 +117,10 @@ Vous pouvez définir la (les) configuration(s) suivante(s) pour une source :
         // Définit toutes les classes d'extracteurs de cette liste comme NOISY lors de la mise à jour
         "NOISY" : ["extractor_class", ...],
         "DISABLED" : ["broken_extractor_class", ...]
-    }
+    },
+    // Désactiver les extracteurs qui ne contiennent pas de règle YARA pour le filtrage
+    "disable_yaraless_extractors": false
+
 }
 ```
 
