@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "RunServiceOnce ConfigExtractor",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "assemblyline_v4_service.dev.run_service_once",
             "cwd": "${workspaceFolder}",
@@ -19,7 +19,7 @@
         },
         {
             "name": "[Service] ConfigExtractor - Privileged",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "assemblyline_v4_service.run_privileged_service",
             "env": {
