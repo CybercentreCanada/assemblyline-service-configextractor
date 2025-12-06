@@ -2,4 +2,3 @@ libdnlib2.1-cil
 g++
 dirmngr
 ca-certificates
-gnupg

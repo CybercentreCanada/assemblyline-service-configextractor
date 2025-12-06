@@ -1,14 +1,22 @@
 import hashlib
 import json
 import os
+import shutil
+import subprocess
 import tempfile
+import time
 from base64 import b64encode
-from typing import Any
 
-import regex
+import requests
 from assemblyline.common import attack_map, forge
 from assemblyline.odm.models.ontology.results import MalwareConfig
-from assemblyline_v4_service.common.base import SIGNATURES_META_FILENAME, ServiceBase
+from assemblyline_v4_service.common.base import (
+    MIN_SECONDS_BETWEEN_UPDATES,
+    SIGNATURES_META_FILENAME,
+    UPDATES_CA,
+    UPDATES_DIR,
+    ServiceBase,
+)
 from assemblyline_v4_service.common.result import (
     BODY_FORMAT,
     Heuristic,
@@ -57,6 +65,79 @@ class ConfigExtractor(ServiceBase):
     def __init__(self, config=None):
         super(ConfigExtractor, self).__init__(config)
         self.cx = None
+
+    # Only relevant for services using updaters (reserving 'updates' as the defacto container name)
+    def _download_rules(self):
+        # check if we just tried to download rules to reduce traffic
+        if time.time() - self.update_check_time < MIN_SECONDS_BETWEEN_UPDATES:
+            return
+        self.update_check_time = time.time()
+
+        # Resolve the update target
+        scheme, verify = "http", None
+        if os.path.exists(UPDATES_CA):
+            scheme, verify = "https", UPDATES_CA
+        url_base = f"{scheme}://{self.dependencies['updates']['host']}:{self.dependencies['updates']['port']}/"
+        headers = {"x-apikey": self.dependencies["updates"]["key"]}
+
+        # Check if there are new signatures
+        retries = 0
+        while True:
+            resp = requests.get(url_base + "status", verify=verify)
+            resp.raise_for_status()
+            status = resp.json()
+            if (
+                self.update_time is not None
+                and self.update_time >= status["local_update_time"]
+                and self.update_hash == status["local_update_hash"]
+            ):
+                self.log.info(f"There are no new signatures. ({self.update_time} >= {status['local_update_time']})")
+                return
+            if status["download_available"]:
+                self.log.info("A signature update is available, downloading new signatures...")
+                break
+            self.log.warning("Waiting on update server availability...")
+            time.sleep(min(5**retries, 30))
+            retries += 1
+
+        # Dedicated directory for updates
+        if not os.path.exists(UPDATES_DIR):
+            os.mkdir(UPDATES_DIR)
+
+        # Download the current update
+        temp_directory = tempfile.mkdtemp(dir=UPDATES_DIR)
+        buffer_handle, buffer_name = tempfile.mkstemp()
+
+        old_rules_list = self.rules_list
+        try:
+            with os.fdopen(buffer_handle, "wb") as buffer:
+                resp = requests.get(url_base + "tar", headers=headers, verify=verify, stream=True)
+                resp.raise_for_status()
+                for chunk in resp.iter_content(chunk_size=1024):
+                    buffer.write(chunk)
+
+            subprocess.run(["tar", "--zstd", "-xf", buffer_name, "-C", temp_directory], capture_output=True)
+            self.update_time = status["local_update_time"]
+            self.update_hash = status["local_update_hash"]
+            self.rules_directory, temp_directory = temp_directory, self.rules_directory
+            # Try to load the rules into the service before declaring we're using these rules moving forward
+            temp_hash = self._gen_rules_hash()
+            self._clear_rules()
+            self._load_rules()
+            self.rules_hash = temp_hash
+        except Exception as e:
+            # Should something happen, we should revert to the old set and log the exception
+            self.log.error(f"Error occurred while updating signatures: {e}. Reverting to the former signature set.")
+            self.rules_directory, temp_directory = temp_directory, self.rules_directory
+            # Clear rules that was added from the new set and reload old set
+            self.rules_list = old_rules_list
+            self._clear_rules()
+            self._load_rules()
+        finally:
+            os.unlink(buffer_name)
+            if temp_directory:
+                self.log.info(f"Removing temp directory: {temp_directory}")
+                shutil.rmtree(temp_directory, ignore_errors=True)
 
     # Generate the rules_hash and init rules_list based on the raw files in the rules_directory from updater
     def _gen_rules_hash(self) -> str:
