@@ -1,15 +1,18 @@
+import json
 import os
 import shutil
-import tarfile
+import subprocess
 import tempfile
-from hashlib import md5
+import time
 
 from assemblyline.common import forge
 from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.updater import (
+    SIGNATURES_META_FILENAME,
     SOURCE_STATUS_KEY,
+    STATUS_FILE,
     UPDATER_DIR,
     ServiceUpdater,
 )
@@ -113,22 +116,19 @@ class CXUpdateServer(ServiceUpdater):
                 destination = os.path.join(self.latest_updates_dir, source_name)
                 old_hash = None
                 if os.path.exists(destination):
-                    if os.path.isfile(destination):
-                        with open(destination, "rb") as f:
-                            old_hash = md5(f.read()).hexdigest()
-                        # Remove old update for source
-                        os.remove(destination)
-                    else:
-                        # Legacy: remove directory
-                        shutil.rmtree(destination)
+                    old_hash = subprocess.check_output(["md5sum", destination], text=True).split()[0]
+                    os.remove(destination)
 
-                with tarfile.open(destination, mode="x:gz") as tar_file:
-                    # Add to TAR file but maintain directory context when sending to service
-                    dir_name = os.path.basename(dir)
-                    tar_file.add(dir, f"/{dir_name if dir_name != source_name else ''}")
-                with open(destination, "rb") as f:
-                    if old_hash and old_hash != md5(f.read()).hexdigest():
-                        self.force_local_update = True
+                # Create a compressed TAR file with zstd compression for faster local extraction
+                subprocess.run(
+                    ["tar", "--zstd", "-cf", destination, "."],
+                    capture_output=True,
+                    cwd=dir,
+                )
+
+                if old_hash and old_hash != subprocess.check_output(["md5sum", destination], text=True).split()[0]:
+                    self.force_local_update = True
+
                 self.log.info(f"Transfer of {source_name} completed")
                 return
 
@@ -146,21 +146,22 @@ class CXUpdateServer(ServiceUpdater):
                 continue
             local_source_path = os.path.join(self.latest_updates_dir, source.name)
             if os.path.exists(local_source_path):
-                if os.path.isfile(local_source_path):
-                    # Extract contents of tarfile into output directory under source-named subdirectory
-                    with tarfile.open(local_source_path, mode="r") as tar:
-                        tar.extractall(local_source_path.replace(self.latest_updates_dir, output_directory))
-                else:
-                    # Maintain legacy support if what's available locally is a directory
-                    try:
-                        shutil.copytree(
-                            local_source_path,
-                            local_source_path.replace(self.latest_updates_dir, output_directory),
-                            symlinks=True,
-                            dirs_exist_ok=True,
-                        )
-                    except shutil.Error:
-                        pass
+                # Extract contents of tarfile into output directory under source-named subdirectory
+                output_source_dir = os.path.join(output_directory, source.name)
+                os.mkdir(
+                    output_source_dir,
+                )
+                subprocess.run(
+                    [
+                        "tar",
+                        "--zstd",
+                        "-xf",
+                        local_source_path,
+                        "-C",
+                        output_source_dir,
+                    ],
+                    capture_output=True,
+                )
         return output_directory
 
     def do_local_update(self) -> None:
@@ -193,6 +194,78 @@ class CXUpdateServer(ServiceUpdater):
             self.serve_directory(output_dir, new_time)
 
         self.force_local_update = False
+
+    def serve_directory(self, new_directory: str, new_time: str):
+        self.log.info("Update finished with new data.")
+
+        # Before serving directory, let's maintain a map of the different signatures and their current deployment state
+        # This map allows the service to be more responsive to changes made locally to the system such as
+        # classification changes.
+        # This also avoids the need to have to insert this kind of metadata into the signature itself
+        if self._service.update_config.generates_signatures:
+            # Pull signature metadata from the API
+            signature_map = {
+                item["signature_id"]: item
+                for item in self.datastore.signature.stream_search(
+                    query=self.signatures_query, fl="classification,source,status,signature_id,name", as_obj=False
+                )
+            }
+        else:
+            # Pull source metadata from synced service configuration
+            signature_map = {
+                source.name: {"classification": source["default_classification"].value}
+                for source in self._service.update_config.sources
+            }
+
+        with open(os.path.join(new_directory, SIGNATURES_META_FILENAME), "w") as meta_file:
+            meta_file.write(json.dumps(signature_map, indent=2))
+
+        try:
+            # Tar update directory
+            uuid = new_time.split("time_keeper_")[-1]
+            new_tar = os.path.join(UPDATER_DIR, f"signatures_{uuid}.tar.zst")
+            subprocess.run(["tar", "--zstd", "-cf", new_tar, "."], capture_output=True, cwd=new_directory)
+
+            # swap update directory with old one
+            self._update_dir, new_directory = new_directory, self._update_dir
+            self._update_tar, new_tar = new_tar, self._update_tar
+            self._time_keeper, new_time = new_time, self._time_keeper
+
+            # Write the new status file
+            temp_status = tempfile.NamedTemporaryFile("w+", delete=False, dir="/tmp")
+            json.dump(self.status(), temp_status.file)
+            os.rename(temp_status.name, STATUS_FILE)
+
+            self.log.info(f"Now serving: {self._update_dir} and {self._update_tar} ({self.get_local_update_time()})")
+        finally:
+            if new_tar and os.path.exists(new_tar):
+                self.log.info(f"Remove old tar file: {new_tar}")
+                time.sleep(3)
+                os.unlink(new_tar)
+            if new_directory and os.path.exists(new_directory):
+                self.log.info(f"Remove old directory: {new_directory}")
+                shutil.rmtree(new_directory, ignore_errors=True)
+            if new_time and os.path.exists(new_time):
+                self.log.info(f"Remove old time keeper file: {new_time}")
+                os.unlink(new_time)
+
+            # Cleanup old timekeepers/tars from unexpected termination(s) on persistent storage
+            for file in os.listdir(UPDATER_DIR):
+                file_path = os.path.join(UPDATER_DIR, file)
+                if (
+                    (file.startswith("signatures_") and file_path != self._update_tar)
+                    or (file.startswith("time_keeper_") and file_path != self._time_keeper)
+                    or (file.startswith("update_dir_") and file_path != self._update_dir)
+                ):
+                    try:
+                        # Attempt to cleanup file from directory
+                        os.unlink(file_path)
+                    except IsADirectoryError:
+                        # Remove directory using
+                        shutil.rmtree(file_path, ignore_errors=True)
+                    except FileNotFoundError:
+                        # File has already been removed
+                        pass
 
 
 if __name__ == "__main__":

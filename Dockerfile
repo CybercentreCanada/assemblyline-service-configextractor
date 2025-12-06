@@ -7,7 +7,7 @@ USER assemblyline
 RUN pip uninstall -y yara-python
 
 USER root
-RUN apt-get update && apt-get install -y libdnlib2.1-cil g++ dirmngr ca-certificates gnupg
+RUN apt-get update && apt-get install -y libdnlib2.1-cil g++ dirmngr ca-certificates gnupg zstd
 RUN pip install uv
 # Install latest version of mono (https://www.mono-project.com/download/stable/#download-lin-debian)
 RUN gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
