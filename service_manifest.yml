@@ -105,6 +105,11 @@ update_config:
       fetch_method: GIT
       uri: https://github.com/jeFF0Falltrades/rat_king_parser.git
       default_classification: TLP:C
+    - name: SEKOIA
+      fetch_method: GIT
+      pattern: .*/SEKOIA/$
+      uri: https://github.com/SEKOIA-IO/Community.git
+      default_classification: TLP:C
   update_interval_seconds: 21600 # Quarter-day (every 6 hours)
   wait_for_update: true
   signature_delimiter: file
