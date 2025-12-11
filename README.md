@@ -37,7 +37,7 @@ You can set the following configuration(s) for a source:
     "disable_yaraless_extractors": false
 }
 ```
-
+asdasds
 #### Persistence
 
 The updater assumes that you have attached a storage volume to store your collection of sources. Contrary to other services, this updater relies on a storage volume to maintain persistence rather than Assemblyline's datastore.
