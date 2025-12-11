@@ -11,6 +11,7 @@
 	"containerEnv": {
 		"SHELL": "/bin/bash"
 	},
+	"postCreateCommand": "pip install -r tests/requirements.txt",
 	"runArgs": [
 		"--network=host"
 	],
@@ -23,7 +24,9 @@
 				"ms-python.isort"
 			]
 		}
-	}
+	},
+	"workspaceMount": "source=${localWorkspaceFolder},target=/opt/al_service,type=bind,consistency=cached",
+	"workspaceFolder": "/opt/al_service",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

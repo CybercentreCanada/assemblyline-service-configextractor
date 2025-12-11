@@ -20,7 +20,8 @@
         "local_extensions.github_maintainer.Ext"
       ],
       "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
-      "_commit": "fb7207484332b978cc409dfc9b9c672335a8cc71"
+      "_commit": "fb7207484332b978cc409dfc9b9c672335a8cc71",
+      "_github_maintainer": "cccs-rs"
     }
   },
   "directory": null
