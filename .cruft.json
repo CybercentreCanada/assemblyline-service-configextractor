@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
-  "commit": "d60482c86248bd5a7dde061ea2a430ac169076cd",
+  "commit": "fb7207484332b978cc409dfc9b9c672335a8cc71",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -16,8 +16,11 @@
       "org_name_full": "CybercentreCanada",
       "org_name_short": "cccs",
       "license": "mit",
+      "_extensions": [
+        "local_extensions.github_maintainer.Ext"
+      ],
       "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
-      "_commit": "d60482c86248bd5a7dde061ea2a430ac169076cd"
+      "_commit": "fb7207484332b978cc409dfc9b9c672335a8cc71"
     }
   },
   "directory": null
