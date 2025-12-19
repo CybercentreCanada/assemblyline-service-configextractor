@@ -277,6 +277,7 @@ class ConfigExtractor(ServiceBase):
             for parser_output in parser_results:
                 # Retrieve identifier from the results
                 id = parser_output.pop("id", None)
+                classification = self.cx.get_details(self.cx.parsers[id])["classification"]
 
                 if id not in self.signatures_meta:
                     self.log.warning(f"{id} wasn't found in signatures map. Skipping...")
@@ -311,7 +312,7 @@ class ConfigExtractor(ServiceBase):
                             parent=result,
                             body_format=BODY_FORMAT.KEY_VALUE,
                             heuristic=heuristic,
-                            classification=signature_meta["classification"],
+                            classification=classification,
                             tags={"file.rule.configextractor": [f"{source_name}.{parser_name}"]},
                             auto_collapse=True,
                         )
@@ -369,7 +370,7 @@ class ConfigExtractor(ServiceBase):
                     body_format=BODY_FORMAT.KEY_VALUE,
                     tags=tags,
                     heuristic=Heuristic(1, attack_ids=attack_ids) if apply_heuristic else None,
-                    classification=signature_meta["classification"],
+                    classification=classification,
                 )
 
                 extra_tags = {"file.rule.configextractor": [f"{source_name}.{parser_name}"]}

@@ -53,20 +53,6 @@ class CXUpdateServer(ServiceUpdater):
 
                 if parser_details:
                     extractor_name = parser_details["name"]
-                    try:
-                        classification = parser_details["classification"]
-                        if classification:
-                            # Classification found, validate against engine configuration
-                            Classification.normalize_classification(classification)
-                        else:
-                            # No classification string extracted, use default
-                            classification = default_classification
-                    except InvalidClassification:
-                        self.log.warning(
-                            f'{id}: Classification "{classification}" not recognized. '
-                            f"Defaulting to {default_classification}.."
-                        )
-                        classification = default_classification
 
                     # Set extractor deployment status based on source configuration, otherwise default to DEPLOYED
                     status = extractor_statuses.get(extractor_name, "DEPLOYED")
@@ -79,7 +65,7 @@ class CXUpdateServer(ServiceUpdater):
                     upload_list.append(
                         Signature(
                             dict(
-                                classification=classification,
+                                classification=default_classification,
                                 data=open(parser_obj.module_path, "r").read(),
                                 name=extractor_name,
                                 signature_id=id,
