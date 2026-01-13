@@ -6,7 +6,6 @@ import tempfile
 import time
 
 from assemblyline.common import forge
-from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.updater import (
@@ -62,10 +61,17 @@ class CXUpdateServer(ServiceUpdater):
                         self.log.info(f"Disabling extractor because there's no YARA rule associated: {extractor_name}")
                         status = "DISABLED"
 
+                    try:
+                        # Normalize classification
+                        classification = Classification.normalize_classification(parser_details.get("classification"))
+                    except Exception:
+                        # If the classification is invalid, fall back to default set by the source
+                        classification = default_classification
+
                     upload_list.append(
                         Signature(
                             dict(
-                                classification=default_classification,
+                                classification=classification,
                                 data=open(parser_obj.module_path, "r").read(),
                                 name=extractor_name,
                                 signature_id=id,
