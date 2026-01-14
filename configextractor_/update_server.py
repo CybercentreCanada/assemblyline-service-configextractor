@@ -6,7 +6,6 @@ import tempfile
 import time
 
 from assemblyline.common import forge
-from assemblyline.common.classification import InvalidClassification
 from assemblyline.common.isotime import epoch_to_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.updater import (
@@ -53,20 +52,6 @@ class CXUpdateServer(ServiceUpdater):
 
                 if parser_details:
                     extractor_name = parser_details["name"]
-                    try:
-                        classification = parser_details["classification"]
-                        if classification:
-                            # Classification found, validate against engine configuration
-                            Classification.normalize_classification(classification)
-                        else:
-                            # No classification string extracted, use default
-                            classification = default_classification
-                    except InvalidClassification:
-                        self.log.warning(
-                            f'{id}: Classification "{classification}" not recognized. '
-                            f"Defaulting to {default_classification}.."
-                        )
-                        classification = default_classification
 
                     # Set extractor deployment status based on source configuration, otherwise default to DEPLOYED
                     status = extractor_statuses.get(extractor_name, "DEPLOYED")
@@ -75,6 +60,13 @@ class CXUpdateServer(ServiceUpdater):
                     if configuration.get("disable_yaraless_extractors") and not parser_obj.rule:
                         self.log.info(f"Disabling extractor because there's no YARA rule associated: {extractor_name}")
                         status = "DISABLED"
+
+                    try:
+                        # Normalize classification
+                        classification = Classification.normalize_classification(parser_details.get("classification"))
+                    except Exception:
+                        # If the classification is invalid, fall back to default set by the source
+                        classification = default_classification
 
                     upload_list.append(
                         Signature(
