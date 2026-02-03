@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 import shutil
-import tarfile
+import subprocess
 import tempfile
 import time
 from base64 import b64encode
@@ -68,6 +68,8 @@ class ConfigExtractor(ServiceBase):
         self.cx = None
 
     # Only relevant for services using updaters (reserving 'updates' as the defacto container name)
+    # NOTE: This reimplementation is necessary to support zstd tarballs
+    # which Python's tarfile module does not support natively in 3.11
     def _download_rules(self):
         # check if we just tried to download rules to reduce traffic
         if time.time() - self.update_check_time < MIN_SECONDS_BETWEEN_UPDATES:
@@ -120,8 +122,7 @@ class ConfigExtractor(ServiceBase):
                     for chunk in resp.iter_content(chunk_size=UPDATES_CHUNK_SIZE):
                         buffer.write(chunk)
 
-                tar_handle = tarfile.open(buffer_name)
-                tar_handle.extractall(temp_directory)
+                subprocess.run(["tar", "--zstd", "-xf", buffer_name, "-C", temp_directory], capture_output=True)
                 self.update_time = status["local_update_time"]
                 self.update_hash = status["local_update_hash"]
                 self.rules_directory, temp_directory = temp_directory, self.rules_directory
