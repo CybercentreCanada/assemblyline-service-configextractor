@@ -16,6 +16,7 @@ from assemblyline_v4_service.common.base import (
     UPDATES_CA,
     UPDATES_DIR,
     ServiceBase,
+    SERVICE_READY_PATH 
 )
 from assemblyline_v4_service.common.result import (
     BODY_FORMAT,
@@ -106,9 +107,17 @@ class ConfigExtractor(ServiceBase):
                 time.sleep(min(5**retries, 30))
                 retries += 1
 
-            # Dedicated directory for updates
-            if not os.path.exists(UPDATES_DIR):
-                os.mkdir(UPDATES_DIR)
+            if os.path.exists(SERVICE_READY_PATH):
+                # Mark the service as not ready while updating rules
+                self.log.info("Service is marked as not ready while updating rules.")
+                try:
+                    os.remove(SERVICE_READY_PATH)
+                except FileNotFoundError:
+                    pass
+                
+                # Dedicated directory for updates
+                if not os.path.exists(UPDATES_DIR):
+                    os.mkdir(UPDATES_DIR)
 
             # Download the current update
             temp_directory = tempfile.mkdtemp(dir=UPDATES_DIR)
@@ -144,6 +153,11 @@ class ConfigExtractor(ServiceBase):
                 if temp_directory:
                     self.log.info(f"Removing temp directory: {temp_directory}")
                     shutil.rmtree(temp_directory, ignore_errors=True)
+                    
+            with open(SERVICE_READY_PATH, 'w'):
+                # Mark the service as ready again
+                self.log.info("Service is marked as ready after updating rules.")
+                pass                    
 
     # Generate the rules_hash and init rules_list based on the raw files in the rules_directory from updater
     def _gen_rules_hash(self) -> str:
