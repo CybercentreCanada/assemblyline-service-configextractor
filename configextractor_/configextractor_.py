@@ -133,7 +133,7 @@ class ConfigExtractor(ServiceBase):
                         # Download the file into a buffer
                         buffer_handle, buffer_name = tempfile.mkstemp()
                         with os.fdopen(buffer_handle, "wb") as buffer:
-                            resp = session.get(url_base + f"file/{file}", stream=True)
+                            resp = session.get(url_base + f"files/{file}", stream=True)
                             resp.raise_for_status()
                             for chunk in resp.iter_content(chunk_size=UPDATES_CHUNK_SIZE):
                                 buffer.write(chunk)
