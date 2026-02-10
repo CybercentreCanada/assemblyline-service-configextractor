@@ -6,7 +6,7 @@ import tempfile
 import time
 
 from assemblyline.common import forge
-from assemblyline.common.isotime import epoch_to_iso
+from assemblyline.common.isotime import DAY_IN_SECONDS, epoch_to_iso, now_as_iso
 from assemblyline.odm.models.signature import Signature
 from assemblyline_v4_service.updater.updater import (
     SIGNATURES_META_FILENAME,
@@ -18,6 +18,8 @@ from assemblyline_v4_service.updater.updater import (
 from configextractor.main import ConfigExtractor
 
 Classification = forge.get_classification()
+IDENTIFY = forge.get_identify()
+FILESTORE = forge.get_filestore()
 
 
 class CXUpdateServer(ServiceUpdater):
@@ -31,7 +33,7 @@ class CXUpdateServer(ServiceUpdater):
         if self._update_dir and os.path.exists(self._update_dir):
             for file in os.listdir(self._update_dir):
                 file_path = os.path.join(self._update_dir, file)
-                sha256 = subprocess.check_output(["sha256sum", file_path], text=True).split()[0]
+                sha256 = IDENTIFY.fileinfo(file_path, skip_fuzzy_hashes=True, calculate_entropy=False)["sha256"]
                 # Store only filename as the key since the update directory is subject to change on each update
                 files_sha256[file] = sha256
 
@@ -159,9 +161,20 @@ class CXUpdateServer(ServiceUpdater):
                 continue
             local_source_path = os.path.join(self.latest_updates_dir, source.name)
             if os.path.exists(local_source_path):
-                # Extract contents of tarfile into output directory under source-named subdirectory
+                # Save the contents of the update directory to the filestore for retrival via service-server
                 output_source_dir = os.path.join(output_directory, source.name)
                 shutil.copy(local_source_path, output_source_dir)
+                file_data = IDENTIFY.fileinfo(output_source_dir, skip_fuzzy_hashes=True, calculate_entropy=False)
+                self.datastore.save_or_freshen_file(
+                    file_data["sha256"],
+                    file_data,
+                    expiry=now_as_iso(
+                        (source.update_interval or self._service.update_config.update_interval_seconds) + DAY_IN_SECONDS
+                    ),
+                    classification=source.default_classification,
+                )
+                with open(output_source_dir, "rb") as f:
+                    FILESTORE.put(file_data["sha256"], f.read())
         return output_directory
 
     def do_local_update(self) -> None:

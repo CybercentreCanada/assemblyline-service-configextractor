@@ -134,7 +134,17 @@ class ConfigExtractor(ServiceBase):
                         # Download the file into a buffer
                         buffer_handle, buffer_name = tempfile.mkstemp()
                         with os.fdopen(buffer_handle, "wb") as buffer:
-                            resp = session.get(url_base + f"files/{file}", stream=True)
+                            if file == SIGNATURES_META_FILENAME:
+                                self.log.info("Downloading signatures meta file...")
+                                resp = session.get(url_base + f"files/{file}", stream=True)
+                            else:
+                                # Download signature files from service-server since they might be too large for the updater to handle
+                                self.log.info(f"Downloading signature file: {file}...")
+                                resp = self.api_interface.session._with_retries(
+                                    self.api_interface.session.get,
+                                    f"{self.api_interface.service_api_host}/api/v1/file/{sha256}",
+                                    stream=True,
+                                )
                             resp.raise_for_status()
                             for chunk in resp.iter_content(chunk_size=UPDATES_CHUNK_SIZE):
                                 buffer.write(chunk)
