@@ -127,8 +127,6 @@ class ConfigExtractor(ServiceBase):
             try:
                 for file, sha256 in status["_files"].items():
                     dst_file_path = os.path.join(temp_directory, file)
-                    if not os.path.exists(dst_file_path):
-                        os.mkdir(dst_file_path)
 
                     if self.rules_file_sha256.get(file) != sha256:
                         self.log.info(f"File {file} has changed since the last update or is new...")
@@ -145,6 +143,8 @@ class ConfigExtractor(ServiceBase):
                             # If the signatures meta file has changed, we can just move it over without unpacking
                             shutil.move(buffer_name, dst_file_path)
                         else:
+                            if not os.path.exists(dst_file_path):
+                                os.mkdir(dst_file_path)
                             # Unpack the file into the temp directory and move to updates directory
                             subprocess.check_output(["tar", "--zstd", "-xf", buffer_name, "-C", dst_file_path])
 
