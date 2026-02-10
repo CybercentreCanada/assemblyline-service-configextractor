@@ -148,6 +148,9 @@ class ConfigExtractor(ServiceBase):
                             # Unpack the file into the temp directory and move to updates directory
                             subprocess.check_output(["tar", "--zstd", "-xf", buffer_name, "-C", dst_file_path])
 
+                        # Clean up the buffer
+                        os.unlink(buffer_name)
+
                         # Update the sha256 for this file in the rules_file_sha256 map
                         self.rules_file_sha256[file] = sha256
                     elif os.path.exists(os.path.join(UPDATES_DIR, file)):
@@ -171,7 +174,6 @@ class ConfigExtractor(ServiceBase):
                 self._clear_rules()
                 self._load_rules()
             finally:
-                os.unlink(buffer_name)
                 if temp_directory:
                     self.log.info(f"Removing temp directory: {temp_directory}")
                     shutil.rmtree(temp_directory, ignore_errors=True)
