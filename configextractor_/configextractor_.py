@@ -138,8 +138,12 @@ class ConfigExtractor(ServiceBase):
                             for chunk in resp.iter_content(chunk_size=UPDATES_CHUNK_SIZE):
                                 buffer.write(chunk)
 
-                        # Unpack the file into the temp directory and move to updates directory
-                        subprocess.check_output(["tar", "--zstd", "-xf", buffer_name, "-C", dst_file_path])
+                        if file == SIGNATURES_META_FILENAME:
+                            # If the signatures meta file has changed, we can just move it over without unpacking
+                            shutil.move(buffer_name, dst_file_path)
+                        else:
+                            # Unpack the file into the temp directory and move to updates directory
+                            subprocess.check_output(["tar", "--zstd", "-xf", buffer_name, "-C", dst_file_path])
 
                         # Update the sha256 for this file in the rules_file_sha256 map
                         self.rules_file_sha256[file] = sha256
