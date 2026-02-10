@@ -12,11 +12,11 @@ from assemblyline.common import attack_map, forge
 from assemblyline.odm.models.ontology.results import MalwareConfig
 from assemblyline_v4_service.common.base import (
     MIN_SECONDS_BETWEEN_UPDATES,
+    SERVICE_READY_PATH,
     SIGNATURES_META_FILENAME,
     UPDATES_CA,
     UPDATES_DIR,
     ServiceBase,
-    SERVICE_READY_PATH 
 )
 from assemblyline_v4_service.common.result import (
     BODY_FORMAT,
@@ -67,6 +67,7 @@ class ConfigExtractor(ServiceBase):
     def __init__(self, config=None):
         super(ConfigExtractor, self).__init__(config)
         self.cx = None
+        self.rules_file_sha256 = {}
 
     # Only relevant for services using updaters (reserving 'updates' as the defacto container name)
     # NOTE: This reimplementation is necessary to support zstd tarballs
@@ -114,24 +115,48 @@ class ConfigExtractor(ServiceBase):
                     os.remove(SERVICE_READY_PATH)
                 except FileNotFoundError:
                     pass
-                
+
                 # Dedicated directory for updates
                 if not os.path.exists(UPDATES_DIR):
                     os.mkdir(UPDATES_DIR)
 
             # Download the current update
             temp_directory = tempfile.mkdtemp(dir=UPDATES_DIR)
-            buffer_handle, buffer_name = tempfile.mkstemp()
 
             old_rules_list = self.rules_list
             try:
-                with os.fdopen(buffer_handle, "wb") as buffer:
-                    resp = session.get(url_base + "tar", stream=True)
-                    resp.raise_for_status()
-                    for chunk in resp.iter_content(chunk_size=UPDATES_CHUNK_SIZE):
-                        buffer.write(chunk)
+                for file, sha256 in status["_files"].items():
+                    dst_file_path = os.path.join(temp_directory, file)
 
-                subprocess.run(["tar", "--zstd", "-xf", buffer_name, "-C", temp_directory], capture_output=True)
+                    if self.rules_file_sha256.get(file) != sha256:
+                        self.log.info(f"File {file} has changed since the last update or is new...")
+
+                        # Download the file into a buffer
+                        buffer_handle, buffer_name = tempfile.mkstemp()
+                        with os.fdopen(buffer_handle, "wb") as buffer:
+                            resp = session.get(url_base + f"files/{file}", stream=True)
+                            resp.raise_for_status()
+                            for chunk in resp.iter_content(chunk_size=UPDATES_CHUNK_SIZE):
+                                buffer.write(chunk)
+
+                        if file == SIGNATURES_META_FILENAME:
+                            # If the signatures meta file has changed, we can just move it over without unpacking
+                            shutil.move(buffer_name, dst_file_path)
+                        else:
+                            if not os.path.exists(dst_file_path):
+                                os.mkdir(dst_file_path)
+                            # Unpack the file into the temp directory and move to updates directory
+                            subprocess.check_output(["tar", "--zstd", "-xf", buffer_name, "-C", dst_file_path])
+
+                            # Clean up the buffer
+                            os.unlink(buffer_name)
+
+                        # Update the sha256 for this file in the rules_file_sha256 map
+                        self.rules_file_sha256[file] = sha256
+                    elif os.path.exists(os.path.join(UPDATES_DIR, file)):
+                        self.log.info(f"File {file} is unchanged since the last update, reusing existing file...")
+                        shutil.copytree(os.path.join(UPDATES_DIR, file), dst_file_path)
+
                 self.update_time = status["local_update_time"]
                 self.update_hash = status["local_update_hash"]
                 self.rules_directory, temp_directory = temp_directory, self.rules_directory
@@ -149,15 +174,14 @@ class ConfigExtractor(ServiceBase):
                 self._clear_rules()
                 self._load_rules()
             finally:
-                os.unlink(buffer_name)
                 if temp_directory:
                     self.log.info(f"Removing temp directory: {temp_directory}")
                     shutil.rmtree(temp_directory, ignore_errors=True)
-                    
-            with open(SERVICE_READY_PATH, 'w'):
+
+            with open(SERVICE_READY_PATH, "w"):
                 # Mark the service as ready again
                 self.log.info("Service is marked as ready after updating rules.")
-                pass                    
+                pass
 
     # Generate the rules_hash and init rules_list based on the raw files in the rules_directory from updater
     def _gen_rules_hash(self) -> str:

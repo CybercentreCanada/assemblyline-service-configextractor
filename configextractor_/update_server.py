@@ -23,6 +23,27 @@ Classification = forge.get_classification()
 class CXUpdateServer(ServiceUpdater):
     force_local_update = False
 
+    def status(self):
+        files_sha256 = {}
+
+        # Generate a map to track changes to files in the update directory.
+        # This allows the service to be more responsive to changes such as file updates or removals
+        if self._update_dir and os.path.exists(self._update_dir):
+            for file in os.listdir(self._update_dir):
+                file_path = os.path.join(self._update_dir, file)
+                sha256 = subprocess.check_output(["sha256sum", file_path], text=True).split()[0]
+                # Store only filename as the key since the update directory is subject to change on each update
+                files_sha256[file] = sha256
+
+        return {
+            "local_update_time": self.get_local_update_time(),
+            "local_update_hash": self.get_local_update_hash(),
+            "download_available": self._update_dir is not None,
+            "_directory": self._update_dir,
+            "_tar": self._update_tar,
+            "_files": files_sha256,
+        }
+
     def import_update(
         self,
         files_sha256,
@@ -140,20 +161,7 @@ class CXUpdateServer(ServiceUpdater):
             if os.path.exists(local_source_path):
                 # Extract contents of tarfile into output directory under source-named subdirectory
                 output_source_dir = os.path.join(output_directory, source.name)
-                os.mkdir(
-                    output_source_dir,
-                )
-                subprocess.run(
-                    [
-                        "tar",
-                        "--zstd",
-                        "-xf",
-                        local_source_path,
-                        "-C",
-                        output_source_dir,
-                    ],
-                    capture_output=True,
-                )
+                shutil.copy(local_source_path, output_source_dir)
         return output_directory
 
     def do_local_update(self) -> None:
