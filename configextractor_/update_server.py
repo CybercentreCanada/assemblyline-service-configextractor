@@ -164,7 +164,7 @@ class CXUpdateServer(ServiceUpdater):
                 # Save the contents of the update directory to the filestore for retrival via service-server
                 output_source_dir = os.path.join(output_directory, source.name)
                 shutil.copy(local_source_path, output_source_dir)
-                file_data = IDENTIFY.fileinfo(output_source_dir, skip_fuzzy_hashes=True, calculate_entropy=False)
+                file_data = IDENTIFY.fileinfo(output_source_dir)
                 self.datastore.save_or_freshen_file(
                     file_data["sha256"],
                     file_data,
