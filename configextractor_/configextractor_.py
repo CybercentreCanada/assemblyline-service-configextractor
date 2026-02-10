@@ -140,7 +140,7 @@ class ConfigExtractor(ServiceBase):
                             else:
                                 # Download signature files from service-server since they might be too large for the updater to handle
                                 self.log.info(f"Downloading signature file: {file}...")
-                                resp = self.api_interface.session._with_retries(
+                                resp = self.api_interface._with_retries(
                                     self.api_interface.session.get,
                                     f"{self.api_interface.service_api_host}/api/v1/file/{sha256}",
                                     stream=True,
