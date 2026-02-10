@@ -148,8 +148,8 @@ class ConfigExtractor(ServiceBase):
                             # Unpack the file into the temp directory and move to updates directory
                             subprocess.check_output(["tar", "--zstd", "-xf", buffer_name, "-C", dst_file_path])
 
-                        # Clean up the buffer
-                        os.unlink(buffer_name)
+                            # Clean up the buffer
+                            os.unlink(buffer_name)
 
                         # Update the sha256 for this file in the rules_file_sha256 map
                         self.rules_file_sha256[file] = sha256
