@@ -127,8 +127,11 @@ class ConfigExtractor(ServiceBase):
             try:
                 for file, sha256 in status["_files"].items():
                     dst_file_path = os.path.join(temp_directory, file)
+                    if not os.path.exists(dst_file_path):
+                        os.mkdir(dst_file_path)
+
                     if self.rules_file_sha256.get(file) != sha256:
-                        self.log.info(f"File {file} has changed since the last update or is new...", file)
+                        self.log.info(f"File {file} has changed since the last update or is new...")
 
                         # Download the file into a buffer
                         buffer_handle, buffer_name = tempfile.mkstemp()
@@ -148,7 +151,7 @@ class ConfigExtractor(ServiceBase):
                         # Update the sha256 for this file in the rules_file_sha256 map
                         self.rules_file_sha256[file] = sha256
                     elif os.path.exists(os.path.join(UPDATES_DIR, file)):
-                        self.log.info(f"File {file} is unchanged since the last update, reusing existing file...", file)
+                        self.log.info(f"File {file} is unchanged since the last update, reusing existing file...")
                         shutil.copytree(os.path.join(UPDATES_DIR, file), dst_file_path)
 
                 self.update_time = status["local_update_time"]
