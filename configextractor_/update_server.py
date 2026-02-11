@@ -154,6 +154,10 @@ class CXUpdateServer(ServiceUpdater):
         return os.path.isdir(file_path)
 
     def save_or_freshen_update(self, filepath, source):
+        if os.path.islink(filepath):
+            # Resolve to true path for file storage
+            filepath = os.readlink(filepath)
+
         file_data = IDENTIFY.fileinfo(filepath)
         if not self.datastore.file.exists(file_data["sha256"]):
             with open(filepath, "rb") as f:
