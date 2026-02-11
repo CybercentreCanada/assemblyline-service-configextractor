@@ -153,6 +153,25 @@ class CXUpdateServer(ServiceUpdater):
     def is_valid(self, file_path) -> bool:
         return os.path.isdir(file_path)
 
+    def save_or_freshen_update(self, filepath, source):
+        if os.path.islink(filepath):
+            # Resolve to true path for file storage
+            filepath = os.readlink(filepath)
+
+        file_data = IDENTIFY.fileinfo(filepath)
+        if not self.datastore.file.exists(file_data["sha256"]):
+            with open(filepath, "rb") as f:
+                FILESTORE.put(file_data["sha256"], f.read())
+
+        self.datastore.save_or_freshen_file(
+            file_data["sha256"],
+            file_data,
+            expiry=now_as_iso(
+                (source.update_interval or self._service.update_config.update_interval_seconds) + DAY_IN_SECONDS
+            ),
+            classification=source.default_classification,
+        )
+
     def prepare_output_directory(self) -> str:
         output_directory = tempfile.mkdtemp()
         for source in self._service.update_config.sources:
@@ -163,18 +182,8 @@ class CXUpdateServer(ServiceUpdater):
             if os.path.exists(local_source_path):
                 # Save the contents of the update directory to the filestore for retrival via service-server
                 output_source_dir = os.path.join(output_directory, source.name)
-                shutil.copy(local_source_path, output_source_dir)
-                file_data = IDENTIFY.fileinfo(output_source_dir)
-                self.datastore.save_or_freshen_file(
-                    file_data["sha256"],
-                    file_data,
-                    expiry=now_as_iso(
-                        (source.update_interval or self._service.update_config.update_interval_seconds) + DAY_IN_SECONDS
-                    ),
-                    classification=source.default_classification,
-                )
-                with open(output_source_dir, "rb") as f:
-                    FILESTORE.put(file_data["sha256"], f.read())
+                os.symlink(local_source_path, output_source_dir)
+                self.save_or_freshen_update(output_source_dir, source)
         return output_directory
 
     def do_local_update(self) -> None:
@@ -183,7 +192,7 @@ class CXUpdateServer(ServiceUpdater):
             os.makedirs(UPDATER_DIR)
 
         # Check if any sources have been removed from Assemblyline
-        sources = [s.name for s in self._service.update_config.sources]
+        sources = {s.name: s for s in self._service.update_config.sources}
         for file_tar in os.listdir(self.latest_updates_dir):
             if file_tar not in sources:
                 # Source has been removed, cleanup stored entry
@@ -205,6 +214,12 @@ class CXUpdateServer(ServiceUpdater):
 
             output_dir = self.prepare_output_directory()
             self.serve_directory(output_dir, new_time)
+        else:
+            # Freshen files
+            for source, source_data in sources.items():
+                source_path = os.path.join(self._update_dir, source)
+                if os.path.exists(source_path):
+                    self.save_or_freshen_update(os.path.join(self._update_dir, source), source_data)
 
         self.force_local_update = False
 
