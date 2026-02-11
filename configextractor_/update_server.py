@@ -7,10 +7,14 @@ import time
 
 from assemblyline.common import forge
 from assemblyline.common.isotime import DAY_IN_SECONDS, epoch_to_iso, now_as_iso
+from assemblyline.odm.models.service import Service, UpdateSource
 from assemblyline.odm.models.signature import Signature
+from assemblyline_v4_service.updater.helper import SkipSource, filter_downloads, git_clone_repo, url_download
 from assemblyline_v4_service.updater.updater import (
     SIGNATURES_META_FILENAME,
     SOURCE_STATUS_KEY,
+    SOURCE_UPDATE_ATTEMPT_DELAY_BASE,
+    SOURCE_UPDATE_ATTEMPT_MAX_RETRY,
     STATUS_FILE,
     UPDATER_DIR,
     ServiceUpdater,
@@ -279,13 +283,13 @@ class CXUpdateServer(ServiceUpdater):
                     except FileNotFoundError:
                         # File has already been removed
                         pass
-                        
+
     def do_source_update(self, service: Service) -> None:
         run_time = time.time()
         with tempfile.TemporaryDirectory() as update_dir:
             # Parse updater configuration
             previous_hashes: dict[str, dict[str, str]] = self.get_source_extra()
-            sources: dict[str, UpdateSource] = {_s['name']: _s for _s in service.update_config.sources}
+            sources: dict[str, UpdateSource] = {_s["name"]: _s for _s in service.update_config.sources}
             files_sha256: dict[str, dict[str, str]] = {}
 
             # Map already visited URIs to download paths (avoid re-cloning/re-downloads)
@@ -314,7 +318,6 @@ class CXUpdateServer(ServiceUpdater):
                     if source_obj.ignore_cache:
                         old_update_time = 0
                     try:
-
                         source = source_obj.as_primitives()
                         uri: str = source_obj.uri
 
@@ -324,35 +327,34 @@ class CXUpdateServer(ServiceUpdater):
 
                         # Is it time for this source to run?
                         elapsed_time = time.time() - old_update_time
-                        update_interval = source.get('update_interval') or service.update_config.update_interval_seconds
+                        update_interval = source.get("update_interval") or service.update_config.update_interval_seconds
                         if elapsed_time < update_interval:
                             # Too early to run the update for this particular source, skip for now
                             raise SkipSource
 
-
                         self.push_status("UPDATING", "Starting..")
-                        fetch_method = source.get('fetch_method', 'GET')
-                        default_classification = source.get('default_classification', classification.UNRESTRICTED)
+                        fetch_method = source.get("fetch_method", "GET")
+                        default_classification = source.get("default_classification", Classification.UNRESTRICTED)
 
                         # Configure the client as necessary
 
                         # Enable syncing if the source specifies it
-                        self.client.sync = source.get('sync', False)
+                        self.client.sync = source.get("sync", False)
                         # Override classfication of signatures if specified
                         # Reset client back to original classification state between updates
                         self.client.classification_override = None
-                        if source.get('override_classification', False):
+                        if source.get("override_classification", False):
                             self.client.classification_override = default_classification
 
                         self.push_status("UPDATING", "Pulling..")
                         output = None
                         seen_fetch = seen_fetches.get(uri)
-                        if seen_fetch == 'skipped':
+                        if seen_fetch == "skipped":
                             # Skip source if another source says nothing has changed
                             raise SkipSource
                         elif seen_fetch and os.path.exists(seen_fetch):
                             # We've already fetched something from the same URI, re-use downloaded path
-                            self.log.info(f'Already visited {uri} in this run. Using cached download path..')
+                            self.log.info(f"Already visited {uri} in this run. Using cached download path..")
                             output = seen_fetches[uri]
                         else:
                             self.log.info(f"Fetching {source_name} using {fetch_method}")
@@ -362,7 +364,7 @@ class CXUpdateServer(ServiceUpdater):
                                 output = uri.split("file://", 1)[1]
                                 if not os.path.exists(output):
                                     raise FileNotFoundError(f"{output} doesn't exist within container.")
-                            elif fetch_method == "GIT" or uri.endswith('.git'):
+                            elif fetch_method == "GIT" or uri.endswith(".git"):
                                 # First we'll attempt by performing a Git clone
                                 # (since not all services hint at being a repository in their URL),
                                 output = git_clone_repo(source, old_update_time, self.log, update_dir)
@@ -372,39 +374,39 @@ class CXUpdateServer(ServiceUpdater):
                             # Add output path to the list of seen fetches in this run
                             seen_fetches[uri] = output
 
-                        files = filter_downloads(output, source['pattern'], self.default_pattern)
+                        files = filter_downloads(output, source["pattern"], self.default_pattern)
 
                         # Add to collection of sources for caching purposes
                         self.log.info(f"Found new {self.updater_type} rule files to process for {source_name}!")
                         validated_files = list()
                         for file, sha256 in files:
                             files_sha256.setdefault(source_name, {})
-                            if previous_hashes.get(
-                                    source_name, {}).get(
-                                    file, None) != sha256 and self.is_valid(file):
+                            if previous_hashes.get(source_name, {}).get(file, None) != sha256 and self.is_valid(file):
                                 files_sha256[source_name][file] = sha256
                                 validated_files.append((file, sha256))
 
                         self.push_status("UPDATING", "Importing..")
                         # Import into Assemblyline
-                        self.import_update(validated_files, source_name, default_classification,
-                                           source.get('configuration') or {})
+                        self.import_update(
+                            validated_files, source_name, default_classification, source.get("configuration") or {}
+                        )
                         self.push_status("DONE", "Signature(s) Imported.")
                     except SkipSource:
                         # This source hasn't changed, no need to re-import into Assemblyline
-                        self.log.info(f'No new {self.updater_type} rule files to process for {source_name}')
+                        self.log.info(f"No new {self.updater_type} rule files to process for {source_name}")
                         if source_name in previous_hashes:
                             files_sha256[source_name] = previous_hashes[source_name]
                         seen_fetches[uri] = "skipped"
                         self.push_status("DONE", "Skipped.")
-                        
+
                         # Freshen the file that's stored in the database so it doesn't disappear on skip
                         file_info = IDENTIFY.fileinfo(os.path.join(self.latest_updates_dir, source_name))
                         self.datastore.save_or_freshen_file(
                             file_info["sha256"],
                             file_info,
                             expiry=now_as_iso(
-                                source.get('update_interval', self._service.update_config.update_interval_seconds) + DAY_IN_SECONDS
+                                source.get("update_interval", self._service.update_config.update_interval_seconds)
+                                + DAY_IN_SECONDS
                             ),
                             classification=source.default_classification,
                         )
