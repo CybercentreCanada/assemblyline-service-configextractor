@@ -7,14 +7,10 @@ import time
 
 from assemblyline.common import forge
 from assemblyline.common.isotime import DAY_IN_SECONDS, epoch_to_iso, now_as_iso
-from assemblyline.odm.models.service import Service, UpdateSource
 from assemblyline.odm.models.signature import Signature
-from assemblyline_v4_service.updater.helper import SkipSource, filter_downloads, git_clone_repo, url_download
 from assemblyline_v4_service.updater.updater import (
     SIGNATURES_META_FILENAME,
     SOURCE_STATUS_KEY,
-    SOURCE_UPDATE_ATTEMPT_DELAY_BASE,
-    SOURCE_UPDATE_ATTEMPT_MAX_RETRY,
     STATUS_FILE,
     UPDATER_DIR,
     ServiceUpdater,
@@ -157,6 +153,21 @@ class CXUpdateServer(ServiceUpdater):
     def is_valid(self, file_path) -> bool:
         return os.path.isdir(file_path)
 
+    def save_or_freshen_update(self, filepath, source):
+        file_data = IDENTIFY.fileinfo(filepath)
+        if not self.datastore.file.exists(file_data["sha256"]):
+            with open(filepath, "rb") as f:
+                FILESTORE.put(file_data["sha256"], f.read())
+
+        self.datastore.save_or_freshen_file(
+            file_data["sha256"],
+            file_data,
+            expiry=now_as_iso(
+                (source.update_interval or self._service.update_config.update_interval_seconds) + DAY_IN_SECONDS
+            ),
+            classification=source.default_classification,
+        )
+
     def prepare_output_directory(self) -> str:
         output_directory = tempfile.mkdtemp()
         for source in self._service.update_config.sources:
@@ -168,17 +179,7 @@ class CXUpdateServer(ServiceUpdater):
                 # Save the contents of the update directory to the filestore for retrival via service-server
                 output_source_dir = os.path.join(output_directory, source.name)
                 shutil.copy(local_source_path, output_source_dir)
-                file_data = IDENTIFY.fileinfo(output_source_dir)
-                self.datastore.save_or_freshen_file(
-                    file_data["sha256"],
-                    file_data,
-                    expiry=now_as_iso(
-                        (source.update_interval or self._service.update_config.update_interval_seconds) + DAY_IN_SECONDS
-                    ),
-                    classification=source.default_classification,
-                )
-                with open(output_source_dir, "rb") as f:
-                    FILESTORE.put(file_data["sha256"], f.read())
+                self.save_or_freshen_update(output_source_dir, source)
         return output_directory
 
     def do_local_update(self) -> None:
@@ -187,7 +188,7 @@ class CXUpdateServer(ServiceUpdater):
             os.makedirs(UPDATER_DIR)
 
         # Check if any sources have been removed from Assemblyline
-        sources = [s.name for s in self._service.update_config.sources]
+        sources = {s.name: s for s in self._service.update_config.sources}
         for file_tar in os.listdir(self.latest_updates_dir):
             if file_tar not in sources:
                 # Source has been removed, cleanup stored entry
@@ -209,6 +210,12 @@ class CXUpdateServer(ServiceUpdater):
 
             output_dir = self.prepare_output_directory()
             self.serve_directory(output_dir, new_time)
+        else:
+            # Freshen files
+            for source, source_data in sources.items():
+                source_path = os.path.join(self._update_dir, source)
+                if os.path.exists(source_path):
+                    self.save_or_freshen_update(os.path.join(self._update_dir, source), source_data)
 
         self.force_local_update = False
 
@@ -283,145 +290,6 @@ class CXUpdateServer(ServiceUpdater):
                     except FileNotFoundError:
                         # File has already been removed
                         pass
-
-    def do_source_update(self, service: Service) -> None:
-        run_time = time.time()
-        with tempfile.TemporaryDirectory() as update_dir:
-            # Parse updater configuration
-            previous_hashes: dict[str, dict[str, str]] = self.get_source_extra()
-            sources: dict[str, UpdateSource] = {_s["name"]: _s for _s in service.update_config.sources}
-            files_sha256: dict[str, dict[str, str]] = {}
-
-            # Map already visited URIs to download paths (avoid re-cloning/re-downloads)
-            seen_fetches = dict()
-
-            # Go through each source queued and download file
-            while self.update_queue.qsize():
-                update_attempt = -1
-                source_name = self.update_queue.get()
-
-                if source_name not in sources:
-                    # This source has been removed from the service configuration
-                    continue
-
-                while update_attempt < SOURCE_UPDATE_ATTEMPT_MAX_RETRY:
-                    # Introduce an exponential delay between each attempt
-                    time.sleep(SOURCE_UPDATE_ATTEMPT_DELAY_BASE**update_attempt)
-                    update_attempt += 1
-
-                    # Set current source for pushing state to UI
-                    self._current_source = source_name
-                    source_obj = sources[source_name]
-                    old_update_time = self.get_source_update_time()
-
-                    # Are we ignoring the cache for this source?
-                    if source_obj.ignore_cache:
-                        old_update_time = 0
-                    try:
-                        source = source_obj.as_primitives()
-                        uri: str = source_obj.uri
-
-                        # If source is not currently enabled/active, skip..
-                        if not source_obj.enabled:
-                            raise SkipSource
-
-                        # Is it time for this source to run?
-                        elapsed_time = time.time() - old_update_time
-                        update_interval = source.get("update_interval") or service.update_config.update_interval_seconds
-                        if elapsed_time < update_interval:
-                            # Too early to run the update for this particular source, skip for now
-                            raise SkipSource
-
-                        self.push_status("UPDATING", "Starting..")
-                        fetch_method = source.get("fetch_method", "GET")
-                        default_classification = source.get("default_classification", Classification.UNRESTRICTED)
-
-                        # Configure the client as necessary
-
-                        # Enable syncing if the source specifies it
-                        self.client.sync = source.get("sync", False)
-                        # Override classfication of signatures if specified
-                        # Reset client back to original classification state between updates
-                        self.client.classification_override = None
-                        if source.get("override_classification", False):
-                            self.client.classification_override = default_classification
-
-                        self.push_status("UPDATING", "Pulling..")
-                        output = None
-                        seen_fetch = seen_fetches.get(uri)
-                        if seen_fetch == "skipped":
-                            # Skip source if another source says nothing has changed
-                            raise SkipSource
-                        elif seen_fetch and os.path.exists(seen_fetch):
-                            # We've already fetched something from the same URI, re-use downloaded path
-                            self.log.info(f"Already visited {uri} in this run. Using cached download path..")
-                            output = seen_fetches[uri]
-                        else:
-                            self.log.info(f"Fetching {source_name} using {fetch_method}")
-                            # Pull sources from external locations
-                            if uri.startswith("file:///"):
-                                # Perform an update using a local mount
-                                output = uri.split("file://", 1)[1]
-                                if not os.path.exists(output):
-                                    raise FileNotFoundError(f"{output} doesn't exist within container.")
-                            elif fetch_method == "GIT" or uri.endswith(".git"):
-                                # First we'll attempt by performing a Git clone
-                                # (since not all services hint at being a repository in their URL),
-                                output = git_clone_repo(source, old_update_time, self.log, update_dir)
-                            else:
-                                # Other fetch methods are meant for URL downloads using Requests
-                                output = url_download(source, old_update_time, self.log, update_dir)
-                            # Add output path to the list of seen fetches in this run
-                            seen_fetches[uri] = output
-
-                        files = filter_downloads(output, source["pattern"], self.default_pattern)
-
-                        # Add to collection of sources for caching purposes
-                        self.log.info(f"Found new {self.updater_type} rule files to process for {source_name}!")
-                        validated_files = list()
-                        for file, sha256 in files:
-                            files_sha256.setdefault(source_name, {})
-                            if previous_hashes.get(source_name, {}).get(file, None) != sha256 and self.is_valid(file):
-                                files_sha256[source_name][file] = sha256
-                                validated_files.append((file, sha256))
-
-                        self.push_status("UPDATING", "Importing..")
-                        # Import into Assemblyline
-                        self.import_update(
-                            validated_files, source_name, default_classification, source.get("configuration") or {}
-                        )
-                        self.push_status("DONE", "Signature(s) Imported.")
-                    except SkipSource:
-                        # This source hasn't changed, no need to re-import into Assemblyline
-                        self.log.info(f"No new {self.updater_type} rule files to process for {source_name}")
-                        if source_name in previous_hashes:
-                            files_sha256[source_name] = previous_hashes[source_name]
-                        seen_fetches[uri] = "skipped"
-                        self.push_status("DONE", "Skipped.")
-
-                        # Freshen the file that's stored in the database so it doesn't disappear on skip
-                        file_info = IDENTIFY.fileinfo(os.path.join(self.latest_updates_dir, source_name))
-                        self.datastore.save_or_freshen_file(
-                            file_info["sha256"],
-                            file_info,
-                            expiry=now_as_iso(
-                                source.get("update_interval", self._service.update_config.update_interval_seconds)
-                                + DAY_IN_SECONDS
-                            ),
-                            classification=source.default_classification,
-                        )
-                        break
-                    except Exception as e:
-                        # There was an issue with this source, report and continue to the next
-                        self.log.error(f"Problem with {source['name']}: {e}")
-                        self.push_status("ERROR", str(e))
-                        continue
-
-                    self.set_source_update_time(run_time)
-                    self.set_source_extra(files_sha256)
-                    break
-        self.set_active_config_hash(self.config_hash(service))
-        self.local_update_flag.set()
 
 
 if __name__ == "__main__":
