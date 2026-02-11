@@ -178,7 +178,7 @@ class CXUpdateServer(ServiceUpdater):
             if os.path.exists(local_source_path):
                 # Save the contents of the update directory to the filestore for retrival via service-server
                 output_source_dir = os.path.join(output_directory, source.name)
-                shutil.copy(local_source_path, output_source_dir)
+                os.symlink(local_source_path, output_source_dir)
                 self.save_or_freshen_update(output_source_dir, source)
         return output_directory
 
