@@ -112,6 +112,10 @@ class CXUpdateServer(ServiceUpdater):
             self.log.info(dir)
 
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log, create_venv=True)
+
+            # Cleanup uv-related lock files from the directory
+            subprocess.check_output(["rm", "-f", "/tmp/uv-*.lock"])
+
             if cx.parsers:
                 extractors_found = True
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")

@@ -17,6 +17,9 @@ RUN apt update && apt install -y mono-complete && rm -rf /var/lib/apt/lists/*
 # Install configextractor-py
 RUN uv pip install --system git+https://github.com/CybercentreCanada/configextractor-py.git
 
+# Cleanup anything written to /tmp during build
+RUN rm -rf /tmp/*
+
 # Create directories
 RUN mkdir -p /mount/updates
 RUN mkdir -p /opt/al_service
