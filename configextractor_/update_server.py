@@ -121,6 +121,7 @@ class CXUpdateServer(ServiceUpdater):
                 self.log.info(f"Found {len(cx.parsers)} parsers from {source_name}")
                 resp = import_parsers(cx)
                 self.push_status(
+                    source_name,
                     "UPDATING",
                     "Parsers successfully stored as signatures in Signatures index.",
                 )
@@ -129,7 +130,7 @@ class CXUpdateServer(ServiceUpdater):
 
                 # Save a local copy of the directory that may potentially contain dependency libraries for the parsers
                 self.log.info("Transferring directory to persistent storage")
-                self.push_status("UPDATING", "Preparing to transfer parsers to local persistence...")
+                self.push_status(source_name, "UPDATING", "Preparing to transfer parsers to local persistence...")
 
                 # Store updates as tar files
                 destination = os.path.join(self.latest_updates_dir, source_name)
