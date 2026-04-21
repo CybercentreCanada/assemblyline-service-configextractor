@@ -23,6 +23,10 @@ enabled: true
 privileged: true
 uses_temp_submission_data: true
 
+config:
+  # Maximum file size (in bytes) to process. Files larger than this are skipped.
+  max_file_size: 268435456
+
 submission_params:
   - default: true
     name: include_empty_config

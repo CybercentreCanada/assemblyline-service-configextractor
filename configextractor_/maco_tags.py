@@ -43,7 +43,7 @@ def extract_SMTP_tags(data: List[Dict]) -> Dict:
         if d.get("mail_from"):
             tags.setdefault("network.email.address", []).append(d["mail_from"])
         if d.get("subject"):
-            tags.setdefault("network.email.subject", []).append(d["mail_from"])
+            tags.setdefault("network.email.subject", []).append(d["subject"])
 
     return tags
 
@@ -132,7 +132,10 @@ def extract_connection_tags(data: List[Dict]) -> Dict:
 
 
 # Catch-all function for tagging strings
-def tag_output(output: Any, tags: dict = {}):
+def tag_output(output: Any, tags: dict = None):
+    if tags is None:
+        tags = {}
+
     def tag_string(value):
         if re.search(IP_ONLY_REGEX, value):
             tags.setdefault("network.static.ip", []).append(value)
