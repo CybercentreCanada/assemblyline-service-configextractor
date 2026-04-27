@@ -44,9 +44,10 @@ cl_engine = forge.get_classification()
 
 CONNECTION_USAGE = [k.name for k in ConnUsageEnum]
 UPDATES_CHUNK_SIZE = int(os.environ.get("UPDATES_CHUNK_SIZE", "1024"))
+
 MAX_DOWNLOAD_RETRIES = 20
 DEFAULT_MAX_SAMPLE_SIZE = 256 * 1024 * 1024  # 256 MB
-
+FILE_REQUEST_TIMEOUT = int(os.environ.get('FILE_REQUEST_TIMEOUT', 30))
 
 class Base64TruncatedEncoder(json.JSONEncoder):
     def default(self, o):
@@ -141,13 +142,14 @@ class ConfigExtractor(ServiceBase):
                         with os.fdopen(buffer_handle, "wb") as buffer:
                             if file == SIGNATURES_META_FILENAME:
                                 self.log.info("Downloading signatures meta file...")
-                                resp = session.get(url_base + f"files/{file}", stream=True)
+                                resp = session.get(url_base + f"files/{file}", stream=True, timeout=FILE_REQUEST_TIMEOUT)
                             else:
                                 # Download signature files from service-server since they might be too large for the updater to handle
                                 self.log.info(f"Downloading signature file: {file}...")
 
                                 resp = self.api_interface.session.get(
                                     f"{self.api_interface.service_api_host}/api/v1/file/{sha256}",
+                                    timeout=FILE_REQUEST_TIMEOUT,
                                     stream=True,
                                 )
                             resp.raise_for_status()
