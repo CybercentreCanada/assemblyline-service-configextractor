@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import shutil
@@ -51,10 +52,12 @@ class CXUpdateServer(ServiceUpdater):
         files_sha256,
         source_name,
         default_classification=Classification.UNRESTRICTED,
-        configuration={},
+        configuration=None,
         *args,
         **kwargs,
     ):
+        if configuration is None:
+            configuration = {}
         extractors_found = False
 
         # If there is a configuration to set the deployment status of the extractor, map it out
@@ -114,7 +117,11 @@ class CXUpdateServer(ServiceUpdater):
             cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log, create_venv=True)
 
             # Cleanup uv-related lock files from the directory
-            subprocess.check_call(["rm", "-f", "/tmp/uv-*.lock"])
+            for lock_file in glob.glob("/tmp/uv-*.lock"):
+                try:
+                    os.unlink(lock_file)
+                except OSError:
+                    pass
 
             if cx.parsers:
                 extractors_found = True
@@ -267,6 +274,9 @@ class CXUpdateServer(ServiceUpdater):
             # Write the new status file
             temp_status = tempfile.NamedTemporaryFile("w+", delete=False, dir="/tmp")
             json.dump(self.status(), temp_status.file)
+            temp_status.file.flush()
+            os.fsync(temp_status.file.fileno())
+            temp_status.close()
             os.rename(temp_status.name, STATUS_FILE)
 
             self.log.info(f"Now serving: {self._update_dir} and {self._update_tar} ({self.get_local_update_time()})")
