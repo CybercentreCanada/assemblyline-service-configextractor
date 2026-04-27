@@ -326,7 +326,7 @@ class ConfigExtractor(ServiceBase):
 
         # Skip excessively large files to avoid OOM in the container
         max_file_size = self.config.get("max_file_size", DEFAULT_MAX_SAMPLE_SIZE)
-        sample_size = os.path.getsize(request.file_path)
+        sample_size = request.task.file_size
         if sample_size > max_file_size:
             self.log.warning(
                 f"Sample size ({sample_size} bytes) exceeds limit ({max_file_size} bytes), skipping"
