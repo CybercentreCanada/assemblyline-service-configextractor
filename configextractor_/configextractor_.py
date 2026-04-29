@@ -44,6 +44,9 @@ cl_engine = forge.get_classification()
 
 CONNECTION_USAGE = [k.name for k in ConnUsageEnum]
 UPDATES_CHUNK_SIZE = int(os.environ.get("UPDATES_CHUNK_SIZE", "1024"))
+
+MAX_DOWNLOAD_RETRIES = 20
+DEFAULT_MAX_SAMPLE_SIZE = 256 * 1024 * 1024  # 256 MB
 FILE_REQUEST_TIMEOUT = int(os.environ.get('FILE_REQUEST_TIMEOUT', 30))
 
 class Base64TruncatedEncoder(json.JSONEncoder):
@@ -90,7 +93,7 @@ class ConfigExtractor(ServiceBase):
 
             # Check if there are new signatures
             retries = 0
-            while True:
+            while retries < MAX_DOWNLOAD_RETRIES:
                 resp = session.get(url_base + "status")
                 resp.raise_for_status()
                 status = resp.json()
@@ -107,6 +110,9 @@ class ConfigExtractor(ServiceBase):
                 self.log.warning("Waiting on update server availability...")
                 time.sleep(min(5**retries, 30))
                 retries += 1
+            else:
+                self.log.error(f"Update server not available after {MAX_DOWNLOAD_RETRIES} retries, giving up.")
+                return
 
             if os.path.exists(SERVICE_READY_PATH):
                 # Mark the service as not ready while updating rules
@@ -189,26 +195,30 @@ class ConfigExtractor(ServiceBase):
                     self.log.info(f"Removing temp directory: {temp_directory}")
                     shutil.rmtree(temp_directory, ignore_errors=True)
 
-            with open(SERVICE_READY_PATH, "w"):
-                # Mark the service as ready again
-                self.log.info("Service is marked as ready after updating rules.")
-                pass
+                # Always restore SERVICE_READY_PATH, even if an exception occurred
+                with open(SERVICE_READY_PATH, "w"):
+                    self.log.info("Service is marked as ready after updating rules.")
+                    pass
 
     # Generate the rules_hash and init rules_list based on the raw files in the rules_directory from updater
     def _gen_rules_hash(self) -> str:
         self.rules_list = []
         signatures_meta_path = os.path.join(self.rules_directory, SIGNATURES_META_FILENAME)
-        self.signatures_meta = json.loads(open(signatures_meta_path, "r").read())
+        with open(signatures_meta_path, "r") as f:
+            self.signatures_meta = json.loads(f.read())
         for obj in os.listdir(self.rules_directory):
             obj_path = os.path.join(self.rules_directory, obj)
             if obj_path != signatures_meta_path:
                 self.rules_list.append(obj_path)
-        all_sha256s = [f for f in self.rules_list]
+        all_paths = [f for f in self.rules_list]
 
-        if len(all_sha256s) == 1:
-            return all_sha256s[0][:7]
+        if len(all_paths) == 1:
+            return all_paths[0][:7]
 
-        return hashlib.sha256(" ".join(sorted(all_sha256s)).encode("utf-8")).hexdigest()[:7]
+        return hashlib.sha256(" ".join(sorted(all_paths)).encode("utf-8")).hexdigest()[:7]
+
+    def _clear_rules(self) -> None:
+        self.cx = None
 
     def _load_rules(self) -> None:
         if self.rules_list:
@@ -298,6 +308,8 @@ class ConfigExtractor(ServiceBase):
                     if isinstance(v, dict):
                         clean_config[k] = strip_null(v)
                     elif isinstance(v, list):
+                        if not v:
+                            continue
                         if isinstance(v[0], dict):
                             clean_config[k] = [strip_null(vi) for vi in v]
                         elif isinstance(v[0], str):
@@ -311,6 +323,17 @@ class ConfigExtractor(ServiceBase):
 
     def execute(self, request):
         result = Result()
+
+        # Skip excessively large files to avoid OOM in the container
+        max_file_size = self.config.get("max_file_size", DEFAULT_MAX_SAMPLE_SIZE)
+        sample_size = request.task.file_size
+        if sample_size > max_file_size:
+            self.log.warning(
+                f"Sample size ({sample_size} bytes) exceeds limit ({max_file_size} bytes), skipping"
+            )
+            request.result = result
+            return
+
         config_result = self.cx.run_parsers(
             request.file_path,
             # Give 30s of leeway for the service to finish processing
@@ -320,19 +343,24 @@ class ConfigExtractor(ServiceBase):
             request.result = result
             return
 
-        a = tempfile.NamedTemporaryFile(delete=False)
-        a.write(json.dumps(config_result, cls=Base64Encoder).encode())
-        a.seek(0)
-        request.add_supplementary(
-            a.name,
-            f"{request.sha256}_malware_config.json",
-            "Raw output from configextractor-py",
-        )
+        tmp_supplementary = tempfile.NamedTemporaryFile(delete=False)
+        try:
+            tmp_supplementary.write(json.dumps(config_result, cls=Base64Encoder).encode())
+            tmp_supplementary.close()
+            request.add_supplementary(
+                tmp_supplementary.name,
+                f"{request.sha256}_malware_config.json",
+                "Raw output from configextractor-py",
+            )
+        except Exception:
+            tmp_supplementary.close()
+            os.unlink(tmp_supplementary.name)
+            raise
         for parser_framework, parser_results in config_result.items():
             for parser_output in parser_results:
                 # Retrieve identifier from the results
-                id = parser_output.pop("id", None)
-                extractor_mod = self.cx.parsers[id]
+                parser_id = parser_output.pop("id", None)
+                extractor_mod = self.cx.parsers[parser_id]
                 extractor_details = self.cx.get_details(extractor_mod)
 
                 # For MACO >= 1.2.19, the `result_sharing` attribute should be used to classify the results
@@ -342,8 +370,8 @@ class ConfigExtractor(ServiceBase):
                     # For other frameworks, use the general `classification` attribute
                     classification = extractor_details["classification"]
 
-                if id not in self.signatures_meta:
-                    self.log.warning(f"{id} wasn't found in signatures map. Skipping...")
+                if parser_id not in self.signatures_meta:
+                    self.log.warning(f"{parser_id} wasn't found in signatures map. Skipping...")
                     continue
 
                 # Get AL-specific details about the parser
@@ -450,14 +478,19 @@ class ConfigExtractor(ServiceBase):
                         if isinstance(data, str):
                             data = data.encode()
                         sha256 = hashlib.sha256(data).hexdigest()
-                        a = tempfile.NamedTemporaryFile(delete=False)
-                        a.write(data)
-                        a.close()
-                        request.add_extracted(
-                            a.name,
-                            f"binary_{datatype}_{sha256}",
-                            "Extracted binary file",
-                        )
+                        tmp_binary = tempfile.NamedTemporaryFile(delete=False)
+                        try:
+                            tmp_binary.write(data)
+                            tmp_binary.close()
+                            request.add_extracted(
+                                tmp_binary.name,
+                                f"binary_{datatype}_{sha256}",
+                                "Extracted binary file",
+                            )
+                        except Exception:
+                            tmp_binary.close()
+                            os.unlink(tmp_binary.name)
+                            raise
 
                 if config:
                     other_tags = {}
