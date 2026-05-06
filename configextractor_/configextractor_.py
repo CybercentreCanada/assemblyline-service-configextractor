@@ -376,7 +376,7 @@ class ConfigExtractor(ServiceBase):
 
                 # Get AL-specific details about the parser
                 parser_name = extractor_details["name"]
-                signature_meta = self.signatures_meta[id]
+                signature_meta = self.signatures_meta[parser_id]
                 if signature_meta["status"] == "DISABLED":
                     # Not processing output from this extractor
                     continue
