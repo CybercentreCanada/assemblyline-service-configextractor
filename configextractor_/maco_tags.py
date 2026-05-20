@@ -139,7 +139,8 @@ def tag_output(output: Any, tags: dict = None):
     def tag_string(value):
         if re.search(IP_ONLY_REGEX, value):
             tags.setdefault("network.static.ip", []).append(value)
-        elif re.search(DOMAIN_ONLY_REGEX, value):
+        # When performing domain checks, ensure the TLD is alphabetic to avoid false positives (e.g. "example.123")
+        elif re.search(DOMAIN_ONLY_REGEX, value) and value.split(".")[-1].isalpha():
             tags.setdefault("network.static.domain", []).append(value)
         elif re.search(FULL_URI, value):
             tags.setdefault("network.static.uri", []).append(value)
