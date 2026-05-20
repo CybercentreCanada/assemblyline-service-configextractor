@@ -47,7 +47,8 @@ UPDATES_CHUNK_SIZE = int(os.environ.get("UPDATES_CHUNK_SIZE", "1024"))
 
 MAX_DOWNLOAD_RETRIES = 20
 DEFAULT_MAX_SAMPLE_SIZE = 256 * 1024 * 1024  # 256 MB
-FILE_REQUEST_TIMEOUT = int(os.environ.get('FILE_REQUEST_TIMEOUT', 30))
+FILE_REQUEST_TIMEOUT = int(os.environ.get("FILE_REQUEST_TIMEOUT", 30))
+
 
 class Base64TruncatedEncoder(json.JSONEncoder):
     def default(self, o):
@@ -142,7 +143,9 @@ class ConfigExtractor(ServiceBase):
                         with os.fdopen(buffer_handle, "wb") as buffer:
                             if file == SIGNATURES_META_FILENAME:
                                 self.log.info("Downloading signatures meta file...")
-                                resp = session.get(url_base + f"files/{file}", stream=True, timeout=FILE_REQUEST_TIMEOUT)
+                                resp = session.get(
+                                    url_base + f"files/{file}", stream=True, timeout=FILE_REQUEST_TIMEOUT
+                                )
                             else:
                                 # Download signature files from service-server since they might be too large for the updater to handle
                                 self.log.info(f"Downloading signature file: {file}...")
@@ -310,11 +313,15 @@ class ConfigExtractor(ServiceBase):
                     elif isinstance(v, list):
                         if not v:
                             continue
-                        if isinstance(v[0], dict):
-                            clean_config[k] = [strip_null(vi) for vi in v]
-                        elif isinstance(v[0], str):
-                            # Remove empty strings
-                            clean_config[k] = [vi for vi in v if vi]
+                        clean_config[k] = []
+                        for vi in v:
+                            if not vi:
+                                # Skip empty values in lists
+                                continue
+                            if isinstance(vi, dict):
+                                clean_config[k].append(strip_null(vi))
+                            elif isinstance(vi, str):
+                                clean_config[k].append(vi)
                     else:
                         clean_config[k] = v
             return clean_config
@@ -328,9 +335,7 @@ class ConfigExtractor(ServiceBase):
         max_file_size = self.config.get("max_file_size", DEFAULT_MAX_SAMPLE_SIZE)
         sample_size = request.task.file_size
         if sample_size > max_file_size:
-            self.log.warning(
-                f"Sample size ({sample_size} bytes) exceeds limit ({max_file_size} bytes), skipping"
-            )
+            self.log.warning(f"Sample size ({sample_size} bytes) exceeds limit ({max_file_size} bytes), skipping")
             request.result = result
             return
 
