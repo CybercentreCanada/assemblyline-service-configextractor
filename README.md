@@ -34,7 +34,9 @@ You can set the following configuration(s) for a source:
         "DISABLED": ["broken_extractor_class", ...]
     },
     // Disable extractors that don't contain a YARA rule for filtering
-    "disable_yaraless_extractors": false
+    "disable_yaraless_extractors": false,
+    // Import timeout for processing extractors
+    "import_timeout": 300
 }
 ```
 

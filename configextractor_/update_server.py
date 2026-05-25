@@ -114,7 +114,12 @@ class CXUpdateServer(ServiceUpdater):
             dir = dir[:-1]
             self.log.info(dir)
 
-            cx = ConfigExtractor(parsers_dirs=[dir], logger=self.log, create_venv=True)
+            cx = ConfigExtractor(
+                parsers_dirs=[dir],
+                logger=self.log,
+                create_venv=True,
+                import_timeout=configuration.get("import_timeout"),
+            )
 
             # Cleanup uv-related lock files from the directory
             for lock_file in glob.glob("/tmp/uv-*.lock"):
