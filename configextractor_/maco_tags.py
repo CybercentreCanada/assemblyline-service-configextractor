@@ -149,7 +149,7 @@ def tag_output(output: Any, tags: dict = None):
         # Iterate over values of dictionary
         for key, value in output.items():
             if key == "decoded_strings":
-                tags["file.string.decoded"] = value
+                tags["file.string.decoded"] = [v for v in value if v]
                 continue
 
             if isinstance(value, dict):
