@@ -1,5 +1,5 @@
 ARG branch=latest
-FROM cccs/assemblyline-v4-service-base:$branch AS base
+FROM cccs/assemblyline-rust-service-base:$branch
 
 ENV SERVICE_PATH=configextractor_.configextractor_.ConfigExtractor
 
