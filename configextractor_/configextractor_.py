@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 import shutil
-import subprocess
+import tarfile
 import tempfile
 import time
 from base64 import b64encode
@@ -166,7 +166,8 @@ class ConfigExtractor(ServiceBase):
                             if not os.path.exists(dst_file_path):
                                 os.mkdir(dst_file_path)
                             # Unpack the file into the temp directory and move to updates directory
-                            subprocess.check_output(["tar", "--zstd", "-xf", buffer_name, "-C", dst_file_path])
+                            with tarfile.open(buffer, "r:zstd") as tar:
+                                tar.extractall(path=dst_file_path)
 
                             # Clean up the buffer
                             os.unlink(buffer_name)
