@@ -166,7 +166,7 @@ class ConfigExtractor(ServiceBase):
                             if not os.path.exists(dst_file_path):
                                 os.mkdir(dst_file_path)
                             # Unpack the file into the temp directory and move to updates directory
-                            with tarfile.open(buffer, "r:zst") as tar:
+                            with tarfile.open(buffer_name, "r:zst") as tar:
                                 tar.extractall(path=dst_file_path)
 
                             # Clean up the buffer
