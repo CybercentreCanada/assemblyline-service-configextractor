@@ -267,7 +267,8 @@ class CXUpdateServer(ServiceUpdater):
             # Tar update directory
             uuid = new_time.split("time_keeper_")[-1]
             new_tar = os.path.join(UPDATER_DIR, f"signatures_{uuid}.tar.zst")
-            subprocess.run(["tar", "--zstd", "-cf", new_tar, "."], capture_output=True, cwd=new_directory)
+            with tarfile.open(new_tar, "w:zst") as tar:
+                tar.add(new_directory)
 
             # swap update directory with old one
             self._update_dir, new_directory = new_directory, self._update_dir
