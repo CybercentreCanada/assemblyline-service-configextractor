@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import time
 
@@ -152,11 +153,8 @@ class CXUpdateServer(ServiceUpdater):
                     os.remove(destination)
 
                 # Create a compressed TAR file with zstd compression for faster local extraction
-                subprocess.run(
-                    ["tar", "--zstd", "-cf", destination, "."],
-                    capture_output=True,
-                    cwd=dir,
-                )
+                with tarfile.open(destination, "w:zst") as tar:
+                    tar.add(dir)
 
                 if old_hash and old_hash != subprocess.check_output(["md5sum", destination], text=True).split()[0]:
                     self.force_local_update = True
