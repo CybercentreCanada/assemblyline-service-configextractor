@@ -167,7 +167,7 @@ class ConfigExtractor(ServiceBase):
                                 os.mkdir(dst_file_path)
                             # Unpack the file into the temp directory and move to updates directory
                             with tarfile.open(buffer_name, "r:zst") as tar:
-                                tar.extractall(path=dst_file_path)
+                                tar.extractall(path=dst_file_path, filter="fully_trusted")
 
                             # Clean up the buffer
                             os.unlink(buffer_name)
