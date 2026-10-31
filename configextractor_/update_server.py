@@ -154,7 +154,7 @@ class CXUpdateServer(ServiceUpdater):
 
                 # Create a compressed TAR file with zstd compression for faster local extraction
                 with tarfile.open(destination, "w:zst") as tar:
-                    tar.add(dir)
+                    tar.add(dir, arcname=".")
 
                 if old_hash and old_hash != subprocess.check_output(["md5sum", destination], text=True).split()[0]:
                     self.force_local_update = True
@@ -268,7 +268,7 @@ class CXUpdateServer(ServiceUpdater):
             uuid = new_time.split("time_keeper_")[-1]
             new_tar = os.path.join(UPDATER_DIR, f"signatures_{uuid}.tar.zst")
             with tarfile.open(new_tar, "w:zst") as tar:
-                tar.add(new_directory)
+                tar.add(new_directory, arcname=".")
 
             # swap update directory with old one
             self._update_dir, new_directory = new_directory, self._update_dir
